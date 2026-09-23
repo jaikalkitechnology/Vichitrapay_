@@ -1,0 +1,120 @@
+Zeepays API
+POST
+Status check by Transaction ID
+https://www.zeepays.in/ws/v1/Fetch/txnstatus
+HEADERS
+Content-Type
+application/json
+
+Body
+raw (json)
+json
+{
+    "username": "dsuifbdjcbd45845dfd",
+    "password": "dsuifbdjcbd45845dfd",
+    "requestid": "sdfdgf5411hj",
+    "lat": "28.5393282",
+    "long": "77.2822436",
+    "txnid":"W241206183608YAXL"
+}
+Example Request
+Status check by Transaction ID Success
+curl
+curl --location 'https://www.zeepays.in/ws/v1/Fetch/txnstatus' \
+--header 'Content-Type: application/json' \
+--data '{
+    "username": "dsuifbdjcbd45845dfd",
+    "password": "dsuifbdjcbd45845dfd",
+    "requestid": "sdfdgf5411hj",
+    "lat": "28.5393282",
+    "long": "77.2822436",
+    "txnid":"W241206183608YAXL"
+}'
+Example Response
+Body
+Headers (1)
+View More
+json
+{
+  "Resp_code": "RCS",
+  "Resp_desc": "Request Completed",
+  "data": {
+    "requestid": "hbdssc78562x",
+    "txnid": "W241206183608YAXL",
+    "utr": "507119160280",
+    "servicename": "Payout 1",
+    "servicetype": "PAYOUTS",
+    "servicekey": "PYT1",
+    "txnamt": "100.00",
+    "txndt": "2025-03-12 19:07:45",
+    "txnstatus": "SUCCESS"
+  }
+}
+POST
+Service List
+https://www.zeepays.in/ws/v1/Fetch/operator_list
+HEADERS
+Content-Type
+application/json
+
+Body
+raw (json)
+json
+{
+    "username": "dsuifbdjcbd45845dfd",
+    "password": "dsuifbdjcbd45845dfd",
+    "requestid": "sdfdgf5411hj",
+    "service_type": "PAYOUTS"
+}
+Example Request
+Service List Success
+curl
+curl --location 'https://www.zeepays.in/ws/v1/Fetch/operator_list' \
+--header 'Content-Type: application/json' \
+--data '{
+    "username": "dsuifbdjcbd45845dfd",
+    "password": "dsuifbdjcbd45845dfd",
+    "requestid": "sdfdgf5411hj",
+    "service_type": "PAYOUTS"
+}'
+Example Response
+Body
+Headers (0)
+View More
+Text
+{
+  "Resp_code": "RCS",
+  "Resp_desc": "Request Completed Successfully",
+  "data": [
+    {
+      "service_id": "364",
+      "service_name": "Payout 1",
+      "service_code": "PYT1",
+      "service_type": "PAYOUTS",
+      "amount_exactness": "ANY",
+      "fetch_validate": "NOTAPP",
+      "is_bbps": "0",
+      "verify_outlet": "0",
+      "status": "ACTIVE",
+      "params": []
+    }
+  ]
+}
+GET
+Transaction Status Callback
+{{UserCallbackURL}}?txnid={TXNID}&requestid={USER API REQID}&servicetxnid={UTR}&status={TRANSACTION STATUS}&desc={Description}
+PARAMS
+txnid
+{TXNID}
+
+requestid
+{USER API REQID}
+
+servicetxnid
+{UTR}
+
+status
+{TRANSACTION STATUS}
+
+desc
+{Description}

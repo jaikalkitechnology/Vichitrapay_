@@ -1,0 +1,1355 @@
+<title>Vichitrapay Merchant Panel</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --navy: #0F2744;
+  --navy-light: #1A3A5C;
+  --navy-text: #94A3B8;
+  --navy-text-bright: #E2E8F0;
+  --navy-active-bg: rgba(79, 107, 246, 0.15);
+  --navy-active-text: #7B93FA;
+  --navy-divider: rgba(148, 163, 184, 0.15);
+
+  --primary: #4F6BF6;
+  --primary-hover: #3D57E2;
+  --primary-50: #EEF0FE;
+  --primary-100: #D9DFFE;
+  --primary-700: #3348C4;
+
+  --success: #22C55E;
+  --success-50: #F0FDF4;
+  --success-100: #DCFCE7;
+  --success-700: #15803D;
+  --success-border: #BBF7D0;
+
+  --warning: #F59E0B;
+  --warning-50: #FFFBEB;
+  --warning-100: #FEF3C7;
+  --warning-700: #B45309;
+  --warning-border: #FDE68A;
+
+  --danger: #EF4444;
+  --danger-50: #FEF2F2;
+  --danger-100: #FEE2E2;
+  --danger-700: #B91C1C;
+
+  --bg-page: #F8F9FB;
+  --bg-card: #FFFFFF;
+  --bg-card-alt: #F9FAFB;
+  --bg-input: #FFFFFF;
+  --bg-topbar: #FFFFFF;
+  --bg-code: #111827;
+
+  --border-color: #E5E7EB;
+  --border-strong: #D1D5DB;
+
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+  --text-on-primary: #FFFFFF;
+
+  --th-bg: #F9FAFB;
+  --row-hover: #F9FAFB;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --topbar-border: #E5E7EB;
+
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg-page: #0D1117;
+    --bg-card: #161B22;
+    --bg-card-alt: #1C2128;
+    --bg-input: #1C2128;
+    --bg-topbar: #161B22;
+    --bg-code: #0D1117;
+
+    --border-color: #30363D;
+    --border-strong: #484F58;
+
+    --text-primary: #E6EDF3;
+    --text-secondary: #8B949E;
+    --text-tertiary: #6E7681;
+
+    --th-bg: #1C2128;
+    --row-hover: #1C2128;
+
+    --primary-50: rgba(79, 107, 246, 0.12);
+    --primary-100: rgba(79, 107, 246, 0.2);
+    --primary-700: #7B93FA;
+
+    --success-50: rgba(34, 197, 94, 0.1);
+    --success-100: rgba(34, 197, 94, 0.15);
+    --success-700: #4ADE80;
+    --success-border: rgba(34, 197, 94, 0.3);
+
+    --warning-50: rgba(245, 158, 11, 0.1);
+    --warning-100: rgba(245, 158, 11, 0.15);
+    --warning-700: #FBBF24;
+    --warning-border: rgba(245, 158, 11, 0.3);
+
+    --danger-50: rgba(239, 68, 68, 0.1);
+    --danger-100: rgba(239, 68, 68, 0.15);
+    --danger-700: #F87171;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+    --topbar-border: #30363D;
+
+    --navy: #0B1D33;
+    --navy-light: #132D4A;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-page: #0D1117;
+  --bg-card: #161B22;
+  --bg-card-alt: #1C2128;
+  --bg-input: #1C2128;
+  --bg-topbar: #161B22;
+  --bg-code: #0D1117;
+
+  --border-color: #30363D;
+  --border-strong: #484F58;
+
+  --text-primary: #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-tertiary: #6E7681;
+
+  --th-bg: #1C2128;
+  --row-hover: #1C2128;
+
+  --primary-50: rgba(79, 107, 246, 0.12);
+  --primary-100: rgba(79, 107, 246, 0.2);
+  --primary-700: #7B93FA;
+
+  --success-50: rgba(34, 197, 94, 0.1);
+  --success-100: rgba(34, 197, 94, 0.15);
+  --success-700: #4ADE80;
+  --success-border: rgba(34, 197, 94, 0.3);
+
+  --warning-50: rgba(245, 158, 11, 0.1);
+  --warning-100: rgba(245, 158, 11, 0.15);
+  --warning-700: #FBBF24;
+  --warning-border: rgba(245, 158, 11, 0.3);
+
+  --danger-50: rgba(239, 68, 68, 0.1);
+  --danger-100: rgba(239, 68, 68, 0.15);
+  --danger-700: #F87171;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --topbar-border: #30363D;
+
+  --navy: #0B1D33;
+  --navy-light: #132D4A;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.app-shell {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-page);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Topbar ── */
+.topbar {
+  height: 52px;
+  background: var(--bg-topbar);
+  border-bottom: 1px solid var(--topbar-border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand-badge {
+  width: 28px;
+  height: 28px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.topbar-search {
+  flex: 1;
+  max-width: 400px;
+  position: relative;
+  margin-left: 20px;
+}
+
+.topbar-search input {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 12px 0 34px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.topbar-search input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-50);
+}
+
+.topbar-search svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.topbar-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.topbar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ── Layout ── */
+.app-body {
+  display: flex;
+  flex: 1;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: calc(100vh - 52px);
+}
+
+.sidebar-nav {
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--navy-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nav-item:hover {
+  background: var(--navy-light);
+  color: var(--navy-text-bright);
+}
+
+.nav-item.active {
+  background: var(--navy-active-bg);
+  color: var(--navy-active-text);
+}
+
+.nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.nav-item.active svg {
+  opacity: 1;
+}
+
+.sidebar-user {
+  padding: 12px;
+  border-top: 1px solid var(--navy-divider);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--navy-light);
+  color: var(--navy-text-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sidebar-user-info {
+  overflow: hidden;
+}
+
+.sidebar-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy-text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-role {
+  font-size: 11px;
+  color: var(--navy-text);
+}
+
+/* ── Main Content ── */
+.main-content {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.page-section {
+  padding: 24px;
+}
+
+/* ── Page Titles ── */
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ── Stat Cards ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--primary-50);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-body {
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat-change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.stat-change.up { color: var(--success); }
+.stat-change.down { color: var(--danger); }
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* ── Forms ── */
+.form-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-50);
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+/* ── Buttons ── */
+.btn {
+  height: 32px;
+  border-radius: 6px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--primary-hover); }
+
+.btn-outline {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.btn-outline:hover { background: var(--bg-card-alt); }
+
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.badge-success {
+  background: var(--success-50);
+  color: var(--success-700);
+  border-color: var(--success-border);
+}
+
+.badge-warning {
+  background: var(--warning-50);
+  color: var(--warning-700);
+  border-color: var(--warning-border);
+}
+
+.badge-danger {
+  background: var(--danger-50);
+  color: var(--danger-700);
+  border-color: var(--danger-100);
+}
+
+.badge-neutral {
+  background: var(--bg-card-alt);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+/* ── Tables ── */
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  background: var(--th-bg);
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+tr:hover td {
+  background: var(--row-hover);
+}
+
+td:last-child, th:last-child { text-align: right; }
+
+/* ── Quick Withdraw Row ── */
+.withdraw-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.withdraw-field {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* ── Section Divider ── */
+.page-divider {
+  border: none;
+  border-top: 2px dashed var(--border-color);
+  margin: 40px 24px;
+  position: relative;
+}
+
+.page-divider::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-page);
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ── Two Column Layout ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Code Panel ── */
+.code-panel {
+  background: var(--bg-code);
+  border-radius: 6px;
+  border: 1px solid #1F2937;
+  overflow: hidden;
+}
+
+.code-panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid #1F2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.code-dot.red { background: #EF4444; }
+.code-dot.yellow { background: #F59E0B; }
+.code-dot.green { background: #22C55E; }
+
+.code-panel-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #9CA3AF;
+  margin-left: 6px;
+}
+
+.code-body {
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #4ADE80;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-body .comment { color: #6B7280; }
+.code-body .string { color: #FDE68A; }
+.code-body .key { color: #93C5FD; }
+.code-body .method { color: #C084FC; }
+
+.code-response {
+  padding: 14px;
+  border-top: 1px solid #1F2937;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9CA3AF;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-response .key { color: #93C5FD; }
+.code-response .string { color: #FDE68A; }
+.code-response .number { color: #F87171; }
+.code-response .bool { color: #C084FC; }
+
+/* ── Success Banner ── */
+.success-banner {
+  background: var(--success-50);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.success-banner-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--success);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.success-banner-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.success-banner-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success-700);
+}
+
+.success-banner-url {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.success-banner-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Filter Row ── */
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-field {
+  min-width: 120px;
+}
+
+.filter-field.narrow { min-width: 90px; flex: 0 1 auto; }
+
+.filter-field label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  display: block;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ── Check Status Button ── */
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ── Summary Cards Row ── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.summary-card-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.summary-card-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Regen Button ── */
+.input-with-btn {
+  display: flex;
+  gap: 6px;
+}
+
+.input-with-btn .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .topbar-search { display: none; }
+  .page-section { padding: 16px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .page-divider { margin: 32px 16px; }
+}
+
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr; }
+  .withdraw-row { flex-direction: column; }
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-field { min-width: 0; }
+  .success-banner { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<div class="app-shell">
+  <!-- ═══ TOPBAR ═══ -->
+  <header class="topbar">
+    <a class="topbar-brand" href="#">
+      <span class="brand-badge">V</span>
+      Vichitrapay
+    </a>
+    <div class="topbar-search">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="5.5"/><path d="M11 11l3 3"/></svg>
+      <input type="text" placeholder="Search transactions, orders..." id="topbar-search">
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" title="Toggle theme" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <button class="topbar-btn" title="Notifications">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </button>
+      <span class="topbar-avatar">AK</span>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- ═══ SIDEBAR ═══ -->
+    <nav class="sidebar">
+      <div class="sidebar-nav">
+        <a class="nav-item active" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          Transactions
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Payment Link
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Payout Accounts
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg>
+          Settlements
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>
+          Top Up
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          Passbook
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Developer
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Change Password
+        </a>
+      </div>
+      <div class="sidebar-user">
+        <span class="sidebar-user-avatar">AK</span>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Amit Kumar</div>
+          <div class="sidebar-user-role">Merchant</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="main-content">
+
+      <!-- ────── PAGE 1: Dashboard ────── -->
+      <section class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">Welcome back, Amit!</h1>
+          <p class="page-subtitle">Here's what's happening with your payments today.</p>
+        </div>
+
+        <!-- Stat Cards -->
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4h-4z"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Total Balance</div>
+              <div class="stat-value">&#8377;24,580</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Today's Volume</div>
+              <div class="stat-value">&#8377;8,450</div>
+              <div class="stat-change up">&#8593; 23% vs yesterday</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Today's Txns</div>
+              <div class="stat-value">47</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <div class="stat-body">
+              <div class="stat-label">Avg Value</div>
+              <div class="stat-value">&#8377;179</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Withdraw -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-header">
+            <span class="card-title">Quick Withdraw</span>
+            <span class="badge badge-success">Available: &#8377;24,580</span>
+          </div>
+          <div class="card-body">
+            <div class="withdraw-row">
+              <div class="withdraw-field">
+                <label class="form-label" for="w-amount">Amount (&#8377;)</label>
+                <input class="form-input" id="w-amount" type="text" value="5,000" placeholder="Enter amount">
+              </div>
+              <div class="withdraw-field">
+                <label class="form-label" for="w-bank">Bank Account</label>
+                <select class="form-select" id="w-bank">
+                  <option>HDFC **** 4521</option>
+                  <option>ICICI **** 7834</option>
+                </select>
+              </div>
+              <button class="btn btn-primary">Withdraw &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Settlements -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Settlements</span>
+            <button class="btn btn-outline btn-sm">View All</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Settlement ID</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">STL-20260922-001</td>
+                  <td>&#8377;12,340</td>
+                  <td><span class="badge badge-success">Completed</span></td>
+                  <td>22 Sep 2026</td>
+                </tr>
+                <tr>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">STL-20260921-003</td>
+                  <td>&#8377;8,920</td>
+                  <td><span class="badge badge-success">Completed</span></td>
+                  <td>21 Sep 2026</td>
+                </tr>
+                <tr>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">STL-20260920-002</td>
+                  <td>&#8377;15,670</td>
+                  <td><span class="badge badge-warning">Processing</span></td>
+                  <td>20 Sep 2026</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ────── DIVIDER ────── -->
+      <hr class="page-divider" data-label="Page 2 &mdash; Payment Link Generator">
+
+      <!-- ────── PAGE 2: Payment Link Generator ────── -->
+      <section class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">Payment Link Generator</h1>
+          <p class="page-subtitle">Create one-time or reusable payment links for your customers.</p>
+        </div>
+
+        <div class="two-col">
+          <!-- LEFT: Form -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Link Details</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label" for="pl-amount">Amount (&#8377;)</label>
+                <input class="form-input" id="pl-amount" type="text" value="1,500" placeholder="Enter amount">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pl-order">Order ID</label>
+                <div class="input-with-btn">
+                  <input class="form-input" id="pl-order" type="text" value="ORD-9A3F7B2E" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                  <button class="btn btn-outline btn-sm" title="Regenerate">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pl-channel">Channel</label>
+                <select class="form-select" id="pl-channel">
+                  <option>UPI</option>
+                  <option>Net Banking</option>
+                  <option>Cards</option>
+                  <option>All Methods</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pl-purpose">Purpose</label>
+                <input class="form-input" id="pl-purpose" type="text" value="Invoice #INV-2026-0451" placeholder="Payment purpose">
+              </div>
+              <div style="border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em;">Customer Details</div>
+                <div class="form-group">
+                  <label class="form-label" for="pl-name">Name</label>
+                  <input class="form-input" id="pl-name" type="text" value="Priya Sharma" placeholder="Customer name">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="pl-email">Email</label>
+                  <input class="form-input" id="pl-email" type="email" value="priya.sharma@gmail.com" placeholder="Email address">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label" for="pl-phone">Phone</label>
+                  <input class="form-input" id="pl-phone" type="tel" value="+91 98765 43210" placeholder="Phone number">
+                </div>
+              </div>
+              <button class="btn btn-primary" style="margin-top: 16px; width: 100%; justify-content: center;">Generate Link &rarr;</button>
+            </div>
+          </div>
+
+          <!-- RIGHT: Code Preview -->
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="code-panel">
+              <div class="code-panel-header">
+                <span class="code-dot red"></span>
+                <span class="code-dot yellow"></span>
+                <span class="code-dot green"></span>
+                <span class="code-panel-title">API Request</span>
+              </div>
+              <div class="code-body"><span class="comment"># Create Payment Link</span>
+<span class="method">curl</span> -X POST \
+  https://api.vasupay.in/v1/links \
+  -H <span class="string">"Authorization: Bearer vsp_live_***"</span> \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="key">"amount"</span>: <span class="string">1500</span>,
+    <span class="key">"currency"</span>: <span class="string">"INR"</span>,
+    <span class="key">"order_id"</span>: <span class="string">"ORD-9A3F7B2E"</span>,
+    <span class="key">"channel"</span>: <span class="string">"upi"</span>,
+    <span class="key">"purpose"</span>: <span class="string">"Invoice #INV-2026-0451"</span>,
+    <span class="key">"customer"</span>: {
+      <span class="key">"name"</span>: <span class="string">"Priya Sharma"</span>,
+      <span class="key">"email"</span>: <span class="string">"priya.sharma@gmail.com"</span>,
+      <span class="key">"phone"</span>: <span class="string">"+919876543210"</span>
+    }
+  }'</div>
+              <div class="code-response"><span class="comment">// Response</span>
+{
+  <span class="key">"id"</span>: <span class="string">"link_Kx9mR4TvNw"</span>,
+  <span class="key">"status"</span>: <span class="string">"active"</span>,
+  <span class="key">"short_url"</span>: <span class="string">"https://pay.vasupay.in/p/Kx9mR4Tv"</span>,
+  <span class="key">"amount"</span>: <span class="number">1500</span>,
+  <span class="key">"currency"</span>: <span class="string">"INR"</span>,
+  <span class="key">"expires_at"</span>: <span class="string">"2026-09-30T23:59:59Z"</span>,
+  <span class="key">"created_at"</span>: <span class="string">"2026-09-23T10:15:00Z"</span>
+}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success Banner -->
+        <div class="success-banner">
+          <div class="success-banner-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="success-banner-text">
+            <div class="success-banner-label">Payment link created successfully</div>
+            <div class="success-banner-url">https://pay.vasupay.in/p/Kx9mR4Tv</div>
+          </div>
+          <div class="success-banner-actions">
+            <button class="btn btn-outline btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+            <button class="btn btn-success btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Open
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ────── DIVIDER ────── -->
+      <hr class="page-divider" data-label="Page 3 &mdash; Passbook">
+
+      <!-- ────── PAGE 3: Passbook ────── -->
+      <section class="page-section">
+        <div class="page-header">
+          <h1 class="page-title">Passbook</h1>
+          <p class="page-subtitle">Complete ledger of all transactions and charges on your account.</p>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-card-label">Total Txns</div>
+            <div class="summary-card-value">47</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card-label">Volume</div>
+            <div class="summary-card-value">&#8377;24K</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-card-label">Charges</div>
+            <div class="summary-card-value">&#8377;480</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div class="card-body">
+            <div class="filter-row">
+              <div class="filter-field">
+                <label for="pb-status">Status</label>
+                <select class="form-select" id="pb-status" style="height: 32px;">
+                  <option>All Statuses</option>
+                  <option>Completed</option>
+                  <option>Pending</option>
+                  <option>Failed</option>
+                </select>
+              </div>
+              <div class="filter-field narrow">
+                <label for="pb-min">Min Amt</label>
+                <input class="form-input" id="pb-min" type="text" placeholder="&#8377;0" style="height: 32px;">
+              </div>
+              <div class="filter-field narrow">
+                <label for="pb-max">Max Amt</label>
+                <input class="form-input" id="pb-max" type="text" placeholder="&#8377;99,999" style="height: 32px;">
+              </div>
+              <div class="filter-field">
+                <label for="pb-from">From</label>
+                <input class="form-input" id="pb-from" type="date" value="2026-09-01" style="height: 32px;">
+              </div>
+              <div class="filter-field">
+                <label for="pb-to">To</label>
+                <input class="form-input" id="pb-to" type="date" value="2026-09-23" style="height: 32px;">
+              </div>
+              <div class="filter-field" style="flex: 1;">
+                <label for="pb-search">Search</label>
+                <input class="form-input" id="pb-search" type="text" placeholder="Order ID, UTR..." style="height: 32px;">
+              </div>
+              <div style="display: flex; gap: 6px; align-items: flex-end;">
+                <button class="btn btn-primary btn-sm">Apply</button>
+                <button class="btn btn-outline btn-sm">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passbook Table -->
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Order ID</th>
+                  <th>Txn ID</th>
+                  <th>UTR</th>
+                  <th>Amount</th>
+                  <th>Charges</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-size: 12px; color: var(--text-secondary);">23 Sep, 14:32</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">ORD-9A3F7B2E</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">TXN826491</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">326145789012</td>
+                  <td style="font-weight: 600;">&#8377;1,500</td>
+                  <td style="color: var(--text-secondary);">&#8377;15</td>
+                  <td><span class="badge badge-success">Completed</span></td>
+                  <td>&mdash;</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: var(--text-secondary);">23 Sep, 13:18</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">ORD-7E2C4D91</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">TXN826490</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">&mdash;</td>
+                  <td style="font-weight: 600;">&#8377;3,200</td>
+                  <td style="color: var(--text-secondary);">&#8377;32</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td>
+                    <button class="btn-icon" title="Check Status">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: var(--text-secondary);">23 Sep, 11:45</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">ORD-3B8F1A6C</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">TXN826489</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">326145789008</td>
+                  <td style="font-weight: 600;">&#8377;750</td>
+                  <td style="color: var(--text-secondary);">&#8377;8</td>
+                  <td><span class="badge badge-success">Completed</span></td>
+                  <td>&mdash;</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 12px; color: var(--text-secondary);">22 Sep, 19:27</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">ORD-5D9E2F84</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">TXN826488</td>
+                  <td style="font-family: var(--font-mono); font-size: 12px;">&mdash;</td>
+                  <td style="font-weight: 600;">&#8377;2,100</td>
+                  <td style="color: var(--text-secondary);">&#8377;21</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td>
+                    <button class="btn-icon" title="Check Status">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
