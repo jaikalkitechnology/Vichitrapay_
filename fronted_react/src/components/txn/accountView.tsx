@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "@/api/api";
 import { BASE_URL } from "@/config";
 import type { AxiosResponse } from "axios";
-import { Plus, RefreshCw, Search, Banknote, Shield, CheckCircle, XCircle, Edit, Trash2, User, Hash, Building, MapPin, CreditCard } from "lucide-react";
+import { Plus, RefreshCw, Search, Banknote, Shield, CheckCircle, XCircle, Building, Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState, PageHeader, Panel, StatCard, StatusBadge, inputCls } from "@/components/admin-part/ui";
 
 type PayoutBankAccount = {
   id: number;
@@ -86,6 +88,7 @@ export default function PayoutAccountsPage(): JSX.Element {
 
   // client-side search
   const [q, setQ] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchList();
@@ -226,415 +229,173 @@ export default function PayoutAccountsPage(): JSX.Element {
     );
   }, [items, q]);
 
+  const verified = items.filter((it) => it.is_validate).length;
+  const mask = (n: string) => `•••• ${String(n || "").slice(-4)}`;
+  const fieldErr = (k: string) =>
+    formErrors[k] ? <p className="mt-1 text-[12px] text-red-600 dark:text-red-400">{formErrors[k]}</p> : null;
+  const label = "mb-1.5 block text-[12px] text-gray-600 dark:text-gray-400";
+  const formOpen = showForm || (!loadingList && total === 0);
+
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-                Bank Accounts
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Manage your payout bank accounts for withdrawals</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => fetchList()} 
-                className="px-4 h-9 border border-gray-200 dark:border-gray-600 rounded-lg font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
-              </button>
-            </div>
-          </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Payout Accounts"
+        description="Bank accounts you can withdraw your payout balance to"
+        actions={
+          <>
+            <Button variant="outline" onClick={() => fetchList()}>
+              <RefreshCw className={loadingList ? "animate-spin" : ""} /> Refresh
+            </Button>
+            <Button onClick={() => setShowForm((v) => !v)}>
+              <Plus /> Add Account
+            </Button>
+          </>
+        }
+      />
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#3871C2]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Total Accounts</div>
-                  <div className="text-2xl font-bold text-[#3871C2]">{total}</div>
-                </div>
-                <Banknote className="w-6 h-6 text-[#3871C2]" />
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#41B93D]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Validated Accounts</div>
-                  <div className="text-2xl font-bold text-[#41B93D]">{items.filter(it => it.is_validate).length}</div>
-                </div>
-                <Shield className="w-6 h-6 text-[#41B93D]" />
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#00ADEF]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Accounts per Page</div>
-                  <div className="text-2xl font-bold text-[#00ADEF]">{limit}</div>
-                </div>
-                <CreditCard className="w-6 h-6 text-[#00ADEF]" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Add Account Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-[#3871C2] flex items-center justify-center">
-              <Plus className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add New Bank Account</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Fill in the details to add a new payout account</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Account Holder Name */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Account Holder Name
-                </label>
-                <input
-                  value={accountHolderName}
-                  onChange={(e) => setAccountHolderName(e.target.value)}
-                  placeholder="Full name as per bank records"
-                  className={`w-full border ${formErrors.account_holder_name ? 'border-red-300' : 'border-gray-200 dark:border-gray-600'} rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]`}
-                  aria-invalid={!!formErrors.account_holder_name}
-                />
-                {formErrors.account_holder_name && (
-                  <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    {formErrors.account_holder_name}
-                  </div>
-                )}
-              </div>
-
-              {/* Account Number */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <Hash className="w-4 h-4" />
-                  Account Number
-                </label>
-                <input
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="1234567890"
-                  className={`w-full border ${formErrors.account_number ? 'border-red-300' : 'border-gray-200 dark:border-gray-600'} rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]`}
-                  inputMode="numeric"
-                  aria-invalid={!!formErrors.account_number}
-                />
-                {formErrors.account_number && (
-                  <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    {formErrors.account_number}
-                  </div>
-                )}
-              </div>
-
-              {/* IFSC Code */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <Building className="w-4 h-4" />
-                  IFSC Code
-                </label>
-                <input
-                  value={ifscCode}
-                  onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
-                  placeholder="SBIN0000001"
-                  className={`w-full border ${formErrors.ifsc_code ? 'border-red-300' : 'border-gray-200 dark:border-gray-600'} rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2] uppercase`}
-                  aria-invalid={!!formErrors.ifsc_code}
-                />
-                {formErrors.ifsc_code && (
-                  <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    {formErrors.ifsc_code}
-                  </div>
-                )}
-              </div>
-
-              {/* Bank Name */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <Building className="w-4 h-4" />
-                  Bank Name
-                </label>
-                <input
-                  value={bankName}
-                  onChange={(e) => setBankName(e.target.value)}
-                  placeholder="State Bank of India"
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-
-              {/* Bank Branch */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Bank Branch
-                </label>
-                <input
-                  value={bankBranch}
-                  onChange={(e) => setBankBranch(e.target.value)}
-                  placeholder="Main Branch"
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-
-              {/* Account Type */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Account Type
-                </label>
-                <input
-                  value={accountType}
-                  onChange={(e) => setAccountType(e.target.value)}
-                  placeholder="SAVINGS / CURRENT"
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-
-              {/* Bank Address */}
-              <div className="md:col-span-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Bank Address
-                </label>
-                <textarea
-                  value={bankAddress}
-                  onChange={(e) => setBankAddress(e.target.value)}
-                  placeholder="Complete bank address (optional)"
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2] resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-              <button
-                type="submit"
-                disabled={creating}
-                className="px-6 h-9 bg-[#41B93D] text-white rounded-lg font-medium hover:bg-[#379e34] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {creating ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5" />
-                    Create Account
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setAccountHolderName("");
-                  setAccountNumber("");
-                  setIfscCode("");
-                  setBankName("");
-                  setBankBranch("");
-                  setAccountType("");
-                  setBankAddress("");
-                  setFormErrors({});
-                  setError(null);
-                }}
-                className="px-6 h-9 border border-gray-200 dark:border-gray-600 rounded-lg font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Reset Form
-              </button>
-
-              {/* Search and Controls */}
-              <div className="flex-1 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search accounts..."
-                    className="pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                  />
-                </div>
-                <select
-                  value={limit}
-                  onChange={(e) => { setLimit(Number(e.target.value)); setOffset(0); }}
-                  className="px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                >
-                  {[5, 10, 20, 50].map((n) => (
-                    <option key={n} value={n}>
-                      {n} per page
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {error && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-[#F68713]/10 to-orange-50 border border-[#F68713]/30 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <XCircle className="w-5 h-5 text-[#F68713]" />
-                  <p className="text-[#F68713] font-medium">{error}</p>
-                </div>
-              </div>
-            )}
-          </form>
-        </div>
-
-        {/* Accounts Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-          {/* Table Header */}
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">Bank Accounts</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Total: {total} accounts</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing {Math.min(total, offset + 1)} - {Math.min(total, offset + (items.length || 0))}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Table Content */}
-          <div className="overflow-x-auto">
-            {loadingList ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex flex-col items-center justify-center">
-                  <div className="w-12 h-9 border-4 border-[#3871C2]/20 border-t-[#3871C2] rounded-full animate-spin mb-4"></div>
-                  <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading accounts...</p>
-                </div>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex flex-col items-center justify-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-50 rounded-full flex items-center justify-center mb-4">
-                    <Banknote className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">No accounts found</p>
-                  <p className="text-gray-500">Add your first bank account to get started</p>
-                </div>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 dark:bg-gray-900 border-b">
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">#</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Account Holder</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Account Number</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">IFSC</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Bank</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Branch</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Type</th>
-                    <th className="text-left px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((it, idx) => (
-                    <tr key={it.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">{offset + idx + 1}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#3871C2]/10 to-[#00ADEF]/10 flex items-center justify-center">
-                            <User className="w-4 h-4 text-[#3871C2]" />
-                          </div>
-                          <span className="font-medium">{it.account_holder_name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-mono text-sm bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded border border-gray-200 dark:border-gray-700">
-                          ••••{it.account_number.slice(-4)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="font-mono text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded border border-blue-100">
-                          {it.ifsc_code}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{it.bank_name || "-"}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{it.bank_branch || "-"}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                          {it.account_type || "-"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          it.is_validate
-                            ? 'bg-gradient-to-r from-[#41B93D]/10 to-emerald-100 text-[#41B93D] border border-[#41B93D]/20'
-                            : 'bg-gradient-to-r from-[#F68713]/10 to-orange-100 text-[#F68713] border border-[#F68713]/20'
-                        }`}>
-                          {it.is_validate ? (
-                            <>
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Validated
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="w-3 h-3 mr-1" />
-                              Pending
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Page {Math.floor(offset / limit) + 1} of {Math.ceil(total / limit)} • {total} total accounts
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={prevPage}
-                disabled={offset === 0}
-                className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              >
-                ← Previous
-              </button>
-              <button
-                onClick={nextPage}
-                disabled={offset + limit >= total}
-                className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg font-medium bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Security Note */}
-        <div className="mt-6 p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm rounded-xl border-l-4 border-l-[#41B93D]">
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-[#41B93D] mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-[#41B93D] mb-1">Your data is secure</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                All bank account information is encrypted with 256-bit SSL encryption and stored securely.
-                We never share your financial details with third parties.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-3 gap-4">
+        <StatCard label="Total" value={total} icon={Banknote} />
+        <StatCard label="Verified" value={verified} icon={Shield} />
+        <StatCard label="Pending" value={Math.max(0, items.length - verified)} icon={Clock} />
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
+          <XCircle className="h-4 w-4" /> {error}
+        </div>
+      )}
+
+      <Panel
+        title="Your Accounts"
+        meta={`${total} total`}
+        actions={
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search accounts..." className={`${inputCls} w-56 pl-8`} />
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-2 p-4">
+          {loadingList ? (
+            <div className="py-8 text-center">
+              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <EmptyState icon={Banknote} title={q ? "No matching accounts" : "No payout accounts yet"} description={q ? "Try a different search" : "Add a bank account to start withdrawing"} />
+          ) : (
+            filtered.map((it) => (
+              <div
+                key={it.id}
+                className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                    <Building className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-2 text-[13px]">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">{it.bank_name || "Bank"}</span>
+                      <span className="font-mono text-gray-600 dark:text-gray-400">{mask(it.account_number)}</span>
+                    </div>
+                    <div className="truncate text-[12px] text-gray-500 dark:text-gray-400">
+                      {it.account_holder_name} · <span className="font-mono">{it.ifsc_code}</span>
+                      {it.bank_branch ? ` · ${it.bank_branch}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 sm:flex-shrink-0">
+                  {it.account_type && <span className="text-[12px] capitalize text-gray-500">{it.account_type.toLowerCase()}</span>}
+                  <StatusBadge status={it.is_validate ? "verified" : "pending"}>
+                    {it.is_validate ? <><CheckCircle className="mr-1 h-3 w-3" />Verified</> : "Pending"}
+                  </StatusBadge>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {total > limit && (
+          <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-[13px] text-gray-500 dark:border-gray-800">
+            <span>
+              {offset + 1}–{Math.min(offset + limit, total)} of {total}
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={prevPage} disabled={offset === 0}>Previous</Button>
+              <Button variant="outline" onClick={nextPage} disabled={offset + limit >= total}>Next</Button>
+            </div>
+          </div>
+        )}
+      </Panel>
+
+      {/* Add Account — collapsible inline form */}
+      <Panel
+        title="Add Account"
+        actions={
+          <Button variant="ghost" size="icon" onClick={() => setShowForm((v) => !v)} aria-label={formOpen ? "Collapse" : "Expand"}>
+            {formOpen ? <ChevronUp /> : <ChevronDown />}
+          </Button>
+        }
+      >
+        {formOpen && (
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+            <label className="block">
+              <span className={label}>Account Holder Name *</span>
+              <input value={accountHolderName} onChange={(e) => setAccountHolderName(e.target.value)} placeholder="Full name as per bank records" className={`${inputCls} w-full`} />
+              {fieldErr("account_holder_name")}
+            </label>
+            <label className="block">
+              <span className={label}>IFSC Code *</span>
+              <input value={ifscCode} onChange={(e) => setIfscCode(e.target.value.toUpperCase())} placeholder="SBIN0000001" className={`${inputCls} w-full font-mono`} />
+              {fieldErr("ifsc_code")}
+            </label>
+            <label className="block">
+              <span className={label}>Account Number *</span>
+              <input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="1234567890" className={`${inputCls} w-full font-mono`} />
+              {fieldErr("account_number")}
+            </label>
+            <label className="block">
+              <span className={label}>Bank Name</span>
+              <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="State Bank of India" className={`${inputCls} w-full`} />
+            </label>
+            <label className="block">
+              <span className={label}>Bank Branch</span>
+              <input value={bankBranch} onChange={(e) => setBankBranch(e.target.value)} placeholder="Main Branch" className={`${inputCls} w-full`} />
+            </label>
+            <label className="block">
+              <span className={label}>Account Type</span>
+              <select value={accountType} onChange={(e) => setAccountType(e.target.value)} className={`${inputCls} w-full`}>
+                <option value="">Select type</option>
+                <option value="SAVINGS">Savings</option>
+                <option value="CURRENT">Current</option>
+              </select>
+            </label>
+            <label className="block md:col-span-2">
+              <span className={label}>Bank Address</span>
+              <textarea
+                value={bankAddress}
+                onChange={(e) => setBankAddress(e.target.value)}
+                placeholder="Complete bank address (optional)"
+                rows={2}
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              />
+            </label>
+            <div className="flex justify-end gap-2 md:col-span-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setAccountHolderName(""); setAccountNumber(""); setIfscCode(""); setBankName("");
+                  setBankBranch(""); setAccountType(""); setBankAddress(""); setFormErrors({});
+                }}
+              >
+                Clear
+              </Button>
+              <Button type="submit" disabled={creating}>
+                {creating ? <RefreshCw className="animate-spin" /> : <Plus />} Add Account
+              </Button>
+            </div>
+          </form>
+        )}
+      </Panel>
     </div>
   );
 }

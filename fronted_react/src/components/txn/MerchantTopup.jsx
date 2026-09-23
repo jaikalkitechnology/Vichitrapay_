@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { BASE_URL } from "@/config";
 import api from "@/api/api";
+import { StatusBadge } from "@/components/admin-part/ui";
 
 /**
  * - Uses existing endpoints:
@@ -298,18 +299,18 @@ export default function MerchantTopup() {
   const to = Math.min(total, page * perPage);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5 max-w-7xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">Add Funds to Payout Wallet</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Add Funds to Payout Wallet</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Transfer money to your beneficiary accounts</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => refreshAll()}
-            className="px-4 py-2.5 border rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2 transition-colors"
-            style={{ borderColor: '#00ADEF' }}
+            className="px-4 h-8 border rounded-md bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2 transition-colors text-[13px] border-gray-300 dark:border-gray-700"
+           
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -320,9 +321,9 @@ export default function MerchantTopup() {
       </div>
 
       {/* Beneficiary Accounts Section */}
-     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
   <div className="mb-6">
-    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Beneficiary Accounts</h2>
+    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Beneficiary Accounts</h2>
     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Select an account to copy details or initiate quick transfer</p>
   </div>
 
@@ -332,9 +333,9 @@ export default function MerchantTopup() {
       return (
         <div
           key={acct.id}
-          className={`rounded-xl p-5 transition-all duration-200 cursor-pointer ${isSelected ? "border-2" : "border"}`}
+          className={`rounded-lg p-4 transition-all duration-200 cursor-pointer ${isSelected ? "border-2" : "border"}`}
           style={{
-            borderColor: isSelected ? "#F68713" : "#E5E7EB",
+            borderColor: isSelected ? "#F59E0B" : "#E5E7EB",
             backgroundColor: isSelected ? "#FEF6EC" : "white",
             boxShadow: isSelected ? "0 4px 12px rgba(246,135,19,0.1)" : "none",
           }}
@@ -348,28 +349,28 @@ export default function MerchantTopup() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
               <div>
                 <p className="text-sm font-medium text-gray-500">Account Holder</p>
-                <p className="font-semibold" style={{ color: "#3871C2" }}>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
                   {acct.account_holder_name || "N/A"}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-500">Bank Name</p>
-                <p className="font-semibold" style={{ color: "#3871C2" }}>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
                   {acct.beneficiary_bank_name || "N/A"}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-500">Account Number</p>
-                <p className="font-semibold font-mono" style={{ color: "#00ADEF" }}>
+                <p className="font-semibold font-mono text-cyan-600 dark:text-cyan-400">
                   {acct.beneficiary_account_number}
                 </p>
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-500">IFSC Code</p>
-                <p className="font-semibold font-mono" style={{ color: "#00ADEF" }}>
+                <p className="font-semibold font-mono text-cyan-600 dark:text-cyan-400">
                   {acct.beneficiary_ifsc}
                 </p>
               </div>
@@ -378,7 +379,7 @@ export default function MerchantTopup() {
             {/* Status + ID */}
             <div className="flex flex-col items-start lg:items-end gap-2">
               <div
-                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[11px] font-medium ${
                   acct.is_validate ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                 }`}
               >
@@ -389,36 +390,36 @@ export default function MerchantTopup() {
           </div>
 
           {/* --- RESPONSIVE BUTTON GROUP --- */}
-          <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2">
+          <div className="mt-5 pt-4 border-t border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-2">
 
             <button
               onClick={(e) => { e.stopPropagation(); copyToClipboard(acct.account_holder_name); }}
-              className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap"
-              style={{ borderColor: '#00ADEF' }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-[13px] border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap border-gray-300 dark:border-gray-700"
+             
             >
               Copy Holder Name
             </button>
 
             <button
               onClick={(e) => { e.stopPropagation(); copyToClipboard(acct.beneficiary_account_number); }}
-              className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap"
-              style={{ borderColor: '#00ADEF' }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-[13px] border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap border-gray-300 dark:border-gray-700"
+             
             >
               Copy Account No.
             </button>
 
             <button
               onClick={(e) => { e.stopPropagation(); copyToClipboard(acct.beneficiary_ifsc); }}
-              className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap"
-              style={{ borderColor: '#00ADEF' }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-[13px] border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap border-gray-300 dark:border-gray-700"
+             
             >
               Copy IFSC
             </button>
 
             <button
               onClick={(e) => { e.stopPropagation(); copyToClipboard(acct.beneficiary_bank_name); }}
-              className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap"
-              style={{ borderColor: '#00ADEF' }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-[13px] border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 transition-colors whitespace-nowrap border-gray-300 dark:border-gray-700"
+             
             >
               Copy Bank Name
             </button>
@@ -427,8 +428,8 @@ export default function MerchantTopup() {
             <div className="ml-auto">
               <button
                 onClick={(e) => { e.stopPropagation(); openQuickForAccount(acct); }}
-                className="px-4 py-2 rounded-lg text-white font-medium flex items-center gap-2 transition-all shadow-sm hover:shadow whitespace-nowrap"
-                style={{ background: "linear-gradient(135deg, #41B93D, #2E8B29)" }}
+                className="px-4 h-8 rounded-md text-white font-medium flex items-center gap-2 transition-all whitespace-nowrap text-[13px]"
+                style={{ background: "#16A34A" }}
               >
                 Quick Transfer
               </button>
@@ -441,8 +442,8 @@ export default function MerchantTopup() {
     {/* Empty State */}
     {accounts.length === 0 && (
       <div
-        className="text-center py-8 border-2 border-dashed rounded-xl"
-        style={{ borderColor: "#00ADEF" }}
+        className="text-center py-8 border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-700"
+       
       >
         <p className="mt-3 text-gray-600 dark:text-gray-400 font-medium">No beneficiary accounts available</p>
         <p className="text-gray-500 text-sm mt-1">Contact support to add beneficiary accounts</p>
@@ -453,15 +454,15 @@ export default function MerchantTopup() {
 
 
       {/* Full Top-up Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Manual Top-up Form</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Manual Top-up Form</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Fill all details for manual fund transfer</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg border" style={{ backgroundColor: '#FEF2F2', borderColor: '#F68713' }}>
-            <div className="flex items-center" style={{ color: '#DC2626' }}>
+          <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+            <div className="flex items-center text-red-600 dark:text-red-400">
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
@@ -471,8 +472,8 @@ export default function MerchantTopup() {
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-lg border" style={{ backgroundColor: '#F0FDF4', borderColor: '#41B93D' }}>
-            <div className="flex items-center" style={{ color: '#41B93D' }}>
+          <div className="mb-6 p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
+            <div className="flex items-center text-green-600 dark:text-green-400">
               <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
@@ -481,11 +482,11 @@ export default function MerchantTopup() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Amount Field */}
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Amount *</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Amount *</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="text-gray-500">₹</span>
@@ -496,7 +497,7 @@ export default function MerchantTopup() {
                   min="0"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                  className="pl-8 w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   placeholder="0.00"
                   required
                 />
@@ -505,11 +506,11 @@ export default function MerchantTopup() {
 
             {/* Beneficiary Select */}
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Beneficiary Account *</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Beneficiary Account *</label>
               <select
                 value={beneficiaryId}
                 onChange={(e) => setBeneficiaryId(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 required
               >
                 <option value="">Select beneficiary account</option>
@@ -525,22 +526,22 @@ export default function MerchantTopup() {
           {/* Payer Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Payer Name (Optional)</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Payer Name (Optional)</label>
               <input
                 type="text"
                 value={payerName}
                 onChange={(e) => setPayerName(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 placeholder="Enter payer name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Payer Account/UPI (Optional)</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Payer Account/UPI (Optional)</label>
               <input
                 type="text"
                 value={payerAccount}
                 onChange={(e) => setPayerAccount(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 placeholder="Enter account or UPI number"
               />
             </div>
@@ -549,22 +550,22 @@ export default function MerchantTopup() {
           {/* UTR and Note */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">UTR/Transaction ID (Optional)</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">UTR/Transaction ID (Optional)</label>
               <input
                 type="text"
                 value={utr}
                 onChange={(e) => setUtr(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 placeholder="Enter UTR or transaction ID"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Reference Note (Optional)</label>
+              <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Reference Note (Optional)</label>
               <input
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none transition"
+                className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 placeholder="Add reference note"
               />
             </div>
@@ -572,11 +573,11 @@ export default function MerchantTopup() {
 
           {/* Receipt Upload */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Payment Receipt (Optional)</label>
-            <div className="border-2 border-dashed rounded-lg p-4 transition hover:border-blue-400"
-                 style={{ borderColor: '#00ADEF' }}>
+            <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Payment Receipt (Optional)</label>
+            <div className="border-2 border-dashed rounded-lg p-4 transition hover:border-blue-400 border-gray-300 dark:border-gray-700"
+                >
               <div className="flex flex-col items-center justify-center">
-                <svg className="w-10 h-10 mb-2" fill="none" stroke="#00ADEF" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 mb-2" fill="none" stroke="#06B6D4" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Upload receipt (JPG, PNG, PDF, max 10MB)</p>
@@ -587,7 +588,7 @@ export default function MerchantTopup() {
                   className="mt-2 text-sm"
                 />
                 {receiptFile && (
-                  <p className="mt-2 text-sm" style={{ color: '#41B93D' }}>
+                  <p className="mt-2 text-sm text-green-600 dark:text-green-400">
                     ✓ {receiptFile.name} ({(receiptFile.size / 1024 / 1024).toFixed(2)} MB)
                   </p>
                 )}
@@ -605,8 +606,8 @@ export default function MerchantTopup() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto"
-              style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}
+              className="inline-flex items-center justify-center gap-1.5 px-4 h-8 text-white font-medium rounded-md transition-all disabled:opacity-70 disabled:cursor-not-allowed w-full md:w-auto text-[13px] bg-indigo-600 hover:bg-indigo-700 text-white"
+             
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -625,11 +626,11 @@ export default function MerchantTopup() {
       </div>
 
       {/* History Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
   {/* Header */}
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div className="text-center sm:text-left">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+      <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
         Top-up History
       </h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Track your fund transfer requests</p>
@@ -638,7 +639,7 @@ export default function MerchantTopup() {
     {/* Filter Group */}
     <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
       <div className="flex items-center gap-2 w-full sm:w-auto">
-        <label className="text-sm font-medium whitespace-nowrap text-gray-700 dark:text-gray-300">
+        <label className="text-[13px] font-medium whitespace-nowrap text-gray-700 dark:text-gray-300">
           Filter by Status:
         </label>
 
@@ -648,7 +649,7 @@ export default function MerchantTopup() {
             setStatusFilter(e.target.value);
             setPage(1);
           }}
-          className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:outline-none w-full sm:w-auto"
+          className="w-full sm:w-auto h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         >
           <option value="">All Status</option>
           <option value="pending">Pending</option>
@@ -671,15 +672,15 @@ export default function MerchantTopup() {
   {/* Loading / Empty / Table */}
   {loading ? (
     <div className="text-center py-8">
-      <div className="animate-spin rounded-full h-9 w-12 border-b-2 mx-auto" style={{ borderColor: "#3871C2" }}></div>
+      <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600 mx-auto"></div>
       <p className="mt-3 text-gray-600 dark:text-gray-400">Loading history...</p>
     </div>
   ) : history.length === 0 ? (
     <div
-      className="text-center py-8 border-2 border-dashed rounded-xl"
-      style={{ borderColor: "#00ADEF" }}
+      className="text-center py-8 border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-700"
+     
     >
-      <svg className="w-12 h-9 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-12 h-8 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
       <p className="mt-3 text-gray-600 dark:text-gray-400 font-medium">No top-up records found</p>
@@ -687,9 +688,9 @@ export default function MerchantTopup() {
   ) : (
     <>
       {/* Responsive Table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-100 dark:border-gray-700">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
         <table className="min-w-[900px] w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+          <thead className="bg-gray-50 dark:bg-gray-800/50">
             <tr>
               {["ID", "Amount", "UTR", "Beneficiary", "Receipt", "Status", "Submitted"].map(
                 (label) => (
@@ -704,30 +705,30 @@ export default function MerchantTopup() {
             </tr>
           </thead>
 
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
             {history.map((t) => (
-              <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">#{t.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold" style={{ color: "#3871C2" }}>
+              <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px] font-medium text-gray-900 dark:text-gray-100">#{t.id}</td>
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px] font-semibold text-gray-900 dark:text-gray-100">
                   ₹{t.amount}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-500">
                   {t.utr_or_txn_id || <span className="italic text-gray-400">Not provided</span>}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-500">
                   {t.beneficiary_account_number}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px]">
                   {t.receipt_url ? (
                     <a
                       href={normalizeReceiptUrl(t.receipt_url)}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center hover:underline"
-                      style={{ color: "#00ADEF" }}
+                      className="inline-flex items-center hover:underline text-cyan-600 dark:text-cyan-400"
+                     
                     >
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -740,23 +741,11 @@ export default function MerchantTopup() {
                   )}
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      t.status === "verified"
-                        ? "bg-green-100 text-green-800"
-                        : t.status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : t.status === "failed"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {t.status}
-                  </span>
+                <td className="px-4 py-2.5 whitespace-nowrap">
+                  <StatusBadge status={t.status} />
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-500">
                   {t.created_at ? new Date(t.created_at).toLocaleString() : "-"}
                 </td>
               </tr>
@@ -766,8 +755,8 @@ export default function MerchantTopup() {
       </div>
 
       {/* Pagination (Fully Responsive) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-sm text-center sm:text-left" style={{ color: "#3871C2" }}>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+        <div className="text-sm text-center sm:text-left text-gray-900 dark:text-gray-100">
           Page <strong>{page}</strong> of <strong>{lastPage}</strong>
         </div>
 
@@ -778,7 +767,7 @@ export default function MerchantTopup() {
               setPerPage(Number(e.target.value));
               setPage(1);
             }}
-            className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:outline-none"
+            className="h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           >
             {[10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
@@ -790,7 +779,7 @@ export default function MerchantTopup() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page <= 1}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-4 h-8 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px]"
           >
             Previous
           </button>
@@ -798,13 +787,13 @@ export default function MerchantTopup() {
           <button
             onClick={() => setPage(Math.min(lastPage, page + 1))}
             disabled={page >= lastPage}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-1.5 px-4 h-8 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px]"
           >
             Next
           </button>
 
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="text-sm text-gray-700 dark:text-gray-300">Go to:</span>
+            <span className="text-[13px] text-gray-500 dark:text-gray-400">Go to:</span>
 
             <input
               type="number"
@@ -817,7 +806,7 @@ export default function MerchantTopup() {
                   if (v >= 1 && v <= lastPage) setPage(v);
                 }
               }}
-              className="w-20 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:outline-none"
+              className="w-20 h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </div>
         </div>
@@ -830,10 +819,10 @@ export default function MerchantTopup() {
       {/* Quick Transfer Modal */}
       {quickOpen && selectedAccount && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-md w-full p-6 border border-gray-100 dark:border-gray-700 border-l-4 border-l-[#F68713]">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6 border border-gray-200 dark:border-gray-800">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Transfer</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Quick Transfer</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Complete transfer in one step</p>
               </div>
               <button
@@ -847,16 +836,16 @@ export default function MerchantTopup() {
             </div>
 
             {/* Selected Account Info */}
-            <div className="mb-6 p-4 rounded-xl bg-gray-50 dark:bg-gray-900">
+            <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
               <p className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Selected Account:</p>
               <div className="space-y-1">
-                <p className="text-sm" style={{ color: '#00ADEF' }}>
+                <p className="text-sm text-cyan-600 dark:text-cyan-400">
                   <span className="font-medium">Bank:</span> {selectedAccount.beneficiary_bank_name}
                 </p>
-                <p className="text-sm" style={{ color: '#00ADEF' }}>
+                <p className="text-sm text-cyan-600 dark:text-cyan-400">
                   <span className="font-medium">Account:</span> {selectedAccount.beneficiary_account_number}
                 </p>
-                <p className="text-sm" style={{ color: '#00ADEF' }}>
+                <p className="text-sm text-cyan-600 dark:text-cyan-400">
                   <span className="font-medium">IFSC:</span> {selectedAccount.beneficiary_ifsc}
                 </p>
               </div>
@@ -864,7 +853,7 @@ export default function MerchantTopup() {
 
             <form onSubmit={handleQuickSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Amount *</label>
+                <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Amount *</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="text-gray-500">₹</span>
@@ -875,7 +864,7 @@ export default function MerchantTopup() {
                     min="0"
                     value={quickAmount}
                     onChange={(e) => setQuickAmount(e.target.value)}
-                    className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none"
+                    className="pl-8 w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     placeholder="Enter amount"
                     required
                   />
@@ -883,22 +872,22 @@ export default function MerchantTopup() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">UTR/Transaction ID (Optional)</label>
+                <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">UTR/Transaction ID (Optional)</label>
                 <input
                   type="text"
                   value={quickUtr}
                   onChange={(e) => setQuickUtr(e.target.value)}
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 p-3 focus:outline-none"
+                  className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   placeholder="Enter UTR if available"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Receipt (Optional)</label>
-                <div className="border-2 border-dashed rounded-lg p-4 transition"
-                     style={{ borderColor: '#00ADEF' }}>
+                <label className="block text-[13px] font-medium mb-1.5 text-gray-700 dark:text-gray-300">Receipt (Optional)</label>
+                <div className="border-2 border-dashed rounded-lg p-4 transition border-gray-300 dark:border-gray-700"
+                    >
                   <div className="flex flex-col items-center justify-center">
-                    <svg className="w-8 h-8 mb-1" fill="none" stroke="#00ADEF" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 mb-1" fill="none" stroke="#06B6D4" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Click to upload receipt</p>
@@ -919,16 +908,16 @@ export default function MerchantTopup() {
                 <button
                   type="button"
                   onClick={() => setQuickOpen(false)}
-                  className="px-4 py-2 border text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 transition-colors"
-                  style={{ borderColor: '#00ADEF' }}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 h-8 border text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-[13px] border-gray-300 dark:border-gray-700"
+                 
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={quickSubmitting}
-                  className="px-4 py-2 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all disabled:opacity-70"
-                  style={{ background: 'linear-gradient(135deg, #41B93D, #2E8B29)' }}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 h-8 text-white font-medium rounded-md transition-all disabled:opacity-70 text-[13px]"
+                  style={{ background: '#16A34A' }}
                 >
                   {quickSubmitting ? "Processing..." : "Submit Transfer"}
                 </button>

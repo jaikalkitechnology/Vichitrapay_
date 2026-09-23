@@ -12,9 +12,9 @@ import { Copy, Link as LinkIcon, Send, CheckCircle, AlertCircle, ExternalLink } 
 const API_HOST = BASE_URL.replace(/\/api\/v1\/?$/, "");
 const PAYIN_INITIATE_URL = `${API_HOST}/live/payin/initiate`;
 
-function Code({ children }: { children: React.ReactNode }) {
+function Code({ children, green = false }: { children: React.ReactNode; green?: boolean }) {
   return (
-    <pre className="bg-gray-900 text-gray-100 p-3 md:p-4 rounded-lg text-xs md:text-sm overflow-x-auto font-mono border" style={{ borderColor: '#00ADEF' }}>
+    <pre className={`bg-gray-900 ${green ? "text-green-400" : "text-gray-100"} p-3 rounded-md text-xs leading-relaxed overflow-x-auto font-mono border border-gray-800`}>
       {children}
     </pre>
   );
@@ -125,10 +125,10 @@ export default function PaymentLinkGenerator() {
   const regenerateOrderId = () => update("merchantOrderId", randomOrderId());
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Generate Payment Link
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -137,30 +137,30 @@ export default function PaymentLinkGenerator() {
       </div>
 
       {/* Endpoint banner */}
-      <div className="p-3 md:p-4 rounded-lg border border-[#00ADEF] bg-[#F0F9FF] dark:bg-gray-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-1 rounded-md font-bold text-white text-xs" style={{ backgroundColor: "#3871C2" }}>POST</span>
-          <code className="font-mono text-sm md:text-base" style={{ color: "#3871C2" }}>
+          <span className="px-2 py-1 rounded-md font-bold text-white text-xs" style={{ backgroundColor: "#4F6BF6" }}>POST</span>
+          <code className="font-mono text-sm md:text-base text-indigo-600 dark:text-indigo-400">
             {PAYIN_INITIATE_URL}
           </code>
         </div>
         <Button size="sm" variant="outline" onClick={() => copyToClipboard(PAYIN_INITIATE_URL, "Endpoint URL")}
-          style={{ borderColor: "#00ADEF", color: "#3871C2" }}>
+          className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200">
           <Copy className="h-3 w-3 mr-2" /> Copy URL
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT — Form */}
-        <Card className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <LinkIcon className="h-5 w-5 text-[#3871C2]" />
+        <Card className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+            <CardTitle className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+              <LinkIcon className="h-5 w-5 text-indigo-600" />
               Request Parameters
             </CardTitle>
             <CardDescription className="text-sm text-gray-500 dark:text-gray-400">Fill in the customer and payment details</CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -175,7 +175,7 @@ export default function PaymentLinkGenerator() {
                   <select id="channel"
                     value={form.channel}
                     onChange={(e) => update("channel", e.target.value)}
-                    className="mt-1 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:border-[#3871C2] focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20"
+                    className="mt-1 w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   >
                     <option value="web">web</option>
                     <option value="android">android</option>
@@ -206,7 +206,7 @@ export default function PaymentLinkGenerator() {
               </div>
 
               <div className="pt-4 border-t">
-                <h3 className="font-semibold mb-3" style={{ color: "#3871C2" }}>Customer Details</h3>
+                <h3 className="font-semibold mb-3 text-gray-900 dark:text-gray-100">Customer Details</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="buyer_name" className="text-sm font-medium">Buyer Name *</Label>
@@ -243,16 +243,16 @@ export default function PaymentLinkGenerator() {
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg border flex items-start gap-2"
-                     style={{ borderColor: "#DC2626", backgroundColor: "#FEF2F2" }}>
-                  <AlertCircle className="h-4 w-4 mt-0.5" style={{ color: "#DC2626" }} />
-                  <div className="text-sm" style={{ color: "#DC2626" }}>{error}</div>
+                <div className="p-3 rounded-lg border flex items-start gap-2 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+                    >
+                  <AlertCircle className="h-4 w-4 mt-0.5 text-red-600 dark:text-red-400" />
+                  <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
                 </div>
               )}
 
               <Button type="submit" disabled={loading}
-                className="w-full text-white rounded-lg"
-                style={{ background: "linear-gradient(135deg, #3871C2, #00ADEF)" }}>
+                className="w-full text-white rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+               >
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -273,32 +273,32 @@ export default function PaymentLinkGenerator() {
         </Card>
 
         {/* RIGHT — Curl preview + Response */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Live cURL */}
-          <Card className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <CardHeader className="border-b border-gray-100 dark:border-gray-700 flex-row items-center justify-between">
+          <Card className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+            <CardHeader className="border-b border-gray-200 dark:border-gray-800 flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">cURL Request</CardTitle>
+                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">cURL Request</CardTitle>
                 <CardDescription className="text-sm text-gray-500 dark:text-gray-400">Live preview — updates as you type</CardDescription>
               </div>
               <Button size="sm" variant="outline" onClick={() => copyToClipboard(curlCommand, "cURL command")}
-                style={{ borderColor: "#00ADEF", color: "#3871C2" }}>
+                className="border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200">
                 <Copy className="h-3 w-3 mr-2" /> Copy
               </Button>
             </CardHeader>
             <CardContent className="p-4">
-              <Code>{curlCommand}</Code>
+              <Code green>{curlCommand}</Code>
             </CardContent>
           </Card>
 
           {/* Response */}
-          <Card className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-              <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <Card className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+            <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
                 {response?.success ? (
-                  <CheckCircle className="h-5 w-5" style={{ color: "#41B93D" }} />
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 ) : (
-                  <LinkIcon className="h-5 w-5 text-[#3871C2]" />
+                  <LinkIcon className="h-5 w-5 text-indigo-600" />
                 )}
                 Response
               </CardTitle>
@@ -308,23 +308,23 @@ export default function PaymentLinkGenerator() {
             </CardHeader>
             <CardContent className="p-4 space-y-4">
               {response?.payment_url && (
-                <div className="p-4 rounded-lg border"
-                     style={{ borderColor: "#41B93D", backgroundColor: "#F0FDF4" }}>
-                  <div className="text-sm font-medium mb-2" style={{ color: "#41B93D" }}>
+                <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30"
+                    >
+                  <div className="text-sm font-medium mb-2 text-green-600 dark:text-green-400">
                     Payment Link Ready
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <code className="flex-1 font-mono text-xs bg-white dark:bg-gray-800 px-3 py-2 rounded border break-all">
+                    <code className="flex-1 font-mono text-xs bg-white dark:bg-gray-900 px-3 py-2 rounded border break-all">
                       {response.payment_url}
                     </code>
                     <Button size="sm"
                       onClick={() => copyToClipboard(response.payment_url, "Payment link")}
-                      style={{ backgroundColor: "#41B93D" }}>
+                      style={{ backgroundColor: "#16A34A" }}>
                       <Copy className="h-3 w-3 mr-1" /> Copy
                     </Button>
                     <Button size="sm" variant="outline"
                       onClick={() => window.open(response.payment_url, "_blank")}
-                      style={{ borderColor: "#41B93D", color: "#41B93D" }}>
+                      style={{ borderColor: "#16A34A", color: "#16A34A" }}>
                       <ExternalLink className="h-3 w-3 mr-1" /> Open
                     </Button>
                   </div>

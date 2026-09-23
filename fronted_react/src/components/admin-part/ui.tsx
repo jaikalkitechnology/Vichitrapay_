@@ -123,8 +123,8 @@ const TONE_CLS: Record<string, string> = {
   gray: "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700",
 };
 
-/** Rectangular bordered badge; tone picked from the status text. */
-export function StatusBadge({ status, className }: { status?: string | null; className?: string }) {
+/** Rectangular bordered badge; tone picked from the status text, label from children if given. */
+export function StatusBadge({ status, className, children }: { status?: string | null; className?: string; children?: ReactNode }) {
   const s = String(status ?? "-");
   const tone = STATUS_TONE[s.toLowerCase().replace(/\s+/g, "_")] ?? "gray";
   return (
@@ -135,7 +135,7 @@ export function StatusBadge({ status, className }: { status?: string | null; cla
         className
       )}
     >
-      {s.replace(/_/g, " ")}
+      {children ?? s.replace(/_/g, " ")}
     </span>
   );
 }

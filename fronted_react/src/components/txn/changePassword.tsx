@@ -27,17 +27,18 @@ export default function ChangePassword() {
     setConfirmPwd("");
   };
 
+  // score 0-4 drives the strength meter (merchant_panel_design.md → Change Password)
   const passwordStrength = (pwd: string) => {
-    if (pwd.length === 0) return { label: "", color: "" };
-    if (pwd.length < 6) return { label: "Too short", color: "text-red-500" };
-    if (pwd.length < 8) return { label: "Weak", color: "text-orange-500" };
+    if (pwd.length === 0) return { label: "", color: "", bar: "", score: 0 };
+    if (pwd.length < 6) return { label: "Too short", color: "text-red-600", bar: "bg-red-500", score: 1 };
+    if (pwd.length < 8) return { label: "Weak", color: "text-amber-600", bar: "bg-amber-500", score: 1 };
     const hasLetter = /[a-zA-Z]/.test(pwd);
     const hasNumber = /\d/.test(pwd);
     const hasSpecial = /[^a-zA-Z0-9]/.test(pwd);
     const score = [hasLetter, hasNumber, hasSpecial].filter(Boolean).length;
-    if (score === 3 && pwd.length >= 10) return { label: "Strong", color: "text-green-600" };
-    if (score >= 2) return { label: "Good", color: "text-blue-600" };
-    return { label: "Fair", color: "text-yellow-600" };
+    if (score === 3 && pwd.length >= 10) return { label: "Strong", color: "text-green-600", bar: "bg-green-500", score: 4 };
+    if (score >= 2) return { label: "Good", color: "text-indigo-600", bar: "bg-indigo-600", score: 3 };
+    return { label: "Fair", color: "text-amber-600", bar: "bg-amber-500", score: 2 };
   };
 
   const strength = passwordStrength(newPwd);
@@ -85,7 +86,7 @@ export default function ChangePassword() {
     placeholder: string;
   }) => (
     <div>
-      <Label htmlFor={id} className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</Label>
+      <Label htmlFor={id} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">{label}</Label>
       <div className="relative mt-1">
         <Input
           id={id}
@@ -99,7 +100,7 @@ export default function ChangePassword() {
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          className="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
           tabIndex={-1}
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -109,10 +110,10 @@ export default function ChangePassword() {
   );
 
   return (
-    <div className="p-4 md:space-y-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 md:space-y-5 max-w-2xl mx-auto space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Change Password
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -121,10 +122,10 @@ export default function ChangePassword() {
       </div>
 
       {/* Security Tips */}
-      <div className="p-4 rounded-lg border border-[#00ADEF] bg-[#F0F9FF] dark:bg-gray-800/50 flex items-start gap-3">
-        <Shield className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: "#3871C2" }} />
-        <div className="text-sm text-gray-700 dark:text-gray-300">
-          <div className="font-semibold mb-1" style={{ color: "#3871C2" }}>Password Tips</div>
+      <div className="p-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 flex items-start gap-3">
+        <Shield className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+        <div className="text-[13px] text-gray-700 dark:text-gray-300">
+          <div className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Password Tips</div>
           <ul className="list-disc list-inside space-y-0.5 text-xs">
             <li>Use at least 8 characters with letters, numbers, and special characters</li>
             <li>Avoid reusing passwords from other services</li>
@@ -134,15 +135,15 @@ export default function ChangePassword() {
       </div>
 
       {/* Form Card */}
-      <Card className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-            <Lock className="h-5 w-5 text-[#3871C2]" />
+      <Card className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-800">
+          <CardTitle className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+            <Lock className="h-5 w-5 text-indigo-600" />
             Update Password
           </CardTitle>
           <CardDescription className="text-sm text-gray-500 dark:text-gray-400">Enter your current password and choose a new one</CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <PwdField
               id="old_pwd"
@@ -164,8 +165,13 @@ export default function ChangePassword() {
               placeholder="At least 6 characters"
             />
             {newPwd && (
-              <div className="text-xs -mt-2">
-                Strength: <span className={`font-semibold ${strength.color}`}>{strength.label}</span>
+              <div className="-mt-2">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                  <div className={`h-full rounded-full transition-all ${strength.bar}`} style={{ width: `${strength.score * 25}%` }} />
+                </div>
+                <div className="mt-1 text-[12px] text-gray-500">
+                  Strength: <span className={`font-medium ${strength.color}`}>{strength.label}</span>
+                </div>
               </div>
             )}
 
@@ -183,18 +189,18 @@ export default function ChangePassword() {
             )}
 
             {error && (
-              <div className="p-3 rounded-lg border flex items-start gap-2"
-                style={{ borderColor: "#DC2626", backgroundColor: "#FEF2F2" }}>
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#DC2626" }} />
-                <div className="text-sm" style={{ color: "#DC2626" }}>{error}</div>
+              <div className="p-3 rounded-lg border flex items-start gap-2 border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30"
+               >
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-600 dark:text-red-400" />
+                <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
               </div>
             )}
 
             {success && (
-              <div className="p-3 rounded-lg border flex items-start gap-2"
-                style={{ borderColor: "#41B93D", backgroundColor: "#F0FDF4" }}>
-                <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#41B93D" }} />
-                <div className="text-sm" style={{ color: "#41B93D" }}>
+              <div className="p-3 rounded-lg border flex items-start gap-2 border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30"
+               >
+                <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-green-600 dark:text-green-400" />
+                <div className="text-sm text-green-600 dark:text-green-400">
                   Password updated successfully.
                 </div>
               </div>
@@ -204,8 +210,8 @@ export default function ChangePassword() {
               <Button
                 type="submit"
                 disabled={loading || !oldPwd || !newPwd || !confirmPwd}
-                className="flex-1 text-white rounded-lg"
-                style={{ background: "linear-gradient(135deg, #3871C2, #00ADEF)" }}
+                className="flex-1 text-white rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white"
+               
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -227,7 +233,7 @@ export default function ChangePassword() {
                 variant="outline"
                 onClick={reset}
                 disabled={loading}
-                className="rounded-lg"
+               
               >
                 Clear
               </Button>

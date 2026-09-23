@@ -308,7 +308,7 @@ export default function DashboardCharts() {
                   className={`h-7 px-2.5 text-[11px] font-medium rounded-md transition-colors ${
                     days === d
                       ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800"
                   }`}
                 >
                   {d}D

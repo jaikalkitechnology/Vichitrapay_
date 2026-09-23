@@ -5,24 +5,24 @@ import { Copy, ChevronRight, Key, Link, FileText, CheckCircle, AlertCircle } fro
 import ProviderCredentials from "@/components/txn/ProviderCredentials";
 import { API_ORIGIN } from "@/config";
 // Small helper to render code blocks
-function Code({ children }) {
+function Code({ children, green = false }) {
   return (
-    <pre className="bg-gray-900 text-gray-100 p-3 md:p-4 rounded-lg text-xs md:text-sm overflow-x-auto font-mono border" style={{ borderColor: '#00ADEF' }}>{children}</pre>
+    <pre className={`bg-gray-900 ${green ? "text-green-400" : "text-gray-100"} p-3 rounded-md text-xs leading-relaxed overflow-x-auto font-mono border border-gray-800`}>{children}</pre>
   );
 }
 
 function CodeInline({ children }) {
   return (
-    <code className="bg-gray-100 px-1 md:px-2 py-0.5 md:py-1 rounded text-xs md:text-sm font-mono break-words" style={{ color: '#3871C2' }}>{children}</code>
+    <code className="bg-gray-100 px-1 md:px-2 py-0.5 md:py-1 rounded text-xs md:text-sm font-mono break-words text-indigo-600 dark:text-indigo-400">{children}</code>
   );
 }
 
 function Section({ title, description, children }) {
   return (
-    <section className="space-y-4 p-4 md:p-6 rounded-xl border border-[#00ADEF]/30 bg-[#F0F9FF] dark:bg-gray-800/50 mb-4 md:mb-6">
-      <div className="pb-3 md:pb-4 border-b border-[#00ADEF]/20 dark:border-gray-700">
-        <h3 className="text-lg md:text-lg font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
-          <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#3871C2]" />
+    <section className="space-y-4 p-4 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50 mb-4 md:mb-6">
+      <div className="pb-3 md:pb-4 border-b border-gray-200 dark:border-gray-800">
+        <h3 className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <FileText className="h-4 w-4 md:h-5 md:w-5 text-indigo-600" />
           {title}
         </h3>
         {description && (
@@ -34,19 +34,19 @@ function Section({ title, description, children }) {
   );
 }
 
-function EndpointCard({ method, path, description, color = '#3871C2' }) {
-  const methodColor = method === 'GET' ? '#41B93D' : 
-                     method === 'POST' ? '#3871C2' : 
-                     method === 'PUT' ? '#F68713' : 
-                     method === 'DELETE' ? '#DC2626' : '#6B7280';
+function EndpointCard({ method, path, description, color = '#4F6BF6' }) {
+  const methodColor = method === 'GET' ? 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400' :
+                     method === 'POST' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' :
+                     method === 'PUT' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400' :
+                     method === 'DELETE' ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-700';
   
   return (
-    <div className="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
-      <div className="px-2 md:px-3 py-1 rounded-md font-bold text-white text-xs md:text-sm" style={{ backgroundColor: methodColor }}>
+    <div className="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+      <div className={`mt-0.5 rounded px-1.5 py-0.5 text-[11px] font-bold ${methodColor}`}>
         {method}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-mono text-xs md:text-sm break-words text-[#3871C2]">{path}</div>
+        <div className="font-mono text-xs md:text-sm break-words text-indigo-600">{path}</div>
         <div className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-1">{description}</div>
       </div>
     </div>
@@ -239,28 +239,26 @@ export default function ApiDocs() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-        <div className="space-y-6">
-      {/* other sections */}
+    <div className="flex flex-col gap-5">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">API Documentation</h1>
+        <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">Integration guides and endpoints for Vichitrapay merchant APIs</p>
+      </div>
       <ProviderCredentials />
-    </div>
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">API Documentation</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Integration guides and endpoints for RootPay merchant APIs</p>
-        <div className="mt-4 p-3 md:p-4 rounded-lg border border-[#00ADEF]/30 bg-[#F0F9FF] dark:bg-gray-800/50">
+      <div>
+        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
           <div className="flex items-center gap-2 mb-2">
-            <Key className="h-4 md:h-5 w-4 md:w-5" style={{ color: '#3871C2' }} />
-            <span className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Base URL</span>
+            <Key className="h-4 md:h-5 w-4 md:w-5 text-indigo-600 dark:text-indigo-400" />
+            <span className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Base URL</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <code className="text-sm md:text-lg font-mono break-all" style={{ color: '#3871C2' }}>{base}</code>
+            <code className="text-sm md:text-lg font-mono break-all text-indigo-600 dark:text-indigo-400">{base}</code>
             <Button
               onClick={() => copyToClipboard(base)}
               size="sm"
               variant="outline"
-              className="self-start sm:self-center"
-              style={{ borderColor: '#00ADEF', color: '#3871C2' }}
+              className="self-start sm:self-center border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+             
             >
               <Copy className="h-3 w-3 md:h-4 md:w-4 mr-2" />
               Copy
@@ -271,10 +269,10 @@ export default function ApiDocs() {
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
-        <div className="p-4 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-[#41B93D]/10">
-              <Key className="h-4 md:h-5 w-4 md:w-5 text-[#41B93D]" />
+            <div className="p-2 rounded-md bg-green-600/10">
+              <Key className="h-4 md:h-5 w-4 md:w-5 text-green-600" />
             </div>
             <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">Authentication</h3>
           </div>
@@ -283,18 +281,18 @@ export default function ApiDocs() {
             onClick={() => copyToClipboard(`${base}/api/v1/auth/login`)}
             size="sm"
             variant="outline"
-            className="w-full text-xs md:text-sm"
-            style={{ borderColor: '#00ADEF', color: '#3871C2' }}
+            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+           
           >
             <Copy className="h-3 w-3 mr-1 md:mr-2" />
             Copy Login URL
           </Button>
         </div>
 
-        <div className="p-4 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-[#3871C2]/10">
-              <Link className="h-4 md:h-5 w-4 md:w-5 text-[#3871C2]" />
+            <div className="p-2 rounded-md bg-indigo-600/10">
+              <Link className="h-4 md:h-5 w-4 md:w-5 text-indigo-600" />
             </div>
             <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">PayIn (Initiate)</h3>
           </div>
@@ -303,18 +301,18 @@ export default function ApiDocs() {
             onClick={() => copyToClipboard(`${base}/live/payin/initiate`)}
             size="sm"
             variant="outline"
-            className="w-full text-xs md:text-sm"
-            style={{ borderColor: '#00ADEF', color: '#3871C2' }}
+            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+           
           >
             <Copy className="h-3 w-3 mr-1 md:mr-2" />
             Copy PayIn URL
           </Button>
         </div>
 
-        <div className="p-4 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-[#F68713]/10">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 text-[#F68713]" />
+            <div className="p-2 rounded-md bg-amber-500/10">
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 text-amber-500" />
             </div>
             <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">Payouts (PayOut)</h3>
           </div>
@@ -323,8 +321,8 @@ export default function ApiDocs() {
             onClick={() => copyToClipboard(`${base}/live/payout/initiate`)}
             size="sm"
             variant="outline"
-            className="w-full text-xs md:text-sm"
-            style={{ borderColor: '#00ADEF', color: '#3871C2' }}
+            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+           
           >
             <Copy className="h-3 w-3 mr-1 md:mr-2" />
             Copy Payout URL
@@ -385,16 +383,16 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>POST /api/v1/auth/login</h4>
-            <div className="p-3 rounded-lg bg-white dark:bg-gray-800 border" style={{ borderColor: '#00ADEF' }}>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">POST /api/v1/auth/login</h4>
+            <div className="p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700">
               <div className="text-xs md:text-sm font-medium mb-2">Content-Type: <CodeInline>application/x-www-form-urlencoded</CodeInline></div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>username</div>
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">username</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">Your merchant username (required)</div>
                 </div>
                 <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded">
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>password</div>
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">password</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">Your merchant password (required)</div>
                 </div>
               </div>
@@ -402,19 +400,19 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X POST ${base}/api/v1/auth/login \\
   -H "Content-Type: application/x-www-form-urlencoded" \\
   -d "username=your_username&password=your_password"`}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response (200 OK)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response (200 OK)</h4>
             <Code>{JSON.stringify(loginResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "access_token", desc: "JWT token for Authorization header" },
@@ -423,19 +421,19 @@ export default function ApiDocs() {
                 { field: "expires_in", desc: "Token lifetime in seconds (10800)" },
                 { field: "expires_at", desc: "ISO 8601 UTC expiry timestamp" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
             <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#41B93D' }} />
+              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-green-600 dark:text-green-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Usage</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Usage</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Send the token in all subsequent requests: <CodeInline>Authorization: Bearer {"<access_token>"}</CodeInline>
                 </div>
@@ -443,11 +441,11 @@ export default function ApiDocs() {
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#DC2626', backgroundColor: '#FEF2F2' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#DC2626' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-red-600 dark:text-red-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#DC2626' }}>Error (401)</div>
+                <div className="font-medium text-sm md:text-base text-red-600 dark:text-red-400">Error (401)</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   <CodeInline>{`{"detail": "Invalid username or password"}`}</CodeInline>
                 </div>
@@ -464,14 +462,14 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>POST /live/payin/initiate</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">POST /live/payin/initiate</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline> &bull; KYC must be verified &bull; Active PayIn provider required
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Request Body (JSON)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Request Body (JSON)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
               {[
                 { field: "amount", type: "float", req: "Yes", desc: "Payment amount in INR" },
@@ -484,9 +482,9 @@ export default function ApiDocs() {
                 { field: "customer.address1", type: "string", req: "No", desc: "Primary address (10-250 chars)" },
                 { field: "customer.address2", type: "string", req: "No", desc: "Secondary address" },
               ].map((item) => (
-                <div key={item.field} className="p-3 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
+                <div key={item.field} className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</span>
+                    <span className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.type}</span>
                     {item.req === "Yes" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500">required</span>}
                   </div>
@@ -497,12 +495,12 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Request Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Request Example</h4>
             <Code>{JSON.stringify(payinRequestExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X POST ${base}/live/payin/initiate \\
   -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
@@ -510,12 +508,12 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response (200 OK)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response (200 OK)</h4>
             <Code>{JSON.stringify(payinResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "success", desc: "true if payment initiated" },
@@ -524,19 +522,19 @@ export default function ApiDocs() {
                 { field: "txn_id", desc: "Internal wallet transaction ID" },
                 { field: "payment_url", desc: "Redirect customer to this URL to pay" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#F68713', backgroundColor: '#FEF6EC' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#F68713' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Errors</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Errors</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                   <div><CodeInline>403</CodeInline> — KYC not completed</div>
                   <div><CodeInline>400</CodeInline> — No active PayIn provider</div>
@@ -555,33 +553,33 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>GET /live/payin/ticket-sizes</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">GET /live/payin/ticket-sizes</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline>
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X GET ${base}/live/payin/ticket-sizes \\
   -H "Authorization: Bearer <ACCESS_TOKEN>"`}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response — ticket sizes required</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response — ticket sizes required</h4>
             <Code>{JSON.stringify(ticketSizesResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response — ticket sizes NOT required</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response — ticket sizes NOT required</h4>
             <Code>{JSON.stringify(ticketSizesNotRequiredExample, null, 2)}</Code>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#F68713', backgroundColor: '#FEF6EC' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#F68713' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Note</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Note</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   When <CodeInline>ticket_size_required</CodeInline> is <CodeInline>true</CodeInline>, the payment amount must match
                   one of the returned values. If your amount doesn't match, the system auto-adjusts to the nearest valid ticket size.
@@ -600,14 +598,14 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>POST /live/payin/upi-intent</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">POST /live/payin/upi-intent</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline> &bull; KYC verified &bull; Same request body as <CodeInline>/live/payin/initiate</CodeInline>
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X POST ${base}/live/payin/upi-intent \\
   -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
@@ -615,12 +613,12 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response (200 OK)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response (200 OK)</h4>
             <Code>{JSON.stringify(upiIntentResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "success", desc: "true if UPI intent created" },
@@ -631,19 +629,19 @@ export default function ApiDocs() {
                 { field: "qr_data", desc: "UPI string for QR code generation" },
                 { field: "payment_url", desc: "Fallback redirect payment URL" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
             <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#41B93D' }} />
+              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-green-600 dark:text-green-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Usage</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Usage</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Use <CodeInline>intent_url</CodeInline> to open the customer's UPI app directly.
                   Use <CodeInline>qr_data</CodeInline> to render a scannable QR code.
@@ -662,12 +660,12 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Webhook Payload (sent to your URL)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Webhook Payload (sent to your URL)</h4>
             <Code>{JSON.stringify(webhookPayloadExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Payload Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Payload Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "event", desc: "payin.completed or payin.failed" },
@@ -680,19 +678,19 @@ export default function ApiDocs() {
                 { field: "status", desc: "success or failed" },
                 { field: "balance", desc: "Your wallet balance after this transaction" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
             <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#41B93D' }} />
+              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-green-600 dark:text-green-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Fee Calculation</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Fee Calculation</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                   <div><CodeInline>charges</CodeInline> = amount x payInCharges%</div>
                   <div><CodeInline>gst</CodeInline> = charges x 18%</div>
@@ -702,11 +700,11 @@ export default function ApiDocs() {
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#F68713', backgroundColor: '#FEF6EC' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#F68713' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Important</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Important</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Your webhook endpoint must return HTTP 2xx. We retry up to 3 times (delays: 0s, 2s, 5s).
                   Implement idempotent handling using <CodeInline>order_id</CodeInline> to avoid duplicate processing.
@@ -724,25 +722,25 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>GET /live/payin/txns/status?order_id={"<ORDER_ID>"}</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">GET /live/payin/txns/status?order_id={"<ORDER_ID>"}</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline>. Also accepts <CodeInline>merchantOrderId</CodeInline> as query param.
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X GET '${base}/live/payin/txns/status?order_id=ORD-A1B2C3D4E5F6' \\
   -H "Authorization: Bearer <ACCESS_TOKEN>"`}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response (200 OK)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response (200 OK)</h4>
             <Code>{JSON.stringify(payinStatusResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "merchantOrderId", desc: "Your order ID" },
@@ -754,8 +752,8 @@ export default function ApiDocs() {
                 { field: "settle_amount", desc: "Amount credited to wallet" },
                 { field: "status", desc: "success | failed | pending" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
@@ -771,20 +769,20 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>GET /api/v1/merchant/wallet-transactions</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">GET /api/v1/merchant/wallet-transactions</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline>
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X GET "${base}/api/v1/merchant/wallet-transactions?page=1&per_page=20" \\
   -H "Authorization: Bearer <ACCESS_TOKEN>"`}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response</h4>
             <Code>{JSON.stringify(txnListResponseExample, null, 2)}</Code>
           </div>
         </div>
@@ -797,14 +795,14 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>POST /live/payout/initiate</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">POST /live/payout/initiate</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline> &bull; IP whitelist checked if configured
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Request Body (JSON)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Request Body (JSON)</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
               {[
                 { field: "order_id", type: "string", req: "Yes", desc: "Unique order ID (6-50 chars)" },
@@ -816,9 +814,9 @@ export default function ApiDocs() {
                 { field: "paymode", type: "string", req: "Yes", desc: "IMPS | NEFT | RTGS" },
                 { field: "mode", type: "string", req: "No", desc: "Always \"bank\"" },
               ].map((item) => (
-                <div key={item.field} className="p-3 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
+                <div key={item.field} className="p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</span>
+                    <span className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{item.type}</span>
                     {item.req === "Yes" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-500">required</span>}
                   </div>
@@ -829,12 +827,12 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Request Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Request Example</h4>
             <Code>{JSON.stringify(payoutRequestExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X POST ${base}/live/payout/initiate \\
   -H "Authorization: Bearer <ACCESS_TOKEN>" \\
   -H "Content-Type: application/json" \\
@@ -842,12 +840,12 @@ export default function ApiDocs() {
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response (200 OK)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response (200 OK)</h4>
             <Code>{JSON.stringify(payoutResponseExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "success", desc: "true if payout initiated" },
@@ -856,19 +854,19 @@ export default function ApiDocs() {
                 { field: "provider", desc: "Payout provider used" },
                 { field: "status", desc: "\"pending\" — final status arrives via webhook" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
             <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#41B93D' }} />
+              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-green-600 dark:text-green-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Fee Calculation</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Fee Calculation</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                   <div>Amount &le; ₹1000 → flat charge (payOutChargesFlat)</div>
                   <div>Amount &gt; ₹1000 → percentage charge (payOutCharges%)</div>
@@ -879,11 +877,11 @@ export default function ApiDocs() {
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#F68713', backgroundColor: '#FEF6EC' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#F68713' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Errors</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Errors</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 space-y-1">
                   <div><CodeInline>400</CodeInline> — Merchant settings not configured</div>
                   <div><CodeInline>400</CodeInline> — Insufficient payout wallet balance</div>
@@ -902,12 +900,12 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Webhook Payload (sent to your URL)</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Webhook Payload (sent to your URL)</h4>
             <Code>{JSON.stringify(payoutWebhookExample, null, 2)}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Payload Fields</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Payload Fields</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { field: "event", desc: "payout.completed or payout.failed" },
@@ -921,19 +919,19 @@ export default function ApiDocs() {
                 { field: "status", desc: "success or failed" },
                 { field: "balance", desc: "Payout wallet balance after txn" },
               ].map((item) => (
-                <div key={item.field} className="p-2 bg-white dark:bg-gray-800 rounded-lg border" style={{ borderColor: '#00ADEF' }}>
-                  <div className="font-mono text-xs font-bold" style={{ color: '#3871C2' }}>{item.field}</div>
+                <div key={item.field} className="p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-700">
+                  <div className="font-mono text-xs font-bold text-gray-900 dark:text-gray-100">{item.field}</div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">{item.desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#F68713', backgroundColor: '#FEF6EC' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <div className="flex items-start gap-2">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#F68713' }} />
+              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Important</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Important</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   Configure your <CodeInline>PayOut Webhook URL</CodeInline> in merchant settings.
                   On failure, the debit amount is automatically refunded to your payout wallet.
@@ -952,28 +950,28 @@ export default function ApiDocs() {
       >
         <div className="space-y-4">
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>POST /live/payout/txns/status?order_id={"<ORDER_ID>"}</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">POST /live/payout/txns/status?order_id={"<ORDER_ID>"}</h4>
             <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
               Requires <CodeInline>Authorization: Bearer {"<token>"}</CodeInline>. Accepts order_id, txn_id, or reference_id.
             </div>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>cURL Example</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">cURL Example</h4>
             <Code>{`curl -X POST '${base}/live/payout/txns/status?order_id=PAYOUT_A1B2C3D4E5' \\
   -H "Authorization: Bearer <ACCESS_TOKEN>"`}</Code>
           </div>
 
           <div>
-            <h4 className="font-bold mb-2 text-sm md:text-base" style={{ color: '#3871C2' }}>Response</h4>
+            <h4 className="font-bold mb-2 text-sm md:text-base text-gray-900 dark:text-gray-100">Response</h4>
             <Code>{JSON.stringify(payoutStatusResponseExample, null, 2)}</Code>
           </div>
 
-          <div className="p-3 md:p-4 rounded-lg border" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+          <div className="p-3 md:p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
             <div className="flex items-start gap-2">
-              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5" style={{ color: '#41B93D' }} />
+              <CheckCircle className="h-4 md:h-5 w-4 md:w-5 mt-0.5 text-green-600 dark:text-green-400" />
               <div>
-                <div className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>Auto-Update</div>
+                <div className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Auto-Update</div>
                 <div className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
                   If the upstream provider reports SUCCESS or FAILED, the transaction status
                   is automatically updated. Failed payouts are refunded to your payout wallet.
@@ -985,8 +983,8 @@ export default function ApiDocs() {
       </Section>
 
       {/* Quick Copy Buttons */}
-      <div className="p-4 md:p-6 rounded-xl border border-[#00ADEF]/30 bg-[#F0F9FF] dark:bg-gray-800/50">
-        <h3 className="text-lg font-semibold mb-3 md:mb-4 text-gray-900 dark:text-gray-100">Quick Copy URLs</h3>
+      <div className="p-4 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+        <h3 className="text-base font-semibold mb-3 md:mb-4 text-gray-900 dark:text-gray-100">Quick Copy URLs</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
           {[
             { label: 'Login', url: `${base}/api/v1/auth/login` },
@@ -1002,8 +1000,8 @@ export default function ApiDocs() {
               key={item.label}
               onClick={() => copyToClipboard(item.url)}
               variant="outline"
-              className="justify-start text-xs md:text-sm"
-              style={{ borderColor: '#00ADEF', color: '#3871C2' }}
+              className="justify-start text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+             
             >
               <Copy className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
               {item.label}
@@ -1013,10 +1011,10 @@ export default function ApiDocs() {
       </div>
 
       {/* Footer Note */}
-      <div className="p-3 md:p-4 rounded-lg border text-center" style={{ borderColor: '#41B93D', backgroundColor: '#F0FDF4' }}>
+      <div className="p-3 md:p-4 rounded-lg border text-center border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
         <div className="flex items-center justify-center gap-2">
-          <CheckCircle className="h-4 md:h-5 w-4 md:w-5" style={{ color: '#41B93D' }} />
-          <span className="font-medium text-sm md:text-base" style={{ color: '#3871C2' }}>All endpoints require Bearer token authentication</span>
+          <CheckCircle className="h-4 md:h-5 w-4 md:w-5 text-green-600 dark:text-green-400" />
+          <span className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">All endpoints require Bearer token authentication</span>
         </div>
       </div>
     </div>
