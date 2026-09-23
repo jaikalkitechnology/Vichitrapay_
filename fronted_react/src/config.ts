@@ -1,5 +1,6 @@
-export const BASE_URL =  "http://127.0.0.1:8000/api/v1";
-//export const BASE_URL =  "http://127.0.0.1:8000/api/v1";
+// Backend server. Set VITE_API_URL (e.g. http://127.0.0.1:8000) to point a local build elsewhere.
+export const API_ORIGIN = (import.meta.env.VITE_API_URL || "https://api.vichitrapay.com").replace(/\/+$/, "");
+export const BASE_URL = `${API_ORIGIN}/api/v1`;
 //export const DOMAIN =  "https://api.gurutvapay.com";
 //apne current account me kya dikhaya jayega?
 

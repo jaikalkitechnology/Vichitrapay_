@@ -1,7 +1,7 @@
 // Replace src/pages/admin/TspMappingPage.tsx with this version
 import React, { useEffect, useMemo, useState } from "react";
 import api from "@/api/api";
-import { BASE_URL } from "@/config";
+import { API_ORIGIN, BASE_URL } from "@/config";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,25 +62,25 @@ async function fetchMerchants(): Promise<MerchantShort[]> {
   return data.items ?? data.users ?? [];
 }
 async function fetchProviders(): Promise<Provider[]> {
-  const res = await api.get(`http://127.0.0.1:8000/tsp/providers?skip=0&limit=100`);
+  const res = await api.get(`${API_ORIGIN}/tsp/providers?skip=0&limit=100`);
   const data = res.data;
   if (!data) return [];
   return Array.isArray(data) ? data : data.items ?? [];
 }
 async function createMapping(payload: MappingCreatePayload) {
-  const res = await api.post(`http://127.0.0.1:8000/tsp/mappings`, payload);
+  const res = await api.post(`${API_ORIGIN}/tsp/mappings`, payload);
   return res.data;
 }
 async function updateMapping(mappingId: number, payload: MappingUpdatePayload) {
-  const res = await api.put(`http://127.0.0.1:8000/tsp/mappings/${mappingId}`, payload);
+  const res = await api.put(`${API_ORIGIN}/tsp/mappings/${mappingId}`, payload);
   return res.data;
 }
 async function deleteMapping(mappingId: number) {
-  const res = await api.delete(`http://127.0.0.1:8000/tsp/mappings/${mappingId}`);
+  const res = await api.delete(`${API_ORIGIN}/tsp/mappings/${mappingId}`);
   return res.data;
 }
 async function fetchMappingsForMerchant(merchantId: string): Promise<Mapping[]> {
-  const res = await api.get(`http://127.0.0.1:8000/tsp/mappings`, { params: { merchant_id: merchantId } });
+  const res = await api.get(`${API_ORIGIN}/tsp/mappings`, { params: { merchant_id: merchantId } });
   const data = res.data;
   if (!data) return [];
   return Array.isArray(data) ? data : data.items ?? [];

@@ -1,6 +1,7 @@
 // src/components/Passbook.jsx
 import React, { useEffect, useState, useCallback } from "react";
 import api from "@/api/api";
+import { API_ORIGIN, BASE_URL } from "@/config";
 
 /*
   Passbook / Wallet Transactions UI + Download report + Monthly summary
@@ -10,7 +11,7 @@ import api from "@/api/api";
   - Backend route: /mnt/data/merchant.py (merchant/summary)
 */
 
-const API_BASE = "http://127.0.0.1:8000/api/v1/merchant";
+const API_BASE = `${BASE_URL}/merchant`;
 const LIST_URL = `${API_BASE}/wallet-transactions`;
 const EXPORT_URL = `${API_BASE}/payouts/export`;
 const SUMMARY_URL = `${API_BASE}/merchant/summary`; // <-- new
@@ -53,7 +54,7 @@ export default function Passbook() {
   const [info, setInfo] = useState(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
-  const CHECK_STATUS_URL = "http://127.0.0.1:8000/live/payout/status/zeepay";
+  const CHECK_STATUS_URL = `${API_ORIGIN}/live/payout/status/zeepay`;
   const CHECK_STATUS = async (txnId) => {
     const { data } = await api.post(CHECK_STATUS_URL, null, { params: { txn_id: txnId } });
     return data;

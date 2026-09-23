@@ -8,6 +8,7 @@ import type { PaginatedUsersWithWallets } from "@/api/apiHelper";
 import { AlertCircle, ArrowUpDown, CheckCircle2, Inbox, Loader2, RefreshCw, Search, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionMenu, EmptyState, PageHeader, Panel, StatusBadge, inputCls } from "@/components/admin-part/ui";
+import { BASE_URL } from "@/config";
 
 function toYMD(v?: string | null): string | undefined {
   if (!v) return undefined;
@@ -31,7 +32,7 @@ function fmtINR(v: number | string | undefined | null) {
 }
 
 export default function MerchantTransactionsPage() {
-  const API_BASE = "http://127.0.0.1:8000/api/v1/admin";
+  const API_BASE = `${BASE_URL}/admin`;
   const { toast } = useToast();
   const {
     query, data, loading, error,

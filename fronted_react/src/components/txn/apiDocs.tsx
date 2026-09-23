@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Copy, ChevronRight, Key, Link, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import ProviderCredentials from "@/components/txn/ProviderCredentials";
+import { API_ORIGIN } from "@/config";
 // Small helper to render code blocks
 function Code({ children }) {
   return (
@@ -53,7 +54,7 @@ function EndpointCard({ method, path, description, color = '#3871C2' }) {
 }
 
 export default function ApiDocs() {
-  const base = "http://127.0.0.1:8000";
+  const base = API_ORIGIN;
 
   // --- Authentication Examples ------------------------------------------------
   const loginResponseExample = {

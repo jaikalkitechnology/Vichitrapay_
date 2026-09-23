@@ -615,12 +615,12 @@ function extractErrorMessage(error: any): string {
 
 
 export const fetchMerchantCredentials = async () => {
-  const res = await api.get("http://127.0.0.1:8000/api/v1/merchant/credentials");
+  const res = await api.get(`${BASE_URL}/merchant/credentials`);
   return res.data;
 };
 
 export const fetchAdminMerchantCredentials = async (merchant_id: string) => {
-  const res = await api.get(`http://127.0.0.1:8000/api/v1/admin/credentials?merchant_id=${merchant_id}`
+  const res = await api.get(`${BASE_URL}/admin/credentials?merchant_id=${merchant_id}`
   );
   return res.data;
 };

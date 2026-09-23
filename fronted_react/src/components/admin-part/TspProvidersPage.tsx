@@ -1,7 +1,7 @@
 // src/pages/admin/TspProvidersPage.tsx
 import React, { useEffect, useState } from "react";
 import api from "@/api/api";
-import { BASE_URL } from "@/config";
+import { API_ORIGIN, BASE_URL } from "@/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -47,24 +47,24 @@ export type ProviderUpdatePayload = Partial<ProviderCreatePayload>;
 /* --------------------------- API helpers -------------------------- */
 
 async function fetchProviders(): Promise<Provider[]> {
-  const res = await api.get(`http://127.0.0.1:8000/tsp/providers`);
+  const res = await api.get(`${API_ORIGIN}/tsp/providers`);
   const data = res.data;
   if (!data) return [];
   return Array.isArray(data) ? data : data.items ?? [];
 }
 
 async function createProvider(payload: ProviderCreatePayload) {
-  const res = await api.post(`http://127.0.0.1:8000/tsp/providers`, payload);
+  const res = await api.post(`${API_ORIGIN}/tsp/providers`, payload);
   return res.data;
 }
 
 async function updateProvider(providerId: number, payload: ProviderUpdatePayload) {
-  const res = await api.put(`http://127.0.0.1:8000/tsp/providers/${providerId}`, payload);
+  const res = await api.put(`${API_ORIGIN}/tsp/providers/${providerId}`, payload);
   return res.data;
 }
 
 async function deleteProvider(providerId: number) {
-  const res = await api.delete(`http://127.0.0.1:8000/tsp/providers/${providerId}`);
+  const res = await api.delete(`${API_ORIGIN}/tsp/providers/${providerId}`);
   return res.data;
 }
 
