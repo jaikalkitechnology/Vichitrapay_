@@ -18,7 +18,29 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+				mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+			},
 			colors: {
+				// Corporate Pro palette (admin_panel_design.md)
+				navy: {
+					DEFAULT: '#0F2744',
+					mid: '#1B3A5C',
+				},
+				indigo: {
+					50: '#EEF2FF',
+					100: '#E0E7FF',
+					200: '#C7D2FE',
+					300: '#A5B4FC',
+					400: '#818CF8',
+					500: '#6680F8',
+					600: '#4F6BF6',
+					700: '#4059DB',
+					800: '#3B52CC',
+					900: '#2A3A8F',
+					950: '#1E2A4A',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

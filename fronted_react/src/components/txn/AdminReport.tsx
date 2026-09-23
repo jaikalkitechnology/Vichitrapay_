@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import api from "@/api/api";
 import { BASE_URL } from "@/config";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Download, Inbox, Loader2, RefreshCw, Search } from "lucide-react";
+import { EmptyState, PageHeader, Panel, StatusBadge, inputCls } from "@/components/admin-part/ui";
 import { useToast } from "@/hooks/use-toast";
 
 // --------------- types ---------------
@@ -94,34 +93,37 @@ function Pagination({
     return pagesArr;
   }, [page, last]);
 
+  const btn = "inline-flex h-8 min-w-[32px] items-center justify-center rounded-md border px-2.5 text-[13px] font-medium disabled:opacity-50 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800";
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-      <div className="text-sm text-gray-600">
-        Page <strong className="text-[#3871C2]">{page}</strong> of{" "}
-        <strong className="text-[#3871C2]">{totalPages}</strong> —{" "}
-        <strong className="text-[#41B93D]">{total}</strong> items
+    <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800 sm:flex-row">
+      <div className="text-[13px] text-gray-500 dark:text-gray-400">
+        Page <span className="font-medium text-gray-900 dark:text-gray-100">{page}</span> of{" "}
+        <span className="font-medium text-gray-900 dark:text-gray-100">{totalPages}</span> · {total.toLocaleString("en-IN")} items
       </div>
-      <div className="flex flex-wrap justify-center sm:justify-end items-center gap-2 w-full sm:w-auto">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:justify-end">
         <select
           value={per_page}
           onChange={(e) => onPerPage(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-sm focus:border-[#3871C2] focus:outline-none"
+          className={inputCls}
+          aria-label="Rows per page"
         >
           {[10, 20, 50, 100].map((n) => (
             <option key={n} value={n}>{n} / page</option>
           ))}
         </select>
-        <button className="px-3 py-2 border rounded-lg text-sm font-medium disabled:opacity-50" onClick={() => onPage(first)} disabled={page === first}>« First</button>
-        <button className="px-3 py-2 border rounded-lg text-sm font-medium disabled:opacity-50" onClick={() => onPage(prev)} disabled={page === first}>‹ Prev</button>
-        <div className="flex gap-1">
-          {pages.map((p) => (
-            <button key={p} onClick={() => onPage(p)}
-              className={`px-3 py-2 border rounded-lg text-sm font-medium min-w-[40px] ${p === page ? "bg-[#3871C2] text-white border-transparent" : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"}`}
-            >{p}</button>
-          ))}
-        </div>
-        <button className="px-3 py-2 border rounded-lg text-sm font-medium disabled:opacity-50" onClick={() => onPage(next)} disabled={page === last}>Next ›</button>
-        <button className="px-3 py-2 border rounded-lg text-sm font-medium disabled:opacity-50" onClick={() => onPage(last)} disabled={page === last}>Last »</button>
+        <button className={btn} onClick={() => onPage(first)} disabled={page === first}>« First</button>
+        <button className={btn} onClick={() => onPage(prev)} disabled={page === first}>‹ Prev</button>
+        {pages.map((p) => (
+          <button
+            key={p}
+            onClick={() => onPage(p)}
+            className={p === page ? "inline-flex h-8 min-w-[32px] items-center justify-center rounded-md border px-2.5 text-[13px] font-medium disabled:opacity-50 border-transparent bg-indigo-600 text-white" : btn}
+          >
+            {p}
+          </button>
+        ))}
+        <button className={btn} onClick={() => onPage(next)} disabled={page === last}>Next ›</button>
+        <button className={btn} onClick={() => onPage(last)} disabled={page === last}>Last »</button>
       </div>
     </div>
   );
@@ -152,13 +154,6 @@ export default function AdminReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // download dialog
-  const [dlOpen, setDlOpen] = useState(false);
-  const [dlMerchant, setDlMerchant] = useState("");
-  const [dlType, setDlType] = useState("");
-  const [dlStatus, setDlStatus] = useState("");
-  const [dlFrom, setDlFrom] = useState("");
-  const [dlTo, setDlTo] = useState("");
   const [dlLoading, setDlLoading] = useState(false);
 
   // fetch merchants for dropdown
@@ -213,25 +208,16 @@ export default function AdminReport() {
     setDateFrom(""); setDateTo(""); setSearch(""); setPage(1);
   };
 
-  // download handler
-  const openDownloadDialog = () => {
-    setDlMerchant(merchantId);
-    setDlType(transactionType);
-    setDlStatus(status);
-    setDlFrom(dateFrom);
-    setDlTo(dateTo);
-    setDlOpen(true);
-  };
-
+  // Download the CSV for the current filters (no separate dialog)
   const handleDownload = async () => {
     setDlLoading(true);
     try {
       const params = new URLSearchParams();
-      if (dlMerchant) params.set("merchant_id", dlMerchant);
-      if (dlType) params.set("transaction_type", dlType);
-      if (dlStatus) params.set("status", dlStatus);
-      if (dlFrom) params.set("date_from", dlFrom);
-      if (dlTo) params.set("date_to", dlTo);
+      if (merchantId) params.set("merchant_id", merchantId);
+      if (transactionType) params.set("transaction_type", transactionType);
+      if (status) params.set("status", status);
+      if (dateFrom) params.set("date_from", dateFrom);
+      if (dateTo) params.set("date_to", dateTo);
 
       const res = await api.get(`${BASE_URL}/admin/report/download?${params.toString()}`, {
         responseType: "blob",
@@ -247,7 +233,6 @@ export default function AdminReport() {
       window.URL.revokeObjectURL(url);
 
       toast({ title: "Downloaded", description: "Report CSV downloaded successfully" });
-      setDlOpen(false);
     } catch (err: any) {
       toast({ title: "Download Failed", description: err?.message || "Error", variant: "destructive" });
     } finally {
@@ -260,274 +245,156 @@ export default function AdminReport() {
     return m ? `${m.username} (${m.id})` : id;
   };
 
+  const TD = "px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-700 dark:text-gray-300";
+  const MONO = "px-4 py-2.5 whitespace-nowrap font-mono text-[12px] text-gray-600 dark:text-gray-400";
+  const AMT = "px-4 py-2.5 whitespace-nowrap text-right font-mono text-[13px] tabular-nums text-gray-700 dark:text-gray-300";
+
+  const stats = [
+    { label: "Today success", value: summary ? summary.today.success_count.toLocaleString("en-IN") : "—" },
+    { label: "Today volume", value: summary ? inr.format(summary.today.success_volume) : "—" },
+    { label: "Yesterday success", value: summary ? summary.yesterday.success_count.toLocaleString("en-IN") : "—" },
+    { label: "Yesterday volume", value: summary ? inr.format(summary.yesterday.success_volume) : "—" },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-                Transaction Report
-              </h1>
-              <p className="text-sm text-[var(--vp-text-secondary)] mt-2">Comprehensive admin transaction report with filters</p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={openDownloadDialog}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#41B93D] to-emerald-500 text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-md flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Download CSV
-              </button>
-              <button onClick={fetchReport}
-                className="px-4 py-2.5 bg-gradient-to-r from-[#3871C2] to-[#00ADEF] text-white rounded-lg font-medium hover:opacity-90 transition-all shadow-md flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-              <button onClick={resetFilters}
-                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors flex items-center gap-2">
-                Reset
-              </button>
-            </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Report"
+        description="Admin transaction report with filters"
+        actions={
+          <>
+            <Button variant="outline" onClick={handleDownload} disabled={dlLoading}>
+              {dlLoading ? <Loader2 className="animate-spin" /> : <Download />} Download CSV
+            </Button>
+            <Button onClick={fetchReport}>
+              <RefreshCw /> Refresh
+            </Button>
+          </>
+        }
+      />
+
+      {/* Compact stat row */}
+      <div className="grid grid-cols-2 divide-gray-100 rounded-lg border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900 md:grid-cols-4 md:divide-x">
+        {stats.map((st) => (
+          <div key={st.label} className="px-4 py-3">
+            <div className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">{st.label}</div>
+            <div className="mt-0.5 text-lg font-bold tabular-nums text-gray-900 dark:text-gray-100">{st.value}</div>
           </div>
+        ))}
+      </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#41B93D]">
-              <div className="text-sm text-[var(--vp-text-secondary)]">Today Success Count</div>
-              <div className="text-[22px] font-semibold text-[#41B93D] mt-1">{summary?.today?.success_count?.toLocaleString() ?? "0"}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#3871C2]">
-              <div className="text-sm text-[var(--vp-text-secondary)]">Today Success Volume</div>
-              <div className="text-[22px] font-semibold text-[#3871C2] mt-1">{inr.format(Number(summary?.today?.success_volume || 0))}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#00ADEF]">
-              <div className="text-sm text-[var(--vp-text-secondary)]">Yesterday Success Count</div>
-              <div className="text-[22px] font-semibold text-[#00ADEF] mt-1">{summary?.yesterday?.success_count?.toLocaleString() ?? "0"}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-[#F68713]">
-              <div className="text-sm text-[var(--vp-text-secondary)]">Yesterday Success Volume</div>
-              <div className="text-[22px] font-semibold text-[#F68713] mt-1">{inr.format(Number(summary?.yesterday?.success_volume || 0))}</div>
-            </div>
+      {/* Filter bar */}
+      <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              list="report-merchants"
+              value={merchantId}
+              onChange={(e) => setMerchantId(e.target.value.trim())}
+              placeholder="All merchants"
+              className={`${inputCls} w-full pl-8`}
+              aria-label="Merchant"
+            />
+            <datalist id="report-merchants">
+              {merchants.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.username}{m.company_name ? ` — ${m.company_name}` : ""}
+                </option>
+              ))}
+            </datalist>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Merchant</label>
-              <select
-                value={merchantId}
-                onChange={(e) => setMerchantId(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none"
-              >
-                <option value="">All Merchants</option>
-                {merchants.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.username}{m.company_name ? ` — ${m.company_name}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Transaction Type</label>
-              <select value={transactionType} onChange={(e) => setTransactionType(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none">
-                <option value="">All</option>
-                <option value="PayIn">PayIn</option>
-                <option value="PayOut">PayOut</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none">
-                <option value="">All</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Date From</label>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none" />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Date To</label>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none" />
-            </div>
-
-            <div>
-              <label className="text-xs text-gray-600 font-medium mb-1 block">Search (order/txn/utr)</label>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="order id, txn id, utr"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:ring-2 focus:ring-[#3871C2]/20 focus:outline-none" />
-            </div>
+          <select value={transactionType} onChange={(e) => setTransactionType(e.target.value)} className={inputCls} aria-label="Transaction type">
+            <option value="">All Types</option>
+            <option value="PayIn">PayIn</option>
+            <option value="PayOut">PayOut</option>
+          </select>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls} aria-label="Status">
+            <option value="">All Status</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+          </select>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={inputCls} aria-label="Date from" title="Date from" />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={inputCls} aria-label="Date to" title="Date to" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Order ID, Txn ID, UTR" className={inputCls} aria-label="Search" />
+          <div className="col-span-2 flex gap-2 md:col-span-3 xl:col-span-1">
+            <Button variant="outline" onClick={resetFilters}>Reset</Button>
+            <Button onClick={applyFilters}>Apply</Button>
           </div>
-
-          <div className="flex gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
-            <button onClick={applyFilters}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#41B93D] to-emerald-500 text-white rounded-lg font-medium shadow-md flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Apply Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">ID</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Merchant</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Order ID</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Charges</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">GST</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Settle Amt</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">UTR</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Txn ID</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr><td colSpan={12} className="p-8 text-center text-gray-500">
-                    <div className="w-12 h-9 border-4 border-[#3871C2]/20 border-t-[#3871C2] rounded-full animate-spin mx-auto mb-4"></div>
-                    Loading report...
-                  </td></tr>
-                )}
-                {!loading && error && (
-                  <tr><td colSpan={12} className="p-8 text-center text-red-600">
-                    {error}
-                    <button onClick={fetchReport} className="ml-4 px-3 py-1 bg-[#3871C2] text-white rounded text-sm">Retry</button>
-                  </td></tr>
-                )}
-                {!loading && !error && data && data.items.length === 0 && (
-                  <tr><td colSpan={12} className="p-8 text-center text-gray-500">No transactions found</td></tr>
-                )}
-                {!loading && !error && data && data.items.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-mono">{item.id}</td>
-                    <td className="px-6 py-4 text-sm font-medium">{merchantLabel(item.user_id)}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        item.transaction_type === "PayIn"
-                          ? "bg-[#3871C2]/10 text-[#3871C2] border border-[#3871C2]/20"
-                          : "bg-[#41B93D]/10 text-[#41B93D] border border-[#41B93D]/20"
-                      }`}>{item.transaction_type}</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status === "success" ? "bg-[#41B93D]/10 text-[#41B93D]"
-                          : item.status === "pending" ? "bg-[#F68713]/10 text-[#F68713]"
-                          : "bg-red-100 text-red-600"
-                      }`}>{item.status ?? "-"}</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm"><div className="font-mono bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-700 dark:text-gray-300">{item.order_id ?? "-"}</div></td>
-                    <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-gray-100">{inr.format(item.amount)}</td>
-                    <td className="px-6 py-4 text-sm text-[#F68713]">{NumberOrDash(item.charges)}</td>
-                    <td className="px-6 py-4 text-sm text-[#F68713]">{NumberOrDash(item.gst)}</td>
-                    <td className="px-6 py-4 text-sm text-[#41B93D] font-bold">{NumberOrDash(item.settle_amount)}</td>
-                    <td className="px-6 py-4 text-sm"><div className="font-mono bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-700 dark:text-gray-300">{item.utr ?? "-"}</div></td>
-                    <td className="px-6 py-4 text-sm"><div className="font-mono bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-700 dark:text-gray-300">{item.txn_id ?? "-"}</div></td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{shortDate(item.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <Pagination
-            total={data?.total ?? 0}
-            page={data?.page ?? page}
-            per_page={data?.per_page ?? perPage}
-            onPage={(p) => setPage(p)}
-            onPerPage={(n) => { setPerPage(n); setPage(1); }}
-          />
         </div>
       </div>
 
-      {/* Download Dialog */}
-      {dlOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--vp-blue)' }}>Download Report CSV</h3>
-            <p className="text-sm text-gray-500 mb-4">Select filters for the download. Max 10,000 rows.</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-600 font-medium mb-1 block">Merchant</label>
-                <select value={dlMerchant} onChange={(e) => setDlMerchant(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:outline-none">
-                  <option value="">All Merchants</option>
-                  {merchants.map((m) => (
-                    <option key={m.id} value={m.id}>{m.username}{m.company_name ? ` — ${m.company_name}` : ""}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-600 font-medium mb-1 block">Transaction Type</label>
-                  <select value={dlType} onChange={(e) => setDlType(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:outline-none">
-                    <option value="">All</option>
-                    <option value="PayIn">PayIn</option>
-                    <option value="PayOut">PayOut</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600 font-medium mb-1 block">Status</label>
-                  <select value={dlStatus} onChange={(e) => setDlStatus(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:outline-none">
-                    <option value="">All</option>
-                    <option value="success">Success</option>
-                    <option value="failed">Failed</option>
-                    <option value="pending">Pending</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-600 font-medium mb-1 block">Date From</label>
-                  <input type="date" value={dlFrom} onChange={(e) => setDlFrom(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-600 font-medium mb-1 block">Date To</label>
-                  <input type="date" value={dlTo} onChange={(e) => setDlTo(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-[#3871C2] focus:outline-none" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <Button variant="outline" onClick={() => setDlOpen(false)} className="rounded-lg h-9">Cancel</Button>
-              <Button onClick={handleDownload} disabled={dlLoading} className="rounded-lg h-9 text-white"
-                style={{ background: "linear-gradient(135deg, #41B93D, #00ADEF)" }}>
-                {dlLoading ? "Downloading..." : "Download CSV"}
-              </Button>
-            </div>
-          </div>
+      <Panel title="Transactions" meta={data ? `${data.total.toLocaleString("en-IN")} results` : undefined}>
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+              <tr>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">ID</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Merchant</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Type</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Status</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Order ID</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-right">Amount</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-right">Charges</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-right">GST</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-right">Settle Amt</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">UTR</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Txn ID</th>
+                <th className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap text-left">Created</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {loading && (
+                <tr>
+                  <td colSpan={12} className="py-10 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                  </td>
+                </tr>
+              )}
+              {!loading && error && (
+                <tr>
+                  <td colSpan={12} className="py-8 text-center text-[13px] text-red-600">
+                    {error}
+                    <Button variant="outline" onClick={fetchReport} className="ml-3">Retry</Button>
+                  </td>
+                </tr>
+              )}
+              {!loading && !error && data && data.items.length === 0 && (
+                <tr>
+                  <td colSpan={12}>
+                    <EmptyState icon={Inbox} title="No transactions found" description="Try adjusting your filters" />
+                  </td>
+                </tr>
+              )}
+              {!loading && !error && data && data.items.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td className={MONO}>{item.id}</td>
+                  <td className={`${TD} font-medium text-gray-900 dark:text-gray-100`}>{merchantLabel(item.user_id)}</td>
+                  <td className={TD}><StatusBadge status={item.transaction_type} /></td>
+                  <td className={TD}><StatusBadge status={item.status} /></td>
+                  <td className={MONO}>{item.order_id ?? "-"}</td>
+                  <td className={`${AMT} font-medium text-gray-900 dark:text-gray-100`}>{inr.format(item.amount)}</td>
+                  <td className={AMT}>{NumberOrDash(item.charges)}</td>
+                  <td className={AMT}>{NumberOrDash(item.gst)}</td>
+                  <td className={AMT}>{NumberOrDash(item.settle_amount)}</td>
+                  <td className={MONO}>{item.utr ?? "-"}</td>
+                  <td className={MONO}>{item.txn_id ?? "-"}</td>
+                  <td className={TD}>{shortDate(item.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        <Pagination
+          total={data?.total ?? 0}
+          page={data?.page ?? page}
+          per_page={data?.per_page ?? perPage}
+          onPage={(p) => setPage(p)}
+          onPerPage={(n) => { setPerPage(n); setPage(1); }}
+        />
+      </Panel>
     </div>
   );
 }

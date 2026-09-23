@@ -298,27 +298,26 @@ export default function TspMappingPage(): JSX.Element {
 
   /* ---------- Render ---------- */
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5">
+      <div className="max-w-7xl mx-auto space-y-5">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold text-gray-900 dark:text-gray-100">TSP Provider Mapping</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Configure payment gateway mappings for merchants</p>
+            <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">TSP Provider Mapping</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Configure payment gateway mappings for merchants</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               onClick={() => { setSelectedMerchantId(null); setDrafts({}); setMappings([]); }}
               variant="outline"
-              className="rounded-lg border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700"
+              className="rounded-lg border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Clear Selection
             </Button>
             <Button
               onClick={saveAll}
               disabled={!selectedMerchantId || savingAll || loading}
-              className="rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-              style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}
+              className="h-8"
             >
               {savingAll ? (
                 <>
@@ -335,17 +334,17 @@ export default function TspMappingPage(): JSX.Element {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border border-blue-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Total Merchants</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#3871C2' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Merchants</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : merchants.length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#F0F9FF' }}>
-                  <svg className="w-6 h-6" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
@@ -353,17 +352,17 @@ export default function TspMappingPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card className="border border-green-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">TSP Providers</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#41B93D' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">TSP Providers</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#F0FDF4' }}>
-                  <svg className="w-6 h-6" style={{ color: '#41B93D' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
@@ -371,17 +370,17 @@ export default function TspMappingPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card className="border border-purple-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Active Mappings</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#8B5CF6' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Active Mappings</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : mappings.length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#F5F3FF' }}>
-                  <svg className="w-6 h-6" style={{ color: '#8B5CF6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
                 </div>
@@ -389,17 +388,17 @@ export default function TspMappingPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card className="border border-orange-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Selected Merchant</p>
-                  <p className="text-lg font-semibold mt-2 truncate" style={{ color: '#F68713' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Selected Merchant</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100 truncate">
                     {selectedMerchant ? selectedMerchant.username : 'None'}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
-                  <svg className="w-6 h-6" style={{ color: '#F68713' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -409,18 +408,18 @@ export default function TspMappingPage(): JSX.Element {
         </div>
 
         {/* Main Content Card */}
-        <Card className="border-0 shadow-xl bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white px-6 py-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-lg font-semibold" style={{ color: '#3871C2' }}>Merchant to TSP Mapping</CardTitle>
+                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Merchant to TSP Mapping</CardTitle>
                 <div className="text-gray-600 text-sm">Select a merchant and configure their payment gateway mappings</div>
               </div>
               
               {selectedMerchant && (
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E0F2FE' }}>
-                    <span className="font-semibold" style={{ color: '#3871C2' }}>
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                       {selectedMerchant.username.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -441,7 +440,7 @@ export default function TspMappingPage(): JSX.Element {
               {/* Left Column - Merchant Selection */}
               <div className="lg:col-span-1 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Merchant</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Select Merchant</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,13 +451,13 @@ export default function TspMappingPage(): JSX.Element {
                       placeholder="Search merchants..." 
                       value={merchantSearch} 
                       onChange={(e) => setMerchantSearch(e.target.value)} 
-                      className="pl-10 rounded-lg border-gray-200 dark:border-gray-700 focus:border-blue-400"
+                      className="pl-9"
                     />
                   </div>
                 </div>
 
-                <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800">
-                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900">
+                  <div className="p-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Available Merchants</span>
                       <span className="text-xs text-gray-500">{filteredMerchants.length} found</span>
@@ -468,7 +467,7 @@ export default function TspMappingPage(): JSX.Element {
                   <div className="max-h-[50vh] overflow-y-auto">
                     {loading ? (
                       <div className="flex flex-col items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#3871C2' }}></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
                         <p className="mt-3 text-gray-600">Loading merchants...</p>
                       </div>
                     ) : initialLoadError ? (
@@ -482,7 +481,7 @@ export default function TspMappingPage(): JSX.Element {
                       </div>
                     ) : filteredMerchants.length === 0 ? (
                       <div className="p-8 text-center">
-                        <svg className="w-12 h-9 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-12 h-8 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         <p className="text-gray-600 font-medium">No merchants found</p>
@@ -493,7 +492,7 @@ export default function TspMappingPage(): JSX.Element {
                         <button 
                           key={m.id} 
                           onClick={() => setSelectedMerchantId(m.id)} 
-                          className={`w-full text-left p-3 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors ${selectedMerchantId === m.id ? "bg-blue-50 border-l-4 border-l-blue-500" : "hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700"}`}
+                          className={`w-full text-left p-3 border-b border-gray-200 dark:border-gray-800 last:border-b-0 transition-colors ${selectedMerchantId === m.id ? "bg-blue-50" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedMerchantId === m.id ? "bg-blue-100" : "bg-gray-100"}`}>
@@ -520,7 +519,7 @@ export default function TspMappingPage(): JSX.Element {
               <div className="lg:col-span-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">TSP Providers Configuration</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">TSP Providers Configuration</h3>
                     <div className="text-sm text-gray-600">
                       {selectedMerchant ? (
                         <span>Configure mappings for <span className="font-semibold">{selectedMerchant.username}</span></span>
@@ -534,7 +533,7 @@ export default function TspMappingPage(): JSX.Element {
                     <Button
                       onClick={() => { setSelectedMerchantId(null); setDrafts({}); setMappings([]); }}
                       variant="outline"
-                      className="rounded-lg border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700"
+                      className="rounded-lg border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Clear
                     </Button>
@@ -542,17 +541,17 @@ export default function TspMappingPage(): JSX.Element {
                 </div>
 
                 {!selectedMerchantId ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center bg-gray-50 dark:bg-gray-900">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50 dark:bg-gray-900">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-200 mb-4">
                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No Merchant Selected</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">No Merchant Selected</h3>
                     <p className="text-gray-600 mb-4">Select a merchant from the left panel to configure TSP mappings</p>
                     <Button 
                       variant="outline" 
-                      className="rounded-lg border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700"
+                      className="rounded-lg border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                       disabled={filteredMerchants.length === 0}
                       onClick={() => filteredMerchants.length > 0 && setSelectedMerchantId(filteredMerchants[0].id)}
                     >
@@ -560,13 +559,13 @@ export default function TspMappingPage(): JSX.Element {
                     </Button>
                   </div>
                 ) : providers.length === 0 ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center bg-gray-50 dark:bg-gray-900">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50 dark:bg-gray-900">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-200 mb-4">
                       <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No TSP Providers Available</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">No TSP Providers Available</h3>
                     <p className="text-gray-600">No payment gateway providers are configured in the system</p>
                   </div>
                 ) : (
@@ -594,13 +593,13 @@ export default function TspMappingPage(): JSX.Element {
                       ) : null;
 
                       return (
-                        <div key={p.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-800 hover:shadow-sm transition-shadow">
+                        <div key={p.id} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900">
                           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                             {/* Provider Info */}
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#F0F9FF' }}>
-                                  <svg className="w-5 h-5" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                   </svg>
                                 </div>
@@ -625,7 +624,7 @@ export default function TspMappingPage(): JSX.Element {
                               <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                                 {/* Pay-In Section */}
                                 {showPayin && (
-                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                                  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
                                     <div className="flex items-center justify-between mb-3">
                                       <label className="flex items-center gap-2 font-medium text-sm">
                                         <input 
@@ -649,7 +648,7 @@ export default function TspMappingPage(): JSX.Element {
                                           placeholder="Pay-In Merchant ID" 
                                           value={d.payIn_mid ?? ""} 
                                           onChange={(e) => setDraftForProvider(p.id, { payIn_mid: e.target.value })}
-                                          className="rounded-lg text-sm"
+                                          
                                         />
                                         <label className="flex items-center gap-2 text-xs text-gray-600">
                                           <input 
@@ -667,7 +666,7 @@ export default function TspMappingPage(): JSX.Element {
 
                                 {/* Pay-Out Section */}
                                 {showPayout && (
-                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+                                  <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
                                     <div className="flex items-center justify-between mb-3">
                                       <label className="flex items-center gap-2 font-medium text-sm">
                                         <input 
@@ -691,7 +690,7 @@ export default function TspMappingPage(): JSX.Element {
                                           placeholder="Pay-Out Merchant ID" 
                                           value={d.payOut_mid ?? ""} 
                                           onChange={(e) => setDraftForProvider(p.id, { payOut_mid: e.target.value })}
-                                          className="rounded-lg text-sm"
+                                          
                                         />
                                         <div className="grid grid-cols-2 gap-2">
                                           <Input
@@ -699,14 +698,14 @@ export default function TspMappingPage(): JSX.Element {
                                             placeholder="Min Amount"
                                             value={d.min_amount ?? ""}
                                             onChange={(e) => setDraftForProvider(p.id, { min_amount: e.target.value })}
-                                            className="rounded-lg text-sm"
+                                            
                                           />
                                           <Input
                                             type="number"
                                             placeholder="Max Amount"
                                             value={d.max_amount ?? ""}
                                             onChange={(e) => setDraftForProvider(p.id, { max_amount: e.target.value })}
-                                            className="rounded-lg text-sm"
+                                            
                                           />
                                         </div>
                                         <label className="flex items-center gap-2 text-xs text-gray-600">
@@ -725,7 +724,7 @@ export default function TspMappingPage(): JSX.Element {
                               </div>
 
                               {/* Save Button and Status */}
-                              <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-800">
                                 {error && (
                                   <div className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">
                                     <div className="flex items-center gap-1">
@@ -741,7 +740,6 @@ export default function TspMappingPage(): JSX.Element {
                                   disabled={saving}
                                   size="sm"
                                   className="rounded-lg ml-auto"
-                                  style={{ backgroundColor: '#3871C2' }}
                                 >
                                   {saving ? (
                                     <>

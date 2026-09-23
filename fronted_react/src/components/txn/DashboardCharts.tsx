@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BarChart3 } from "lucide-react";
 import api from "@/api/api";
 import { BASE_URL } from "@/config";
 
@@ -18,6 +19,16 @@ type ChartData = {
 
 const CHART_JS_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js";
 
+// Chart palette — admin_panel_design.md → Chart Color Palette
+const C = {
+  payin: "#4F6BF6",
+  payout: "#06B6D4",
+  success: "#22C55E",
+  pending: "#F59E0B",
+  failed: "#EF4444",
+  fees: "#F59E0B",
+};
+
 function loadChartJs(): Promise<void> {
   return new Promise((resolve) => {
     if (typeof Chart !== "undefined") return resolve();
@@ -28,10 +39,75 @@ function loadChartJs(): Promise<void> {
   });
 }
 
+function destroyCharts(list: any[]) {
+  list.forEach((c) => {
+    try {
+      c.destroy();
+    } catch {
+      // chart already torn down
+    }
+  });
+}
+
+function formatLakhs(v: number) {
+  if (v >= 10000000) return (v / 10000000).toFixed(1) + "Cr";
+  if (v >= 100000) return (v / 100000).toFixed(v >= 1000000 ? 0 : 1) + "L";
+  if (v >= 1000) return (v / 1000).toFixed(0) + "K";
+  return String(v);
+}
+
+/** Tracks the `dark` class that DashboardLayout toggles on <html>. */
+function useIsDark() {
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
+  useEffect(() => {
+    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains("dark")));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+/** Chart heights shrink to 180px below 768px (Chart Responsive Behavior). */
+function useChartHeight(desktop: number) {
+  const get = () => (window.innerWidth < 768 ? 180 : desktop);
+  const [h, setH] = useState(get);
+  useEffect(() => {
+    const onResize = () => setH(get());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktop]);
+  return h;
+}
+
+const cardCls = "bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4";
+const titleCls = "text-[13px] font-semibold text-gray-900 dark:text-gray-100";
+const subCls = "text-[11px] text-gray-500 mt-0.5";
+
+function ChartLoading({ height }: { height: number }) {
+  return (
+    <div className="flex items-center justify-center" style={{ height }}>
+      <div className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  );
+}
+
+function ChartEmpty({ height }: { height: number }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-gray-400" style={{ height }}>
+      <BarChart3 className="w-8 h-8 mb-2 opacity-30" />
+      <span className="text-[11px]">No data for this period</span>
+    </div>
+  );
+}
+
 export default function DashboardCharts() {
   const [data, setData] = useState<ChartData | null>(null);
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
+  const dark = useIsDark();
+  const h1 = useChartHeight(220);
+  const h2 = useChartHeight(200);
 
   const revenueRef = useRef<HTMLCanvasElement>(null);
   const donutRef = useRef<HTMLCanvasElement>(null);
@@ -50,88 +126,96 @@ export default function DashboardCharts() {
     })();
   }, [days]);
 
+  const hasDaily = !!data && data.daily.length > 0;
+  const total = data ? data.status.success + data.status.pending + data.status.failed : 0;
+
   useEffect(() => {
-    if (!data) return;
+    if (!data || loading) return;
     let cancelled = false;
 
     loadChartJs().then(() => {
       if (cancelled) return;
 
-      // destroy old
-      charts.current.forEach((c) => { try { c.destroy(); } catch {} });
+      destroyCharts(charts.current);
       charts.current = [];
 
-      const textColor = "#5a6a7e";
-      const gridColor = "rgba(0,0,0,0.05)";
-      const scales = {
-        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
-        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 } }, border: { display: false } },
-      };
+      const textColor = dark ? "#94A3B8" : "#64748B";
+      const gridColor = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)";
+      const pointBorder = dark ? "#1F2937" : "#fff";
 
-      Chart.defaults.font.family = "system-ui, sans-serif";
-      Chart.defaults.animation.duration = 800;
-      Chart.defaults.animation.easing = "easeInOutQuart";
-      Chart.defaults.plugins.tooltip.backgroundColor = "#1A1D27";
-      Chart.defaults.plugins.tooltip.borderColor = "#2D3148";
+      // Global chart config
+      Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+      Chart.defaults.font.size = 11;
+      Chart.defaults.color = textColor;
+      Chart.defaults.animation.duration = 600;
+      Chart.defaults.animation.easing = "easeOutQuart";
+      Chart.defaults.plugins.tooltip.backgroundColor = dark ? "#1E293B" : "#0F172A";
+      Chart.defaults.plugins.tooltip.borderColor = dark ? "#334155" : "#1E293B";
       Chart.defaults.plugins.tooltip.borderWidth = 1;
-      Chart.defaults.plugins.tooltip.cornerRadius = 8;
-      Chart.defaults.plugins.tooltip.padding = { top: 8, bottom: 8, left: 12, right: 12 };
+      Chart.defaults.plugins.tooltip.cornerRadius = 6;
+      Chart.defaults.plugins.tooltip.padding = { top: 6, bottom: 6, left: 10, right: 10 };
+      Chart.defaults.plugins.tooltip.titleFont = { size: 11, weight: "600" };
+      Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+
+      const scales = {
+        x: { grid: { display: false }, border: { display: false }, ticks: { color: textColor } },
+        y: { grid: { color: gridColor }, border: { display: false }, ticks: { color: textColor } },
+      };
+      const labels = data.daily.map((d) => d.date);
+      const fill = (ctx: CanvasRenderingContext2D, rgb: string, top: number, height: number) => {
+        const g = ctx.createLinearGradient(0, 0, 0, height);
+        g.addColorStop(0, `rgba(${rgb},${top})`);
+        g.addColorStop(1, `rgba(${rgb},0)`);
+        return g;
+      };
 
       // 1. Revenue line
       if (revenueRef.current) {
         const ctx = revenueRef.current.getContext("2d")!;
-        const blueGrad = ctx.createLinearGradient(0, 0, 0, 240);
-        blueGrad.addColorStop(0, "rgba(56,113,194,.18)");
-        blueGrad.addColorStop(1, "rgba(56,113,194,0)");
-        const cyanGrad = ctx.createLinearGradient(0, 0, 0, 240);
-        cyanGrad.addColorStop(0, "rgba(0,173,239,.12)");
-        cyanGrad.addColorStop(1, "rgba(0,173,239,0)");
-
         charts.current.push(new Chart(ctx, {
           type: "line",
           data: {
-            labels: data.daily.map((d) => d.date),
+            labels,
             datasets: [
               {
                 label: "PayIn", data: data.daily.map((d) => d.payin_volume),
-                borderColor: "#3871C2", backgroundColor: blueGrad,
-                borderWidth: 2.5, tension: 0.4, fill: true,
-                pointRadius: 4, pointBackgroundColor: "#3871C2", pointBorderColor: "#fff", pointBorderWidth: 2,
+                borderColor: C.payin, backgroundColor: fill(ctx, "79,107,246", 0.12, h1),
+                borderWidth: 2, tension: 0.3, fill: true,
+                pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: C.payin, pointBorderColor: pointBorder,
               },
               {
                 label: "PayOut", data: data.daily.map((d) => d.payout_volume),
-                borderColor: "#00ADEF", backgroundColor: cyanGrad,
-                borderWidth: 2, tension: 0.4, fill: true, borderDash: [5, 3],
-                pointRadius: 3, pointBackgroundColor: "#00ADEF", pointBorderColor: "#fff", pointBorderWidth: 2,
+                borderColor: C.payout, borderWidth: 1.5, borderDash: [4, 3], tension: 0.3, fill: false,
+                pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: C.payout, pointBorderColor: pointBorder,
               },
             ],
           },
           options: {
             responsive: true, maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
             plugins: {
               legend: { display: false },
-              tooltip: { callbacks: { label: (c: any) => c.dataset.label + ": ₹" + c.raw.toLocaleString("en-IN") } },
+              tooltip: { callbacks: { label: (c: any) => c.dataset.label + ": ₹" + Number(c.raw).toLocaleString("en-IN") } },
             },
-            scales: { ...scales, y: { ...scales.y, ticks: { ...scales.y.ticks, callback: (v: number) => "₹" + (v >= 100000 ? (v / 100000).toFixed(1) + "L" : (v / 1000).toFixed(0) + "K") } } },
+            scales: { ...scales, y: { ...scales.y, ticks: { ...scales.y.ticks, callback: (v: number) => "₹" + formatLakhs(v) } } },
           },
         }));
       }
 
-      // 2. Status donut
-      if (donutRef.current) {
-        const total = data.status.success + data.status.pending + data.status.failed || 1;
+      // 2. Status doughnut
+      if (donutRef.current && total > 0) {
         charts.current.push(new Chart(donutRef.current, {
           type: "doughnut",
           data: {
             labels: ["Success", "Pending", "Failed"],
             datasets: [{
               data: [data.status.success, data.status.pending, data.status.failed],
-              backgroundColor: ["#41B93D", "#F68713", "#DC2626"],
-              borderWidth: 0, hoverOffset: 6,
+              backgroundColor: [C.success, C.pending, C.failed],
+              borderWidth: 0, hoverOffset: 4,
             }],
           },
           options: {
-            responsive: true, maintainAspectRatio: false, cutout: "68%",
+            responsive: true, maintainAspectRatio: false, cutout: "72%",
             plugins: {
               legend: { display: false },
               tooltip: { callbacks: { label: (c: any) => c.label + ": " + c.raw + " (" + Math.round((c.raw / total) * 100) + "%)" } },
@@ -145,23 +229,23 @@ export default function DashboardCharts() {
         charts.current.push(new Chart(barRef.current, {
           type: "bar",
           data: {
-            labels: data.daily.map((d) => d.date),
+            labels,
             datasets: [
               {
                 label: "PayIn", data: data.daily.map((d) => d.payin_count),
-                backgroundColor: "rgba(56,113,194,.75)", borderRadius: 6, borderSkipped: false,
-                barPercentage: 0.6, categoryPercentage: 0.7,
+                backgroundColor: C.payin, borderRadius: 4, borderSkipped: false,
+                barPercentage: 0.5, categoryPercentage: 0.7,
               },
               {
                 label: "PayOut", data: data.daily.map((d) => d.payout_count),
-                backgroundColor: "rgba(0,173,239,.6)", borderRadius: 6, borderSkipped: false,
-                barPercentage: 0.6, categoryPercentage: 0.7,
+                backgroundColor: C.payout, borderRadius: 4, borderSkipped: false,
+                barPercentage: 0.5, categoryPercentage: 0.7,
               },
             ],
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 16, font: { size: 11 }, color: textColor } } },
+            plugins: { legend: { position: "bottom", labels: { boxWidth: 8, padding: 12, font: { size: 11 }, color: textColor } } },
             scales,
           },
         }));
@@ -170,99 +254,125 @@ export default function DashboardCharts() {
       // 4. Fees area
       if (feesRef.current) {
         const ctx = feesRef.current.getContext("2d")!;
-        const grad = ctx.createLinearGradient(0, 0, 0, 240);
-        grad.addColorStop(0, "rgba(246,135,19,.18)");
-        grad.addColorStop(1, "rgba(246,135,19,0)");
-
         charts.current.push(new Chart(ctx, {
           type: "line",
           data: {
-            labels: data.daily.map((d) => d.date),
+            labels,
             datasets: [{
               label: "Fees", data: data.daily.map((d) => d.fees),
-              borderColor: "#F68713", backgroundColor: grad,
-              borderWidth: 2.5, tension: 0.4, fill: true,
-              pointRadius: 5, pointBackgroundColor: "#F68713", pointBorderColor: "#fff", pointBorderWidth: 2,
+              borderColor: C.fees, backgroundColor: fill(ctx, "245,158,11", 0.12, h2),
+              borderWidth: 2, tension: 0.3, fill: true,
+              pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: C.fees, pointBorderColor: pointBorder,
             }],
           },
           options: {
             responsive: true, maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
             plugins: {
               legend: { display: false },
-              tooltip: { callbacks: { label: (c: any) => "Fees: ₹" + c.raw.toLocaleString("en-IN") } },
+              tooltip: { callbacks: { label: (c: any) => "Fees: ₹" + Number(c.raw).toLocaleString("en-IN") } },
             },
-            scales: { ...scales, y: { ...scales.y, ticks: { ...scales.y.ticks, callback: (v: number) => "₹" + (v / 1000).toFixed(0) + "K" } } },
+            scales: { ...scales, y: { ...scales.y, ticks: { ...scales.y.ticks, callback: (v: number) => "₹" + formatLakhs(v) } } },
           },
         }));
       }
     });
 
     return () => { cancelled = true; };
-  }, [data]);
+  }, [data, loading, dark, h1, h2, total]);
 
-  const total = data ? data.status.success + data.status.pending + data.status.failed : 0;
-  const pct = (v: number) => total ? Math.round((v / total) * 100) : 0;
+  useEffect(() => () => destroyCharts(charts.current), []);
+
+  const pct = (v: number) => (total ? ((v / total) * 100).toFixed(1) : "0.0");
+  const statusRows = [
+    { label: "Success", color: C.success, value: data?.status.success ?? 0 },
+    { label: "Pending", color: C.pending, value: data?.status.pending ?? 0 },
+    { label: "Failed", color: C.failed, value: data?.status.failed ?? 0 },
+  ];
 
   return (
-    <div className="space-y-4">
-      {/* Row 1: Revenue + Donut */}
+    <div className="flex flex-col gap-4">
+      {/* Row 1: Revenue (2/3) + Status (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div className={`lg:col-span-2 ${cardCls}`}>
+          <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Revenue Overview</h3>
-              <p className="text-xs text-gray-500 mt-0.5">PayIn vs PayOut volume</p>
+              <h3 className={titleCls}>Revenue Overview</h3>
+              <p className={subCls}>PayIn vs PayOut volume</p>
             </div>
             <div className="flex gap-1">
               {[7, 14, 30].map((d) => (
-                <button key={d} onClick={() => setDays(d)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${days === d ? "bg-[#3871C2] text-white" : "border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-[#3871C2] hover:text-[#3871C2]"}`}
-                >{d}D</button>
+                <button
+                  key={d}
+                  onClick={() => setDays(d)}
+                  className={`h-7 px-2.5 text-[11px] font-medium rounded-md transition-colors ${
+                    days === d
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {d}D
+                </button>
               ))}
             </div>
           </div>
-          <div style={{ height: 240, position: "relative" }}>
-            {loading ? <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#3871C2]/20 border-t-[#3871C2] rounded-full animate-spin" /></div>
-              : <canvas ref={revenueRef} />}
+          <div style={{ height: h1, position: "relative" }}>
+            {loading ? <ChartLoading height={h1} /> : !hasDaily ? <ChartEmpty height={h1} /> : <canvas ref={revenueRef} />}
           </div>
-          <div className="flex gap-5 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#3871C2]" /> PayIn Volume</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#00ADEF]" /> PayOut Volume</span>
+          <div className="text-[11px] text-gray-500 flex gap-4 mt-2">
+            <span className="flex items-center gap-1.5"><span className="w-4 h-0.5 rounded bg-indigo-600" /> PayIn Volume</span>
+            <span className="flex items-center gap-1.5"><span className="w-4 border-t-[1.5px] border-dashed border-cyan-500" /> PayOut Volume</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Transaction Status</h3>
-          <p className="text-xs text-gray-500 mt-0.5 mb-4">Today's breakdown</p>
-          <div style={{ height: 200, position: "relative" }}>
-            {loading ? <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#41B93D]/20 border-t-[#41B93D] rounded-full animate-spin" /></div>
-              : <canvas ref={donutRef} />}
+        <div className={cardCls}>
+          <h3 className={titleCls}>Transaction Status</h3>
+          <p className={subCls}>Last {days} days</p>
+          <div className="relative mt-3" style={{ height: h1 - 40 }}>
+            {loading ? (
+              <ChartLoading height={h1 - 40} />
+            ) : total === 0 ? (
+              <ChartEmpty height={h1 - 40} />
+            ) : (
+              <>
+                <canvas ref={donutRef} />
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{pct(data!.status.success)}%</span>
+                  <span className="text-[11px] text-gray-500">Success Rate</span>
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs">
-            <div className="flex justify-between"><span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#41B93D]" /> Success</span><span className="font-semibold">{data?.status.success ?? 0} ({pct(data?.status.success ?? 0)}%)</span></div>
-            <div className="flex justify-between"><span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#F68713]" /> Pending</span><span className="font-semibold">{data?.status.pending ?? 0} ({pct(data?.status.pending ?? 0)}%)</span></div>
-            <div className="flex justify-between"><span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" /> Failed</span><span className="font-semibold">{data?.status.failed ?? 0} ({pct(data?.status.failed ?? 0)}%)</span></div>
+          <div className="flex flex-col gap-1.5 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-[12px]">
+            {statusRows.map((r) => (
+              <div key={r.label} className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                  <span className="w-2 h-2 rounded-full" style={{ background: r.color }} /> {r.label}
+                </span>
+                <span className="font-medium text-gray-900 dark:text-gray-100 tabular-nums">
+                  {r.value.toLocaleString("en-IN")} <span className="text-gray-400 font-normal">({pct(r.value)}%)</span>
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Row 2: Bar + Fees */}
+      {/* Row 2: Daily bar + Fees (1/2 each) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Daily Transactions</h3>
-          <p className="text-xs text-gray-500 mt-0.5 mb-4">PayIn vs PayOut counts — last {days} days</p>
-          <div style={{ height: 240, position: "relative" }}>
-            {loading ? <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#3871C2]/20 border-t-[#3871C2] rounded-full animate-spin" /></div>
-              : <canvas ref={barRef} />}
+        <div className={cardCls}>
+          <h3 className={titleCls}>Daily Transactions</h3>
+          <p className={`${subCls} mb-3`}>PayIn vs PayOut counts — last {days} days</p>
+          <div style={{ height: h2, position: "relative" }}>
+            {loading ? <ChartLoading height={h2} /> : !hasDaily ? <ChartEmpty height={h2} /> : <canvas ref={barRef} />}
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-          <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Platform Fees</h3>
-          <p className="text-xs text-gray-500 mt-0.5 mb-4">Charges collected — last {days} days</p>
-          <div style={{ height: 240, position: "relative" }}>
-            {loading ? <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-[#F68713]/20 border-t-[#F68713] rounded-full animate-spin" /></div>
-              : <canvas ref={feesRef} />}
+        <div className={cardCls}>
+          <h3 className={titleCls}>Platform Fees</h3>
+          <p className={`${subCls} mb-3`}>Charges collected — last {days} days</p>
+          <div style={{ height: h2, position: "relative" }}>
+            {loading ? <ChartLoading height={h2} /> : !hasDaily ? <ChartEmpty height={h2} /> : <canvas ref={feesRef} />}
           </div>
         </div>
       </div>

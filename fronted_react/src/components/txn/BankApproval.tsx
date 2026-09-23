@@ -61,39 +61,39 @@ export default function BankApproval() {
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+        <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Bank Account Approval
         </h1>
-        <p className="text-sm text-[var(--vp-text-secondary)] mt-2">Review and approve merchant bank accounts for payouts</p>
+        <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Review and approve merchant bank accounts for payouts</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#F68713]">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
           <p className="text-sm text-[var(--vp-text-secondary)]">Pending Approvals</p>
-          <p className="text-[22px] font-semibold text-[#F68713] mt-1">{total}</p>
+          <p className="text-xl font-semibold text-amber-500 mt-1">{total}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#41B93D]">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-[var(--vp-text-secondary)]">Action Required</p>
               <p className="text-sm text-[var(--vp-text-secondary)] mt-1">Approve or reject accounts below</p>
             </div>
-            <Button variant="outline" onClick={() => fetchPending(page)} className="border-[#00ADEF] text-[#3871C2] rounded-lg h-9">Refresh</Button>
+            <Button variant="outline" onClick={() => fetchPending(page)} className="border-cyan-500 text-indigo-600 rounded-lg h-8">Refresh</Button>
           </div>
         </div>
       </div>
 
-      <Card className="border border-gray-100 dark:border-gray-700 shadow-sm rounded-xl overflow-hidden">
-        <CardHeader className="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
-          <CardTitle className="text-[22px] font-semibold" style={{ color: 'var(--vp-blue)' }}>Pending Bank Accounts</CardTitle>
+      <Card className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-2.5">
+          <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Pending Bank Accounts</CardTitle>
           <CardDescription className="text-sm text-[var(--vp-text-secondary)]">Merchants waiting for bank account verification</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: "#3871C2" }}></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
             </div>
           ) : items.length === 0 ? (
             <div className="p-12 text-center text-gray-500">
@@ -104,22 +104,22 @@ export default function BankApproval() {
             <>
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader className="bg-[var(--vp-surface-hover)]">
+                  <TableHeader>
                     <TableRow>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">ID</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Merchant</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Account Holder</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Account No</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">IFSC</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Bank</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Branch</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Type</TableHead>
-                      <TableHead className="font-semibold text-gray-600 dark:text-gray-400 text-center">Actions</TableHead>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Merchant</TableHead>
+                      <TableHead>Account Holder</TableHead>
+                      <TableHead>Account No</TableHead>
+                      <TableHead>IFSC</TableHead>
+                      <TableHead>Bank</TableHead>
+                      <TableHead>Branch</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {items.map((a) => (
-                      <TableRow key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <TableRow key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                         <TableCell className="font-mono text-sm">{a.id}</TableCell>
                         <TableCell className="font-mono text-sm">{a.user_id}</TableCell>
                         <TableCell className="font-medium">{a.account_holder_name}</TableCell>
@@ -131,11 +131,11 @@ export default function BankApproval() {
                         <TableCell>
                           <div className="flex justify-center gap-2">
                             <Button size="sm" onClick={() => handleAction(a.id, "approve")} disabled={actionLoading[a.id]}
-                              className="bg-[#41B93D] hover:bg-green-600 text-white rounded-lg h-9">
+                              className="bg-green-600 hover:bg-green-600 text-white rounded-lg h-8">
                               {actionLoading[a.id] ? "..." : "Approve"}
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => handleAction(a.id, "reject")} disabled={actionLoading[a.id]}
-                              className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg h-9">
+                              className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg h-8">
                               {actionLoading[a.id] ? "..." : "Reject"}
                             </Button>
                           </div>

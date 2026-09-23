@@ -5,6 +5,9 @@ import { fetchUsersWithWallets } from "@/api/apiHelper";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/api/api"; // ensure this exists and is the axios instance you use
 import type { PaginatedUsersWithWallets } from "@/api/apiHelper";
+import { AlertCircle, ArrowUpDown, CheckCircle2, Inbox, Loader2, RefreshCw, Search, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ActionMenu, EmptyState, PageHeader, Panel, StatusBadge, inputCls } from "@/components/admin-part/ui";
 
 function toYMD(v?: string | null): string | undefined {
   if (!v) return undefined;
@@ -136,501 +139,182 @@ export default function MerchantTransactionsPage() {
     fetchAdminSummary();
   }, [fetchAdminSummary, refresh]);
 
+  const sortBtn = (field: string, label: string) => (
+    <button onClick={() => setSort(field, query.sort_dir === "asc" ? "desc" : "asc")} className="inline-flex items-center gap-1 uppercase">
+      {label}
+      {query.sort_by === field && <ArrowUpDown className="h-3 w-3" />}
+    </button>
+  );
+  const TH = "px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 whitespace-nowrap";
+  const TD = "px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-700 dark:text-gray-300";
+  const MONO = "px-4 py-2.5 whitespace-nowrap font-mono text-[12px] text-gray-600 dark:text-gray-400";
+  const AMT = "px-4 py-2.5 whitespace-nowrap text-right font-mono text-[13px] tabular-nums";
+  const money = (v?: number | null) => (v ? `₹${fmtINR(v)}` : "-");
+
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">Transaction Analytics</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Monitor and analyze all merchant transactions</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => resetFilters()} 
-              className="px-4 h-9 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
-            >
-              Reset Filters
-            </button>
-            <button
-              onClick={() => { refresh(); fetchAdminSummary(); }}
-              className="px-4 h-9 rounded-lg font-medium bg-[#3871C2] text-white hover:bg-[#2d5ea0] transition-colors"
-            >
-              <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh All
-            </button>
-          </div>
-        </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Transactions"
+        description="All merchant PayIn and PayOut transactions"
+        actions={
+          <Button onClick={() => { refresh(); fetchAdminSummary(); }}>
+            <RefreshCw /> Refresh
+          </Button>
+        }
+      />
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#3871C2]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Transactions</p>
-                <p className="text-2xl font-bold mt-2" style={{ color: '#3871C2' }}>
-                  {summaryLoading ? (
-                    <span className="inline-block h-8 w-24 bg-gray-200 animate-pulse rounded"></span>
-                  ) : (
-                    summary.total_txns.toLocaleString()
-                  )}
-                </p>
-                <div className="text-xs text-gray-500 mt-2">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span>{summary.date_from || "Any"} to {summary.date_to || "Any"}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-[#F0F9FF] dark:bg-gray-700">
-                <svg className="w-6 h-6" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
-            </div>
+      {/* Filter bar — single row */}
+      <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]">
+          <select value={selectMerchant} onChange={(e) => setSelectMerchant(e.target.value)} className={inputCls} aria-label="Merchant">
+            <option value="">All Merchants</option>
+            {(merchantList?.items ?? []).map((m) => (
+              <option key={m.id} value={m.id}>{m.username}</option>
+            ))}
+          </select>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              value={query.search ?? ""}
+              onChange={(e) => setFilter({ search: e.target.value || undefined })}
+              placeholder="Order ID, Txn ID..."
+              className={`${inputCls} w-full pl-8`}
+              aria-label="Search"
+            />
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#41B93D]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Volume</p>
-                <p className="text-2xl font-bold mt-2" style={{ color: '#41B93D' }}>
-                  {summaryLoading ? (
-                    <span className="inline-block h-8 w-32 bg-gray-200 animate-pulse rounded"></span>
-                  ) : (
-                    `₹${fmtINR(summary.total_volume)}`
-                  )}
-                </p>
-                <div className="text-xs text-gray-500 mt-2">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Transaction value</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-[#F0FDF4] dark:bg-gray-700">
-                <svg className="w-6 h-6" style={{ color: '#41B93D' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#F68713]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Charges (incl. GST)</p>
-                <p className="text-2xl font-bold mt-2" style={{ color: '#F68713' }}>
-                  {summaryLoading ? (
-                    <span className="inline-block h-8 w-28 bg-gray-200 animate-pulse rounded"></span>
-                  ) : (
-                    `₹${fmtINR(summary.total_charges)}`
-                  )}
-                </p>
-                <div className="text-xs text-gray-500 mt-2">
-                  <div className="flex items-center gap-1">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <span>Fees and taxes</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => fetchAdminSummary()}
-                  disabled={summaryLoading}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                  style={{ 
-                    backgroundColor: summaryLoading ? '#CBD5E1' : '#3871C2',
-                    color: 'white'
-                  }}
-                >
-                  {summaryLoading ? (
-                    <span className="flex items-center gap-1">
-                      <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Loading
-                    </span>
-                  ) : 'Refresh'}
-                </button>
-                <div className="p-3 rounded-full bg-[#FFF7ED] dark:bg-gray-700">
-                  <svg className="w-6 h-6" style={{ color: '#F68713' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+          <input type="date" value={query.from_date ?? ""} onChange={(e) => setFilter({ from_date: e.target.value || undefined })} className={inputCls} aria-label="From date" title="From date" />
+          <input type="date" value={query.to_date ?? ""} onChange={(e) => setFilter({ to_date: e.target.value || undefined })} className={inputCls} aria-label="To date" title="To date" />
+          <select value={query.status ?? ""} onChange={(e) => setFilter({ status: e.target.value || undefined, page: 1 })} className={inputCls} aria-label="Status">
+            <option value="">All Status</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select value={query.transaction_type ?? ""} onChange={(e) => setFilter({ transaction_type: e.target.value || undefined, page: 1 })} className={inputCls} aria-label="Type">
+            <option value="">All Types</option>
+            <option value="PayIn">PayIn</option>
+            <option value="PayOut">PayOut</option>
+          </select>
+          <div className="col-span-2 flex gap-2 md:col-span-3 xl:col-span-1">
+            <Button variant="outline" onClick={() => resetFilters()}>Reset</Button>
+            <Button onClick={() => { applyFilters(); fetchAdminSummary(); }}>Apply</Button>
           </div>
         </div>
+      </div>
 
-        {/* Filters Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Transaction Filters</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Filter transactions by merchant, date range, or search criteria</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">
-                {selectMerchant ? 'Merchant Selected' : 'All Merchants'}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
-            {/* Merchant Select */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Merchant</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <select
-                  value={selectMerchant}
-                  onChange={(e) => setSelectMerchant(e.target.value)}
-                  className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                >
-                  <option value="">All Merchants</option>
-                  {(merchantList?.items ?? []).map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.username}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Search Input */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  value={query.search ?? ""}
-                  onChange={(e) => setFilter({ search: e.target.value || undefined })}
-                  placeholder="Order ID, Txn ID, Description"
-                  className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-            </div>
-
-            {/* From Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input
-                  type="date"
-                  value={query.from_date ?? ""}
-                  onChange={(e) => setFilter({ from_date: e.target.value || undefined })}
-                  className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-            </div>
-
-            {/* To Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <input
-                  type="date"
-                  value={query.to_date ?? ""}
-                  onChange={(e) => setFilter({ to_date: e.target.value || undefined })}
-                  className="pl-10 w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-              <select
-                value={query.status ?? ""}
-                onChange={(e) => setFilter({ status: e.target.value || undefined, page: 1 })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-              >
-                <option value="">All Status</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
-
-            {/* Type Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
-              <select
-                value={query.transaction_type ?? ""}
-                onChange={(e) => setFilter({ transaction_type: e.target.value || undefined, page: 1 })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-              >
-                <option value="">All Types</option>
-                <option value="PayIn">PayIn</option>
-                <option value="PayOut">PayOut</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Show:</label>
-                <select
-                  value={query.per_page}
-                  onChange={(e) => setPerPage(Number(e.target.value))}
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3871C2]/20 focus:border-[#3871C2]"
-                >
-                  {[10, 20, 50, 100].map((n) => (
-                    <option key={n} value={n}>
-                      {n} rows
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {data && (
-                  <span>
-                    Showing {((data.page - 1) * data.per_page) + 1} - {Math.min(data.page * data.per_page, data.total)} of {data.total} transactions
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => { resetFilters(); }}
-                className="px-5 h-9 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
-              >
-                Reset Filters
-              </button>
-              <button
-                onClick={() => { applyFilters(); fetchAdminSummary(); }}
-                className="px-5 h-9 rounded-lg font-medium bg-[#41B93D] text-white hover:bg-[#379e34] transition-colors"
-              >
-                Apply Filters
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Transaction History</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {loading ? 'Loading transactions...' : data ? `${data.total} transactions found` : 'No data'}
-                </p>
-              </div>
-              {error && (
-                <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center text-red-700">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm">{error}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    <button onClick={() => setSort("id", query.sort_dir === "asc" ? "desc" : "asc")} className="flex items-center gap-1">
-                      ID
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                      </svg>
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    <button onClick={() => setSort("user_id", query.sort_dir === "asc" ? "desc" : "asc")} className="flex items-center gap-1">
-                      Merchant
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Type</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">C/D</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Order ID</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Txn ID</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Settle</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Charges</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">GST</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Instrument</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">API</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    <button onClick={() => setSort("status", query.sort_dir === "asc" ? "desc" : "asc")} className="flex items-center gap-1">
-                      Status
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Ref ID</th>
-                  <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    <button onClick={() => setSort("created_at", query.sort_dir === "asc" ? "desc" : "asc")} className="flex items-center gap-1">
-                      Created
-                    </button>
-                  </th>
-                  <th className="px-6 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {loading ? (
-                  <tr>
-                    <td colSpan={18} className="px-6 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 mx-auto" style={{ borderColor: '#3871C2' }}></div>
-                        <p className="mt-3 text-gray-600 dark:text-gray-400">Loading transactions...</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : !loading && error ? (
-                  <tr>
-                    <td colSpan={18} className="px-6 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="inline-flex items-center justify-center w-12 h-9 rounded-full bg-red-100 mb-4">
-                          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <p className="text-gray-600 dark:text-gray-400 font-medium">{error}</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : data && data.items.length === 0 ? (
-                  <tr>
-                    <td colSpan={18} className="px-6 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <svg className="w-12 h-9 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <p className="text-gray-600 dark:text-gray-400 font-medium">No transactions found</p>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Try adjusting your filters</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : data?.items.map((it) => (
-                  <tr key={it.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: '#3871C2' }}>
-                      {it.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {it.user_id ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                      {it.transaction_type ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        it.credit_debit === 'credit' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {it.credit_debit ?? "-"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700 dark:text-gray-300">
-                      {it.order_id ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700 dark:text-gray-300">
-                      {it.txn_id ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold" style={{ color: '#3871C2' }}>
-                      ₹{it.amount?.toFixed(2) ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold" style={{ color: '#41B93D' }}>
-                      {it.settle_amount ? `₹${it.settle_amount.toFixed(2)}` : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                      {it.charges ? `₹${it.charges.toFixed(2)}` : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700 dark:text-gray-300">
-                      {it.gst ? `₹${it.gst.toFixed(2)}` : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                      {it.instrument_mode ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                      {it.api_name ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        it.status === "success"
-                          ? "bg-green-100 text-green-800"
-                          : it.status === "failed"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {it.status ?? "-"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700 dark:text-gray-300">
-                      {it.reference_id ?? "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                      {it.created_at
-                        ? new Date(it.created_at).toLocaleString()
-                        : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {it.status === "success" ? (
-                        <button
-                          onClick={() => handleMarkStatus(it.id, "mark-failed")}
-                          disabled={!!actionLoading[it.id]}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-red-300 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-                        >
-                          {actionLoading[it.id] ? "..." : "Mark Failed"}
-                        </button>
-                      ) : it.status === "failed" ? (
-                        <button
-                          onClick={() => handleMarkStatus(it.id, "mark-success")}
-                          disabled={!!actionLoading[it.id]}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-green-300 text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
-                        >
-                          {actionLoading[it.id] ? "..." : "Mark Success"}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
-                  </tr>
+      {/* Transactions Table */}
+      <Panel
+        title="Transaction History"
+        meta={
+          loading ? "Loading..." : data ? `${data.total.toLocaleString("en-IN")} results` : undefined
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-gray-500 dark:text-gray-400">
+            <span>Success volume <strong className="font-mono font-semibold tabular-nums text-gray-900 dark:text-gray-100">{summaryLoading ? "…" : `₹${fmtINR(summary.total_volume)}`}</strong></span>
+            <span>Charges <strong className="font-mono font-semibold tabular-nums text-gray-900 dark:text-gray-100">{summaryLoading ? "…" : `₹${fmtINR(summary.total_charges)}`}</strong></span>
+            <label className="flex items-center gap-1.5">
+              Rows
+              <select value={query.per_page} onChange={(e) => setPerPage(Number(e.target.value))} className={`${inputCls} px-2`}>
+                {[10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>{n}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </label>
           </div>
+        }
+      >
+        {error && (
+          <div className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400">
+            <AlertCircle className="h-4 w-4" /> {error}
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+              <tr>
+                <th className={`${TH} text-left`}>{sortBtn("id", "ID")}</th>
+                <th className={`${TH} text-left`}>{sortBtn("user_id", "Merchant")}</th>
+                <th className={`${TH} text-left`}>Type</th>
+                <th className={`${TH} text-left`}>C/D</th>
+                <th className={`${TH} text-left`}>Order ID</th>
+                <th className={`${TH} text-left`}>Txn ID</th>
+                <th className={`${TH} text-right`}>Amount</th>
+                <th className={`${TH} text-right`}>Settle</th>
+                <th className={`${TH} text-right`}>Charges</th>
+                <th className={`${TH} text-right`}>GST</th>
+                <th className={`${TH} text-left`}>Instrument</th>
+                <th className={`${TH} text-left`}>API</th>
+                <th className={`${TH} text-left`}>{sortBtn("status", "Status")}</th>
+                <th className={`${TH} text-left`}>Ref ID</th>
+                <th className={`${TH} text-left`}>{sortBtn("created_at", "Created")}</th>
+                <th className={`${TH} text-right`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={16} className="py-10 text-center">
+                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={16}>
+                    <EmptyState icon={AlertCircle} title="Could not load transactions" description={error} />
+                  </td>
+                </tr>
+              ) : data && data.items.length === 0 ? (
+                <tr>
+                  <td colSpan={16}>
+                    <EmptyState icon={Inbox} title="No transactions found" description="Try adjusting your filters" />
+                  </td>
+                </tr>
+              ) : data?.items.map((it) => (
+                <tr key={it.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <td className={MONO}>{it.id}</td>
+                  <td className={`${TD} font-medium text-gray-900 dark:text-gray-100`}>{it.user_id ?? "-"}</td>
+                  <td className={TD}><StatusBadge status={it.transaction_type} /></td>
+                  <td className={TD}><StatusBadge status={it.credit_debit} /></td>
+                  <td className={MONO}>{it.order_id ?? "-"}</td>
+                  <td className={MONO}>{it.txn_id ?? "-"}</td>
+                  <td className={`${AMT} font-medium text-gray-900 dark:text-gray-100`}>{money(it.amount)}</td>
+                  <td className={`${AMT} text-gray-700 dark:text-gray-300`}>{money(it.settle_amount)}</td>
+                  <td className={`${AMT} text-gray-700 dark:text-gray-300`}>{money(it.charges)}</td>
+                  <td className={`${AMT} text-gray-700 dark:text-gray-300`}>{money(it.gst)}</td>
+                  <td className={TD}>{it.instrument_mode ?? "-"}</td>
+                  <td className={TD}>{it.api_name ?? "-"}</td>
+                  <td className={TD}><StatusBadge status={it.status} /></td>
+                  <td className={MONO}>{it.reference_id ?? "-"}</td>
+                  <td className={TD}>{it.created_at ? new Date(it.created_at).toLocaleString() : "-"}</td>
+                  <td className="px-4 py-1.5 text-right">
+                    {actionLoading[it.id] ? (
+                      <Loader2 className="inline h-4 w-4 animate-spin text-indigo-600" />
+                    ) : (
+                      <div className="flex justify-end">
+                        <ActionMenu
+                          label={`Actions for transaction ${it.id}`}
+                          items={
+                            it.status === "success"
+                              ? [{ label: "Mark Failed", icon: XCircle, destructive: true, onClick: () => handleMarkStatus(it.id, "mark-failed") }]
+                              : it.status === "failed"
+                              ? [{ label: "Mark Success", icon: CheckCircle2, onClick: () => handleMarkStatus(it.id, "mark-success") }]
+                              : []
+                          }
+                        />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
           {/* Pagination */}
           {data && data.total > 0 && (
-            <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+            <div className="px-4 py-2.5 border-t border-gray-200 dark:border-gray-800">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm" style={{ color: '#3871C2' }}>
+                <div className="text-[13px] text-gray-500 dark:text-gray-400">
                   Showing <span className="font-semibold">{((data.page - 1) * data.per_page) + 1}</span> to{" "}
                   <span className="font-semibold">{Math.min(data.page * data.per_page, data.total)}</span> of{" "}
                   <span className="font-semibold">{data.total}</span> transactions
@@ -639,36 +323,32 @@ export default function MerchantTransactionsPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setPage(1)}
-                      className="px-3 py-1.5 border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={data.page === 1}
-                      style={{ borderColor: '#00ADEF', color: '#3871C2' }}
                     >
                       First
                     </button>
                     <button
                       onClick={() => setPage(Math.max(1, data.page - 1))}
-                      className="px-3 py-1.5 border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={data.page === 1}
-                      style={{ borderColor: '#00ADEF', color: '#3871C2' }}
                     >
                       Previous
                     </button>
-                    <div className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300">
+                    <div className="px-2 text-[13px] text-gray-500 dark:text-gray-400">
                       Page {data.page} of {data.total_pages}
                     </div>
                     <button
                       onClick={() => setPage(data.page + 1)}
-                      className="px-3 py-1.5 border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={data.page >= data.total_pages}
-                      style={{ borderColor: '#00ADEF', color: '#3871C2' }}
                     >
                       Next
                     </button>
                     <button
                       onClick={() => setPage(data.total_pages)}
-                      className="px-3 py-1.5 border rounded-lg hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="h-8 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={data.page >= data.total_pages}
-                      style={{ borderColor: '#00ADEF', color: '#3871C2' }}
                     >
                       Last
                     </button>
@@ -677,8 +357,7 @@ export default function MerchantTransactionsPage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+      </Panel>
     </div>
   );
 }

@@ -205,19 +205,19 @@ export default function TspProvidersPage(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5">
+      <div className="max-w-7xl mx-auto space-y-5">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold text-gray-900 dark:text-gray-100">TSP Providers</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Manage payment gateway providers and their configurations</p>
+            <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">TSP Providers</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Manage payment gateway providers and their configurations</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={loadProviders}
-              className="rounded-lg border-gray-300 hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700"
+              className="rounded-lg border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -226,8 +226,7 @@ export default function TspProvidersPage(): JSX.Element {
             </Button>
             <Button
               onClick={openCreate}
-              className="rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-              style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}
+              className="h-8"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -239,17 +238,17 @@ export default function TspProvidersPage(): JSX.Element {
 
         {/* Stats Card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border border-blue-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Total Providers</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#3871C2' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Providers</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#F0F9FF' }}>
-                  <svg className="w-6 h-6" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
@@ -257,17 +256,17 @@ export default function TspProvidersPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card className="border border-green-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Pay-In Providers</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#41B93D' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-In Providers</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.filter(p => p.default_direction === 'payin').length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#F0FDF4' }}>
-                  <svg className="w-6 h-6" style={{ color: '#41B93D' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
@@ -275,17 +274,17 @@ export default function TspProvidersPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card className="border border-orange-100 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
+          <Card>
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Pay-Out Providers</p>
-                  <p className="text-[22px] font-semibold mt-2" style={{ color: '#F68713' }}>
+                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-Out Providers</p>
+                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.filter(p => p.default_direction === 'payout').length}
                   </p>
                 </div>
-                <div className="p-3 rounded-full" style={{ backgroundColor: '#FFF7ED' }}>
-                  <svg className="w-6 h-6" style={{ color: '#F68713' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
@@ -295,24 +294,24 @@ export default function TspProvidersPage(): JSX.Element {
         </div>
 
         {/* Main Content Card */}
-        <Card className="border-0 shadow-xl bg-white dark:bg-gray-800 rounded-2xl overflow-hidden">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white px-6 py-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-lg font-semibold" style={{ color: '#3871C2' }}>Payment Gateway Providers</CardTitle>
+                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Payment Gateway Providers</CardTitle>
                 <p className="text-gray-600 text-sm mt-1">Configure and manage all TSP (Third-Party Service) providers</p>
               </div>
               
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   <Input
                     placeholder="Search providers..."
-                    className="pl-10 w-full md:w-64 rounded-lg border-gray-200 dark:border-gray-700 focus:border-blue-400"
+                    className="pl-9 w-full md:w-64"
                   />
                 </div>
               </div>
@@ -322,19 +321,19 @@ export default function TspProvidersPage(): JSX.Element {
           <CardContent className="p-0">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-9 w-12 border-b-2" style={{ borderColor: '#3871C2' }}></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
                 <p className="mt-4 text-gray-600">Loading providers...</p>
               </div>
             ) : error ? (
               <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-9 rounded-full bg-red-100 mb-4">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-100 mb-4">
                   <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Error Loading Providers</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Error Loading Providers</h3>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
-                <Button onClick={loadProviders} className="mt-4" style={{ backgroundColor: '#3871C2' }}>
+                <Button onClick={loadProviders} className="mt-4">
                   Try Again
                 </Button>
               </div>
@@ -345,9 +344,9 @@ export default function TspProvidersPage(): JSX.Element {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">No providers found</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">No providers found</h3>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">Get started by creating your first TSP provider</p>
-                <Button onClick={openCreate} className="mt-4" style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}>
+                <Button onClick={openCreate} className="mt-4">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -357,11 +356,11 @@ export default function TspProvidersPage(): JSX.Element {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                 {providers.map((p) => (
-                  <div key={p.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-white dark:bg-gray-800 hover:shadow-lg transition-all duration-300 hover:border-blue-200">
+                  <div key={p.id} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900 transition-all duration-300 hover:border-blue-200">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#F0F9FF' }}>
-                          <svg className="w-6 h-6" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                         </div>
@@ -407,7 +406,7 @@ export default function TspProvidersPage(): JSX.Element {
                       )}
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
                       <div className="text-xs text-gray-500">
                         ID: {p.id}
                       </div>
@@ -416,7 +415,6 @@ export default function TspProvidersPage(): JSX.Element {
                           size="sm"
                           onClick={() => openEdit(p)}
                           className="rounded-lg px-4"
-                          style={{ backgroundColor: '#3871C2' }}
                         >
                           Edit
                         </Button>
@@ -440,11 +438,11 @@ export default function TspProvidersPage(): JSX.Element {
 
       {/* Create Modal */}
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold" style={{ color: '#3871C2' }}>Create TSP Provider</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Create TSP Provider</h3>
                 <p className="text-gray-600 text-sm mt-1">Add a new payment gateway provider</p>
               </div>
               <button onClick={closeCreate} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -456,18 +454,18 @@ export default function TspProvidersPage(): JSX.Element {
             
             <form onSubmit={submitCreate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Code <span className="text-gray-500">(optional)</span>
                 </label>
                 <Input 
                   value={createForm.code ?? ""} 
                   onChange={(e) => setCreateForm(s => ({ ...s, code: e.target.value }))} 
                   placeholder="e.g., RAZORPAY, PAYTM"
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <Input 
@@ -475,28 +473,28 @@ export default function TspProvidersPage(): JSX.Element {
                   onChange={(e) => setCreateForm(s => ({ ...s, name: e.target.value }))} 
                   required 
                   placeholder="Enter provider name"
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Description <span className="text-gray-500">(optional)</span>
                 </label>
                 <Input 
                   value={createForm.description ?? ""} 
                   onChange={(e) => setCreateForm(s => ({ ...s, description: e.target.value }))} 
                   placeholder="Provider description or notes"
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Default Direction
                 </label>
                 <select
                   value={createForm.default_direction ?? ""}
                   onChange={(e) => setCreateForm(s => ({ ...s, default_direction: e.target.value ? (e.target.value as Direction) : null }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
                   <option value="">Select direction (optional)</option>
                   <option value="payin">Pay-In</option>
@@ -505,7 +503,7 @@ export default function TspProvidersPage(): JSX.Element {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">
                 <Button 
                   variant="outline" 
                   type="button" 
@@ -517,8 +515,7 @@ export default function TspProvidersPage(): JSX.Element {
                 <Button 
                   type="submit" 
                   disabled={creating}
-                  className="rounded-lg px-6"
-                  style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}
+                  className="px-4"
                 >
                   {creating ? (
                     <>
@@ -538,11 +535,11 @@ export default function TspProvidersPage(): JSX.Element {
 
       {/* Edit Modal */}
       {editing && editForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold" style={{ color: '#3871C2' }}>Edit Provider</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Edit Provider</h3>
                 <p className="text-gray-600 text-sm mt-1">Update provider details</p>
               </div>
               <button onClick={closeEdit} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -554,44 +551,44 @@ export default function TspProvidersPage(): JSX.Element {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Code <span className="text-gray-500">(optional)</span>
                 </label>
                 <Input 
                   value={editForm.code ?? ""} 
                   onChange={(e) => setEditForm(s => ({ ...s!, code: e.target.value }))} 
                   placeholder="e.g., RAZORPAY, PAYTM"
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <Input 
                   value={editForm.name ?? ""} 
                   onChange={(e) => setEditForm(s => ({ ...s!, name: e.target.value }))} 
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Description <span className="text-gray-500">(optional)</span>
                 </label>
                 <Input 
                   value={editForm.description ?? ""} 
                   onChange={(e) => setEditForm(s => ({ ...s!, description: e.target.value }))} 
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Default Direction
                 </label>
                 <select
                   value={editForm.default_direction ?? ""}
                   onChange={(e) => setEditForm(s => ({ ...s!, default_direction: e.target.value ? (e.target.value as Direction) : null }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
                   <option value="">Select direction (optional)</option>
                   <option value="payin">Pay-In</option>
@@ -600,7 +597,7 @@ export default function TspProvidersPage(): JSX.Element {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">
                 <Button 
                   variant="outline" 
                   onClick={closeEdit}
@@ -612,7 +609,6 @@ export default function TspProvidersPage(): JSX.Element {
                   onClick={submitEdit} 
                   disabled={editingSaving}
                   className="rounded-lg px-6"
-                  style={{ backgroundColor: '#3871C2' }}
                 >
                   {editingSaving ? (
                     <>

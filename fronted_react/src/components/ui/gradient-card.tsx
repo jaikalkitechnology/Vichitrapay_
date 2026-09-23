@@ -11,11 +11,11 @@ const GradientCard = React.forwardRef<HTMLDivElement, GradientCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-lg border text-card-foreground",
+          "rounded-lg border border-gray-200 dark:border-gray-800 text-card-foreground",
           {
-            'bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-lg': variant === 'primary',
-            'bg-gradient-to-br from-accent to-accent-glow text-accent-foreground shadow-lg': variant === 'accent',
-            'bg-card shadow-[var(--shadow-elevated)]': variant === 'elevated'
+            'bg-indigo-600 text-white': variant === 'primary',
+            'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100': variant === 'accent',
+            'bg-white dark:bg-gray-900': variant === 'elevated'
           },
           className
         )}
@@ -32,7 +32,7 @@ const GradientCardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn("flex flex-col space-y-0.5 p-4", className)}
     {...props}
   />
 ))
@@ -44,7 +44,7 @@ const GradientCardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-2xl font-semibold leading-none tracking-tight", className)}
+    className={cn("text-base font-semibold leading-tight", className)}
     {...props}
   />
 ))
@@ -66,7 +66,7 @@ const GradientCardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div ref={ref} className={cn("p-4 pt-0", className)} {...props} />
 ))
 GradientCardContent.displayName = "GradientCardContent"
 
@@ -76,7 +76,7 @@ const GradientCardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    className={cn("flex items-center p-4 pt-0", className)}
     {...props}
   />
 ))

@@ -26,6 +26,8 @@ import {
   getMerchantSetting,
   updateMerchantSettings,
 } from "@/api/apiHelper";
+import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, KeyRound, Lock, Pencil, PlusCircle, Settings } from "lucide-react";
+import { ActionMenu } from "@/components/admin-part/ui";
 import api from "@/api/api"
 import {BASE_URL} from "@/config"
 
@@ -105,6 +107,9 @@ export default function MerchatList() {
 
   // Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState<string | null>(null);
+  // Passwords are masked until the admin clicks to reveal one
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const togglePassword = (id: string) => setRevealed((r) => ({ ...r, [id]: !r[id] }));
   // credentials modal
   const [credOpen, setCredOpen] = useState(false);
   const [credLoading, setCredLoading] = useState(false);
@@ -226,18 +231,6 @@ export default function MerchatList() {
       setTransferLoading(false);
     }
   }
-
-  // Close dropdown when clicking outside
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setMobileMenuOpen(null);
-      }
-    };
-    if (mobileMenuOpen) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [mobileMenuOpen]);
 
   const searchTimer = useRef<number | null>(null);
 
@@ -496,21 +489,20 @@ export default function MerchatList() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-5">
+      <div className="max-w-7xl mx-auto space-y-5">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">Merchants Management</h1>
-            <p className="text-sm text-[var(--vp-text-secondary)] mt-2">Manage merchant accounts, balances, and settings</p>
+            <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Merchants Management</h1>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Manage merchant accounts, balances, and settings</p>
           </div>
           <div className="flex items-center gap-3">
             <Button
               onClick={openCreateModal}
-              className="px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-md transition-all duration-300"
-              style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}
+              className="h-8"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Merchant
@@ -519,85 +511,54 @@ export default function MerchatList() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#3871C2]">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[var(--vp-text-secondary)]">Total Merchants</p>
-                <p className="text-[22px] font-semibold mt-2" style={{ color: '#3871C2' }}>
+                <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Merchants</p>
+                <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                   {loading ? '...' : list?.total || 0}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20">
-                <svg className="w-6 h-6" style={{ color: '#3871C2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#41B93D]">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[var(--vp-text-secondary)]">KYC Verified</p>
-                <p className="text-[22px] font-semibold mt-2" style={{ color: '#41B93D' }}>
+                <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">KYC Verified</p>
+                <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                   {loading ? '...' : rows.filter(u => u.kyc_verified).length}
                 </p>
               </div>
-              <div className="p-3 rounded-full bg-green-50 dark:bg-green-900/20">
-                <svg className="w-6 h-6" style={{ color: '#41B93D' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#8B5CF6]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[var(--vp-text-secondary)]">Total Wallet Balance</p>
-                <p className="text-[22px] font-semibold mt-2" style={{ color: '#3871C2' }}>
-                  ₹{loading ? '...' : rows.reduce((sum, u) => sum + (u.wallet?.balance || 0), 0).toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-purple-50 dark:bg-purple-900/20">
-                <svg className="w-6 h-6" style={{ color: '#8B5CF6' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-5 border-l-4 border-l-[#F68713]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[var(--vp-text-secondary)]">Total Payout Balance</p>
-                <p className="text-[22px] font-semibold mt-2" style={{ color: '#F68713' }}>
-                  ₹{loading ? '...' : rows.reduce((sum, u) => sum + (u.payout_wallet?.balance || 0), 0).toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="p-3 rounded-full bg-orange-50 dark:bg-orange-900/20">
-                <svg className="w-6 h-6" style={{ color: '#F68713' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Main Content Card */}
-        <Card className="border border-gray-100 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
-          <CardHeader className="border-b border-gray-100 dark:border-gray-700 px-6 py-4">
+        <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
+          <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-2.5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-[22px] font-semibold" style={{ color: 'var(--vp-blue)' }}>Merchant List</CardTitle>
-                <CardDescription className="text-sm text-[var(--vp-text-secondary)]">Manage and monitor all merchant accounts</CardDescription>
+                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Merchant List</CardTitle>
+                <CardDescription>Manage and monitor all merchant accounts</CardDescription>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -605,14 +566,14 @@ export default function MerchatList() {
                     placeholder="Search merchants..."
                     value={params.search ?? ""}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-10 w-full sm:w-64 rounded-lg border-gray-200 dark:border-gray-700 focus:border-blue-400"
+                    className="pl-9 w-full sm:w-64"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={() => loadUsers({})}
-                    className="rounded-lg border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -622,7 +583,7 @@ export default function MerchatList() {
                   <Button
                     variant="outline"
                     onClick={() => loadUsers({ sort_desc: !params.sort_desc })}
-                    className="rounded-lg border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
                     {params.sort_desc ? (
                       <>
@@ -648,19 +609,19 @@ export default function MerchatList() {
           <CardContent className="p-0">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-9 w-12 border-b-2" style={{ borderColor: '#3871C2' }}></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
                 <p className="mt-4 text-gray-600">Loading merchants...</p>
               </div>
             ) : error ? (
               <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-12 h-9 rounded-full bg-red-100 mb-4">
+                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-100 mb-4">
                   <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Error Loading Data</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Error Loading Data</h3>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
-                <Button onClick={() => loadUsers()} className="mt-4" style={{ backgroundColor: '#3871C2' }}>
+                <Button onClick={() => loadUsers()} className="mt-4">
                   Try Again
                 </Button>
               </div>
@@ -671,9 +632,9 @@ export default function MerchatList() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">No merchants found</h3>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">No merchants found</h3>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">Try adjusting your search or create a new merchant</p>
-                <Button onClick={openCreateModal} className="mt-4" style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}>
+                <Button onClick={openCreateModal} className="mt-4">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
@@ -685,7 +646,7 @@ export default function MerchatList() {
                 {/* Mobile View - Card Layout */}
                 <div className="sm:hidden space-y-3 p-4">
                   {rows.map((u) => (
-                    <div key={u.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+                    <div key={u.id} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3 bg-white dark:bg-gray-900">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -714,25 +675,25 @@ export default function MerchatList() {
                         </Button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200 dark:border-gray-800">
                         <div className="text-center">
                           <div className="text-xs text-gray-500 mb-1">Wallet Balance</div>
-                          <div className="font-semibold" style={{ color: '#3871C2' }}>
+                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                             {u.wallet ? `₹${Number(u.wallet.balance).toLocaleString()}` : "-"}
                           </div>
                         </div>
                         <div className="text-center">
                           <div className="text-xs text-gray-500 mb-1">Payout Balance</div>
-                          <div className="font-semibold" style={{ color: '#F68713' }}>
+                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                             {u.payout_wallet ? `₹${Number(u.payout_wallet.balance).toLocaleString()}` : "-"}
                           </div>
                         </div>
                       </div>
 
                       {mobileMenuOpen === u.id && (
-                        <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
                           <div className="grid grid-cols-2 gap-2">
-                            <Button size="sm" onClick={() => openEdit(u)} className="rounded-lg" style={{ backgroundColor: '#3871C2' }}>
+                            <Button size="sm" onClick={() => openEdit(u)}>
                               Edit
                             </Button>
                           <Button
@@ -745,7 +706,7 @@ export default function MerchatList() {
                           </Button>
 
 
-                            <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)} className="rounded-lg">
+                            <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)}>
                               Settings
                             </Button>
                             <Button
@@ -783,25 +744,25 @@ export default function MerchatList() {
                 {/* Desktop View - Table Layout */}
                 <div className="hidden sm:block overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-[var(--vp-surface-hover)]">
+                    <TableHeader>
                       <TableRow>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400 py-4">Merchant</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Contact</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Company</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400">KYC Status</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400">Password</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400 text-right">Wallet Balance</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400 text-right">Payout Balance</TableHead>
-                        <TableHead className="font-semibold text-gray-600 dark:text-gray-400 text-center">Actions</TableHead>
+                        <TableHead>Merchant</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>KYC Status</TableHead>
+                        <TableHead>Password</TableHead>
+                        <TableHead className="text-right">Wallet Balance</TableHead>
+                        <TableHead className="text-right">Payout Balance</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {rows.map((u) => (
-                        <TableRow key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <TableRow key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F0F9FF' }}>
-                                <span className="font-semibold" style={{ color: '#3871C2' }}>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                                   {u.username.charAt(0).toUpperCase()}
                                 </span>
                               </div>
@@ -830,117 +791,47 @@ export default function MerchatList() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="font-mono text-xs bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-                              {u.view_password || "-"}
-                            </div>
+                            {u.view_password ? (
+                              <button
+                                type="button"
+                                onClick={() => togglePassword(u.id)}
+                                className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                                title={revealed[u.id] ? "Hide password" : "Show password"}
+                              >
+                                {revealed[u.id] ? u.view_password : "••••••••"}
+                                {revealed[u.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </button>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="font-semibold" style={{ color: '#3871C2' }}>
+                            <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                               {u.wallet ? `₹${Number(u.wallet.balance).toLocaleString()}` : "-"}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="font-semibold" style={{ color: '#F68713' }}>
+                            <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                               {u.payout_wallet ? `₹${Number(u.payout_wallet.balance).toLocaleString()}` : "-"}
                             </div>
                           </TableCell>
-                         <TableCell>
-  <div className="flex justify-center">
-    <div className="relative" ref={mobileMenuOpen === u.id ? dropdownRef : undefined}>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => setMobileMenuOpen(mobileMenuOpen === u.id ? null : u.id)}
-        className="rounded-lg border-gray-300 px-3"
-      >
-        <span className="mr-1">Actions</span>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </Button>
-      {mobileMenuOpen === u.id && (
-        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
-          <button
-            onClick={() => { openEdit(u); setMobileMenuOpen(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-[#3871C2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit Merchant
-          </button>
-          <button
-            onClick={() => { openSettingsModal(u.id); setMobileMenuOpen(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-          </button>
-          <button
-            onClick={() => { openCredentialsModal(u.id); setMobileMenuOpen(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-purple-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Credentials
-          </button>
-          <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-          <button
-            onClick={() => { openModal(u, "to_payout"); setMobileMenuOpen(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-            Transfer to Payout
-          </button>
-          <button
-            onClick={() => { openModal(u, "to_wallet"); setMobileMenuOpen(null); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-orange-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            Transfer to Wallet
-          </button>
-          <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-          <button
-            onClick={() => { openAdjustModal(u.id, "wallet"); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-green-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
-            </svg>
-            Adjust Wallet
-          </button>
-          <button
-            onClick={() => { openAdjustModal(u.id, "payout"); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-green-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
-            </svg>
-            Adjust Payout
-          </button>
-          <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-          <button
-            onClick={() => { openPwdModal(u.id); }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-          >
-            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Change Password
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end">
+                              <ActionMenu
+                                label={`Actions for ${u.username}`}
+                                items={[
+                                  { label: "Edit Merchant", icon: Pencil, onClick: () => openEdit(u) },
+                                  { label: "Settings", icon: Settings, onClick: () => openSettingsModal(u.id) },
+                                  { label: "Credentials", icon: KeyRound, onClick: () => openCredentialsModal(u.id) },
+                                  { label: "Transfer to Payout", icon: ArrowUpRight, onClick: () => openModal(u, "to_payout") },
+                                  { label: "Transfer to Wallet", icon: ArrowDownLeft, onClick: () => openModal(u, "to_wallet") },
+                                  { label: "Adjust Wallet", icon: PlusCircle, onClick: () => openAdjustModal(u.id, "wallet") },
+                                  { label: "Adjust Payout", icon: PlusCircle, onClick: () => openAdjustModal(u.id, "payout") },
+                                  { label: "Change Password", icon: Lock, destructive: true, onClick: () => openPwdModal(u.id) },
+                                ]}
+                              />
+                            </div>
+                          </TableCell>
 
                         </TableRow>
                       ))}
@@ -952,7 +843,7 @@ export default function MerchatList() {
 
             {/* Pagination */}
             {list && list.total > 0 && (
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 border-t border-gray-200 dark:border-gray-800">
                 <div className="text-sm text-gray-600">
                   Showing <span className="font-semibold">{((params.page - 1) * params.per_page) + 1}</span> to{" "}
                   <span className="font-semibold">{Math.min(params.page * params.per_page, list.total)}</span> of{" "}
@@ -998,10 +889,10 @@ export default function MerchatList() {
       {/* --- Modals --- */}
       {/* Edit Modal */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--vp-blue)' }}>Edit Merchant</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Edit Merchant</h3>
               <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-gray-100 rounded-lg">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1011,43 +902,43 @@ export default function MerchatList() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username</label>
                 <Input
                   value={editForm?.username}
                   onChange={e => setEditForm({ ...editForm!, username: e.target.value })}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
                 <Input
                   value={editForm?.email}
                   onChange={e => setEditForm({ ...editForm!, email: e.target.value })}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
                 <Input
                   value={editForm?.full_name}
                   onChange={e => setEditForm({ ...editForm!, full_name: e.target.value })}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
                 <Input
                   value={editForm?.phone_number}
                   onChange={e => setEditForm({ ...editForm!, phone_number: e.target.value })}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company Name</label>
                 <Input
                   value={editForm?.company_name}
                   onChange={e => setEditForm({ ...editForm!, company_name: e.target.value })}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div className="md:col-span-2">
@@ -1059,17 +950,17 @@ export default function MerchatList() {
                     className="h-5 w-5 rounded border-gray-300"
                   />
                   <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">KYC Verified</label>
+                    <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300">KYC Verified</label>
                     <p className="text-xs text-gray-500">Mark this merchant as KYC verified</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <Button variant="outline" onClick={() => setEditingUser(null)} className="rounded-lg h-9 px-6">
+            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <Button variant="outline" onClick={() => setEditingUser(null)} className="h-8 px-4">
                 Cancel
               </Button>
-              <Button onClick={handleUpdateSubmit} disabled={updating} className="rounded-lg h-9 px-6" style={{ backgroundColor: '#3871C2' }}>
+              <Button onClick={handleUpdateSubmit} disabled={updating} className="h-8 px-4">
                 {updating ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -1087,10 +978,10 @@ export default function MerchatList() {
 
       {/* Create Modal */}
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--vp-blue)' }}>Create New Merchant</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Create New Merchant</h3>
               <button onClick={closeCreateModal} className="p-2 hover:bg-gray-100 rounded-lg">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1100,69 +991,69 @@ export default function MerchatList() {
 
             <form className="space-y-4" onSubmit={handleCreateSubmit}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Username *</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username *</label>
                 <Input
                   placeholder="Enter username"
                   value={createForm.username}
                   onChange={e => setCreateForm(s => ({ ...s, username: e.target.value }))}
                   required
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email *</label>
                 <Input
                   placeholder="Enter email"
                   type="email"
                   value={createForm.email}
                   onChange={e => setCreateForm(s => ({ ...s, email: e.target.value }))}
                   required
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password *</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password *</label>
                 <Input
                   placeholder="Enter password"
                   type="password"
                   value={createForm.password}
                   onChange={e => setCreateForm(s => ({ ...s, password: e.target.value }))}
                   required
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
                 <Input
                   placeholder="Enter full name"
                   value={createForm.full_name}
                   onChange={e => setCreateForm(s => ({ ...s, full_name: e.target.value }))}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
                 <Input
                   placeholder="Enter phone number"
                   value={createForm.phone_number}
                   onChange={e => setCreateForm(s => ({ ...s, phone_number: e.target.value }))}
-                  className="rounded-lg"
+                 
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company Name</label>
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company Name</label>
                 <Input
                   placeholder="Enter company name"
                   value={createForm.company_name}
                   onChange={e => setCreateForm(s => ({ ...s, company_name: e.target.value }))}
-                  className="rounded-lg"
+                 
                 />
               </div>
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <Button variant="outline" type="button" onClick={closeCreateModal} className="rounded-lg h-9 px-6">
+              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <Button variant="outline" type="button" onClick={closeCreateModal} className="h-8 px-4">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={creating} className="rounded-lg h-9 px-6" style={{ background: 'linear-gradient(135deg, #3871C2, #00ADEF)' }}>
+                <Button type="submit" disabled={creating} className="h-8 px-4">
                   {creating ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -1181,10 +1072,10 @@ export default function MerchatList() {
 
       {/* Settings Modal */}
       {settingsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold" style={{ color: 'var(--vp-blue)' }}>Merchant Settings</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Merchant Settings</h3>
               <button onClick={closeSettingsModal} className="p-2 hover:bg-gray-100 rounded-lg">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1194,68 +1085,68 @@ export default function MerchatList() {
 
             {settingsLoading ? (
               <div className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-9 w-12 border-b-2" style={{ borderColor: '#3871C2' }}></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
                 <p className="mt-4 text-gray-600">Loading settings...</p>
               </div>
             ) : (
               <form className="space-y-4" onSubmit={handleSettingsSave}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pay In Charges (%) *</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pay In Charges (%) *</label>
                   <Input
                     value={String(settingsForm.payInCharges)}
                     onChange={e => setSettingsForm(s => ({ ...s, payInCharges: e.target.value }))}
                     type="number"
                     step="0.01"
-                    className="rounded-lg"
+                   
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pay Out Charges (%) *</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pay Out Charges (%) *</label>
                   <Input
                     value={String(settingsForm.payOutCharges)}
                     onChange={e => setSettingsForm(s => ({ ...s, payOutCharges: e.target.value }))}
                     type="number"
                     step="0.01"
-                    className="rounded-lg"
+                   
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pay Out Charges (Flat INR)</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Pay Out Charges (Flat INR)</label>
                   <Input
                     value={String(settingsForm.payOutChargesFlat)}
                     onChange={e => setSettingsForm(s => ({ ...s, payOutChargesFlat: e.target.value }))}
                     type="number"
                     step="0.01"
-                    className="rounded-lg"
+                   
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">PayIn Webhook URL</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">PayIn Webhook URL</label>
                   <Input
                     value={settingsForm.webhook ?? ''}
                     onChange={e => setSettingsForm(s => ({ ...s, webhook: e.target.value }))}
                     placeholder="https://example.com/webhook/payin"
-                    className="rounded-lg"
+                   
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">PayOut Webhook URL</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">PayOut Webhook URL</label>
                   <Input
                     value={settingsForm.webhook_payout ?? ''}
                     onChange={e => setSettingsForm(s => ({ ...s, webhook_payout: e.target.value }))}
                     placeholder="https://example.com/webhook/payout"
-                    className="rounded-lg"
+                   
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">IP Whitelist</label>
+                  <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">IP Whitelist</label>
                   <Input
                     value={settingsForm.ip ?? ''}
                     onChange={e => setSettingsForm(s => ({ ...s, ip: e.target.value }))}
                     placeholder="192.168.1.1 or 192.168.1.0/24"
-                    className="rounded-lg"
+                   
                   />
                 </div>
                 {settingsError && (
@@ -1268,11 +1159,11 @@ export default function MerchatList() {
                     </div>
                   </div>
                 )}
-                <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-                  <Button variant="outline" type="button" onClick={closeSettingsModal} className="rounded-lg h-9 px-6">
+                <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                  <Button variant="outline" type="button" onClick={closeSettingsModal} className="h-8 px-4">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={settingsSaving} className="rounded-lg h-9 px-6" style={{ backgroundColor: '#3871C2' }}>
+                  <Button type="submit" disabled={settingsSaving} className="h-8 px-4">
                     {settingsSaving ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -1292,11 +1183,11 @@ export default function MerchatList() {
 
       {/* Transfer Modal */}
       {open && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold" style={{ color: 'var(--vp-blue)' }}>
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {selected.direction === "to_payout" ? "Wallet → Payout Transfer" : "Payout → Wallet Transfer"}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
@@ -1312,7 +1203,7 @@ export default function MerchatList() {
 
             <form onSubmit={submitTransfer}>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Amount (leave blank for full transfer)
                 </label>
                 <div className="relative">
@@ -1330,7 +1221,7 @@ export default function MerchatList() {
                         ? Number(selected.merchant.wallet?.balance || 0).toFixed(2)
                         : Number(selected.merchant.payout_wallet?.balance || 0).toFixed(2)
                     }`}
-                    className="pl-10 rounded-lg"
+                    className="pl-9"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
@@ -1349,24 +1240,19 @@ export default function MerchatList() {
                 </div>
               )}
 
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   type="button"
                   onClick={closeModal}
                   variant="outline"
-                  className="rounded-lg h-9 px-6"
+                  className="h-8 px-4"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={transferLoading}
-                  className="rounded-lg h-9 px-6"
-                  style={{
-                    background: selected.direction === "to_payout"
-                      ? 'linear-gradient(135deg, #3871C2, #00ADEF)'
-                      : 'linear-gradient(135deg, #F68713, #FFA500)'
-                  }}
+                  className={selected.direction === "to_payout" ? "h-8 px-4" : "h-8 px-4 bg-amber-500 hover:bg-amber-600"}
                 >
                   {transferLoading ? (
                     <>
@@ -1385,12 +1271,12 @@ export default function MerchatList() {
       )}
 
       {credOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
 
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-lg font-semibold" style={{ color: 'var(--vp-blue)' }}>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Merchant Credentials
           </h3>
           <p className="text-sm text-gray-500">
@@ -1415,11 +1301,11 @@ export default function MerchatList() {
             return (
               <div
                 key={idx}
-                className="border rounded-xl p-4 bg-gray-50 dark:bg-gray-900"
+                className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900"
               >
                 <div className="flex justify-between items-center mb-2">
                   <div>
-                    <div className="font-semibold text-[#3871C2]">
+                    <div className="font-semibold text-indigo-600">
                       {c.provider_name}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -1475,28 +1361,28 @@ export default function MerchatList() {
 
       {/* Password Change Modal */}
       {pwdOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--vp-blue)' }}>Change Password</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Change Password</h3>
             <p className="text-sm text-gray-500 mb-4">Merchant: <span className="font-mono">{pwdUserId}</span></p>
             <form onSubmit={handlePwdSubmit}>
               <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">New Password</label>
+                <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">New Password</label>
                 <Input
                   type="password"
                   placeholder="Minimum 6 characters"
                   value={pwdValue}
                   onChange={(e) => setPwdValue(e.target.value)}
-                  className="rounded-xl"
+                 
                   minLength={6}
                   required
                 />
               </div>
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <Button type="button" variant="outline" onClick={() => setPwdOpen(false)} className="rounded-lg h-9">
+              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <Button type="button" variant="outline" onClick={() => setPwdOpen(false)} className="h-8">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={pwdLoading} className="rounded-lg h-9" style={{ backgroundColor: '#3871C2' }}>
+                <Button type="submit" disabled={pwdLoading} className="h-8">
                   {pwdLoading ? "Saving..." : "Update Password"}
                 </Button>
               </div>
@@ -1507,23 +1393,23 @@ export default function MerchatList() {
 
       {/* Wallet Adjust Modal */}
       {adjustOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--vp-blue)' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
               Adjust {adjustWalletType === "wallet" ? "Wallet" : "Payout Wallet"} Balance
             </h3>
             <p className="text-sm text-gray-500 mb-4">Merchant: <span className="font-mono">{adjustUserId}</span></p>
             <form onSubmit={handleAdjustSubmit}>
               <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Action</label>
+                <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">Action</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setAdjustAction("increase")}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                       adjustAction === "increase"
                         ? "bg-green-500 text-white border-green-500"
-                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 hover:bg-green-50"
+                        : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 hover:bg-green-50"
                     }`}
                   >
                     + Increase
@@ -1531,10 +1417,10 @@ export default function MerchatList() {
                   <button
                     type="button"
                     onClick={() => setAdjustAction("decrease")}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                       adjustAction === "decrease"
                         ? "bg-red-500 text-white border-red-500"
-                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 hover:bg-red-50"
+                        : "bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 hover:bg-red-50"
                     }`}
                   >
                     - Decrease
@@ -1542,7 +1428,7 @@ export default function MerchatList() {
                 </div>
               </div>
               <div className="mb-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">Amount (INR)</label>
+                <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">Amount (INR)</label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1550,19 +1436,19 @@ export default function MerchatList() {
                   placeholder="Enter amount"
                   value={adjustAmount}
                   onChange={(e) => setAdjustAmount(e.target.value)}
-                  className="rounded-xl"
+                 
                   required
                 />
               </div>
-              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <Button type="button" variant="outline" onClick={() => setAdjustOpen(false)} className="rounded-lg h-9">
+              <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <Button type="button" variant="outline" onClick={() => setAdjustOpen(false)} className="h-8">
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={adjustLoading}
-                  className="rounded-lg h-9 text-white"
-                  style={{ backgroundColor: adjustAction === "increase" ? "#41B93D" : "#DC2626" }}
+                  className="rounded-lg h-8 text-white"
+                  style={{ backgroundColor: adjustAction === "increase" ? "#16A34A" : "#DC2626" }}
                 >
                   {adjustLoading ? "Processing..." : adjustAction === "increase" ? "Add Funds" : "Deduct Funds"}
                 </Button>

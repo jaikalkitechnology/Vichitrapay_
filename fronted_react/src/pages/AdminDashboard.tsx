@@ -1,21 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
-  GradientCard,
-  GradientCardContent,
-  GradientCardDescription,
-  GradientCardHeader,
-  GradientCardTitle,
-} from "@/components/ui/gradient-card";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,27 +17,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Users, 
-  CreditCard, 
-  TrendingUp, 
-  IndianRupee, 
-  Loader2, 
+import {
+  Users,
+  CreditCard,
+  TrendingUp,
+  IndianRupee,
+  Loader2,
   Wallet,
   BarChart3,
   CheckCircle,
   Clock,
   AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
   Shield,
-  Zap,
-  Filter,
   RefreshCw,
-  Search,
-  Download,
-  Eye,
-  MoreVertical
+  UserCheck,
+  ArrowRight,
+  Activity,
+  Check,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAdminSummary, AdminSummaryOut } from "@/api/apiHelper";
@@ -66,6 +48,7 @@ import TspMappingPage from "@/components/admin-part/TspMappingPage";
 import TspProvidersPage from "@/components/admin-part/TspProvidersPage";
 import AdminReport from "@/components/txn/AdminReport";
 import BankApproval from "@/components/txn/BankApproval";
+import { ActionMenu, EmptyState, PageHeader, Panel, StatCard, StatusBadge } from "@/components/admin-part/ui";
 
 // ---- helpers ---------------------------------------------------------------
 type SettlementStatus = "pending" | "approved" | "rejected" | "requested" | "completed" | "failed";
@@ -92,42 +75,62 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
+/** ₹18.4L / ₹2.1Cr — compact amounts for stat cards. */
+const inrCompact = (n: number) => {
+  const v = Number(n || 0);
+  if (Math.abs(v) >= 10000000) return `₹${(v / 10000000).toFixed(2)}Cr`;
+  if (Math.abs(v) >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+  return `₹${Math.round(v).toLocaleString("en-IN")}`;
+};
+
 const fmtDateTime = (d?: string | null) =>
   d ? new Date(d).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-";
 const fmtDate = (d?: string | null) =>
   d ? new Date(d).toLocaleDateString(undefined, { dateStyle: "medium" }) : "-";
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-    completed: "default",
-    pending: "secondary",
-    failed: "destructive",
-    approved: "default",
-    rejected: "destructive",
-    requested: "secondary",
-    active: "default",
-    inactive: "secondary",
-    banned: "destructive",
-  };
-  
-  const colors: Record<string, { bg: string, text: string }> = {
-    completed: { bg: "bg-gradient-to-r from-emerald-500 to-green-500", text: "text-white" },
-    pending: { bg: "bg-gradient-to-r from-amber-500 to-yellow-500", text: "text-white" },
-    failed: { bg: "bg-gradient-to-r from-red-500 to-rose-500", text: "text-white" },
-    approved: { bg: "bg-gradient-to-r from-blue-500 to-cyan-500", text: "text-white" },
-    rejected: { bg: "bg-gradient-to-r from-red-500 to-pink-500", text: "text-white" },
-    requested: { bg: "bg-gradient-to-r from-orange-500 to-amber-500", text: "text-white" },
-  };
-
-  return (
-    <Badge 
-      variant={variants[status] || "outline"} 
-      className={`capitalize px-3 py-1 rounded-full font-medium ${colors[status]?.bg || ''} ${colors[status]?.text || ''}`}
-    >
-      {status}
-    </Badge>
-  );
+type RecentTxn = {
+  id: number;
+  user_id: string;
+  transaction_type: string;
+  order_id?: string | null;
+  txn_id?: string | null;
+  status?: string | null;
+  amount: number;
+  created_at?: string | null;
 };
+
+// Tinted "pending action" cards (admin_panel_design.html)
+const ACTION_TONES = {
+  amber: { card: "bg-amber-50/60 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/60", icon: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
+  indigo: { card: "bg-indigo-50/60 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-900/60", icon: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400" },
+  red: { card: "bg-red-50/60 border-red-200 dark:bg-red-950/20 dark:border-red-900/60", icon: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400" },
+  green: { card: "bg-green-50/60 border-green-200 dark:bg-green-950/20 dark:border-green-900/60", icon: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" },
+} as const;
+
+function PendingAction({
+  label, value, icon: Icon, tone, cta, onClick,
+}: {
+  label: string; value: ReactNode; icon: typeof Users; tone: keyof typeof ACTION_TONES; cta: string; onClick: () => void;
+}) {
+  const t = ACTION_TONES[tone];
+  return (
+    <div className={`rounded-lg border p-4 flex items-start gap-3 ${t.card}`}>
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${t.icon}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[12px] text-gray-600 dark:text-gray-400">{label}</p>
+        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-tight mt-0.5">{value}</p>
+        <button onClick={onClick} className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline mt-1 inline-flex items-center gap-1">
+          {cta} <ArrowRight className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const cellMono = "font-mono text-[12px] whitespace-nowrap text-gray-600 dark:text-gray-400";
+const cellAmount = "font-mono text-[13px] whitespace-nowrap tabular-nums font-medium text-gray-900 dark:text-gray-100";
 
 // ---- component -------------------------------------------------------------
 const ADMIN_TABS = ["dashboard", "merchants", "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
@@ -258,122 +261,146 @@ export default function AdminDashboard() {
   };
 
 
+  const [recent, setRecent] = useState<RecentTxn[] | null>(null);
+  const fetchRecent = async () => {
+    try {
+      const r = await api.get(`${BASE_URL}/admin/transactions`, { params: { page: 1, per_page: 5 } });
+      setRecent(Array.isArray(r.data?.items) ? r.data.items : []);
+    } catch (e) {
+      console.error("recent transactions error", e);
+      setRecent([]);
+    }
+  };
+  useEffect(() => {
+    fetchRecent();
+  }, []);
+
+  const refreshDashboard = () => {
+    fetchBalance();
+    fetchRecent();
+    getAdminSummary().then(setSummary).catch(() => {});
+  };
+
+  const todaySuccess = (summary?.today?.payin?.success || 0) + (summary?.today?.payout?.success || 0);
+  const yesterdaySuccess = (summary?.yesterday?.payin?.success || 0) + (summary?.yesterday?.payout?.success || 0);
+
   const renderDashboard = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-tight bg-gradient-to-r from-[#3871C2] to-[#00ADEF] bg-clip-text text-transparent">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Overview of platform performance and metrics</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { fetchBalance(); }}
-            className="rounded-lg border-gray-200 dark:border-gray-700 text-gray-600 hover:border-[#3871C2] hover:text-[#3871C2]">
-            <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Dashboard"
+        description="Overview of today's platform activity"
+        actions={
+          <Button variant="outline" onClick={refreshDashboard}>
+            <RefreshCw /> Refresh
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stat Cards */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-xl border bg-white dark:bg-gray-800 p-5">
-              <div className="h-4 w-28 bg-gray-100 animate-pulse rounded mb-3" />
-              <div className="h-7 w-20 bg-gray-100 animate-pulse rounded" />
+            <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 animate-pulse rounded mb-3" />
+              <div className="h-7 w-20 bg-gray-100 dark:bg-gray-800 animate-pulse rounded" />
             </div>
           ))}
         </div>
       ) : summary ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#3871C2] hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Merchants</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1.5" style={{fontVariantNumeric:'tabular-nums'}}>{summary?.total_merchants}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{background:'rgba(56,113,194,.08)'}}>
-                <Users className="h-5 w-5 text-[#3871C2]" />
-              </div>
-            </div>
-            <p className="text-xs text-green-600 mt-2 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Active today</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#41B93D] hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today's Volume</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1.5" style={{fontVariantNumeric:'tabular-nums'}}>{inr.format(Number(summary?.today?.success_volume || 0))}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{background:'rgba(65,185,61,.08)'}}>
-                <BarChart3 className="h-5 w-5 text-[#41B93D]" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{summary?.today?.success_count || 0} success txns</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#00ADEF] hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Today's Transactions</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1.5" style={{fontVariantNumeric:'tabular-nums'}}>{(summary?.today?.payin?.success || 0) + (summary?.today?.payout?.success || 0)}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{background:'rgba(0,173,239,.08)'}}>
-                <CreditCard className="h-5 w-5 text-[#00ADEF]" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{(summary?.yesterday?.payin?.success || 0) + (summary?.yesterday?.payout?.success || 0)} yesterday</p>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 border-l-4 border-l-[#F68713] hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform Fees</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1.5" style={{fontVariantNumeric:'tabular-nums'}}>{inr.format(Number(summary?.today?.charges || 0))}</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{background:'rgba(246,135,19,.08)'}}>
-                <IndianRupee className="h-5 w-5 text-[#F68713]" />
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">{inr.format(Number(summary?.yesterday?.charges || 0))} yesterday</p>
-          </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            label="Total Merchants"
+            value={Number(summary.total_merchants || 0).toLocaleString("en-IN")}
+            icon={Users}
+            hint={`${summary.merchant_kyc_pending || 0} awaiting KYC`}
+          />
+          <StatCard
+            label="Today's Volume"
+            value={inrCompact(Number(summary.today?.success_volume || 0))}
+            icon={TrendingUp}
+            hint={`${summary.today?.success_count || 0} success txns`}
+          />
+          <StatCard
+            label="Success Txns"
+            value={todaySuccess.toLocaleString("en-IN")}
+            icon={CheckCircle}
+            hint={`${yesterdaySuccess.toLocaleString("en-IN")} yesterday`}
+            hintTone={todaySuccess >= yesterdaySuccess ? "up" : "down"}
+          />
+          <StatCard
+            label="Platform Fees"
+            value={inrCompact(Number(summary.today?.charges || 0))}
+            icon={IndianRupee}
+            hint={`${inrCompact(Number(summary.yesterday?.charges || 0))} yesterday`}
+          />
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-400 text-sm">No summary data</div>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <EmptyState icon={AlertCircle} title="No summary data" description={error ?? undefined} />
+        </div>
       )}
 
       {/* Charts */}
       <DashboardCharts />
 
       {/* Pending Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-50/80 to-white rounded-xl border border-blue-100/60 p-5">
-          <div className="flex items-center gap-2 mb-1"><AlertCircle className="h-4 w-4 text-[#3871C2]" /><span className="text-sm font-semibold text-[#3871C2]">Pending KYC</span></div>
-          <p className="text-xs text-gray-500 mb-3">Merchants awaiting verification</p>
-          <div className="text-[22px] font-semibold text-[#3871C2]" style={{fontVariantNumeric:'tabular-nums'}}>{summary?.merchant_kyc_pending || 0}</div>
-          <button onClick={() => navigate("/admin/merchants")} className="text-xs font-medium text-[#3871C2] mt-3 hover:underline">Review Now →</button>
-        </div>
-        <div className="bg-gradient-to-br from-amber-50/80 to-white rounded-xl border border-amber-100/60 p-5">
-          <div className="flex items-center gap-2 mb-1"><Clock className="h-4 w-4 text-[#F68713]" /><span className="text-sm font-semibold text-[#F68713]">Pending Settlements</span></div>
-          <p className="text-xs text-gray-500 mb-3">Awaiting approval</p>
-          <div className="text-[22px] font-semibold text-[#F68713]" style={{fontVariantNumeric:'tabular-nums'}}>{summary?.total_settle_pending || 0}</div>
-          <button onClick={() => navigate("/admin/settlements")} className="text-xs font-medium text-[#F68713] mt-3 hover:underline">Manage Now →</button>
-        </div>
-        <div className="bg-gradient-to-br from-purple-50/80 to-white rounded-xl border border-purple-100/60 p-5">
-          <div className="flex items-center gap-2 mb-1"><Shield className="h-4 w-4 text-purple-600" /><span className="text-sm font-semibold text-purple-600">Bank Approvals</span></div>
-          <p className="text-xs text-gray-500 mb-3">Accounts pending review</p>
-          <div className="text-[22px] font-semibold text-purple-600" style={{fontVariantNumeric:'tabular-nums'}}>{summary?.pending_bank_approvals || 0}</div>
-          <button onClick={() => navigate("/admin/bankApproval")} className="text-xs font-medium text-purple-600 mt-3 hover:underline">Review Now →</button>
-        </div>
-        <div className="bg-gradient-to-br from-emerald-50/80 to-white rounded-xl border border-emerald-100/60 p-5">
-          <div className="flex items-center gap-2 mb-1"><Wallet className="h-4 w-4 text-[#41B93D]" /><span className="text-sm font-semibold text-[#41B93D]">Payout Balance</span></div>
-          <p className="text-xs text-gray-500 mb-3">Available for settlements</p>
-          <div className="text-[22px] font-semibold text-[#41B93D]" style={{fontVariantNumeric:'tabular-nums'}}>{balance ? `₹${balance.balance}` : "—"}</div>
-          <button onClick={fetchBalance} className="text-xs font-medium text-[#41B93D] mt-3 hover:underline flex items-center gap-1"><RefreshCw className="h-3 w-3" /> Refresh</button>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <PendingAction label="KYC Pending" value={summary?.merchant_kyc_pending || 0} icon={UserCheck} tone="amber" cta="Review now" onClick={() => navigate("/admin/merchants")} />
+        <PendingAction label="Pending Settlements" value={summary?.total_settle_pending || 0} icon={CreditCard} tone="indigo" cta="Process now" onClick={() => navigate("/admin/settlements")} />
+        <PendingAction label="Bank Approvals" value={summary?.pending_bank_approvals || 0} icon={Shield} tone="red" cta="Review now" onClick={() => navigate("/admin/bankApproval")} />
+        <PendingAction label="Payout Balance" value={balance ? `₹${balance.balance}` : "—"} icon={Wallet} tone="green" cta="Refresh" onClick={fetchBalance} />
       </div>
+
+      {/* Recent Transactions */}
+      <Panel
+        title="Recent Transactions"
+        actions={
+          <Button variant="outline" onClick={() => navigate("/admin/transactions")}>
+            View All
+          </Button>
+        }
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Txn ID</TableHead>
+              <TableHead>Merchant</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Order ID</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {recent === null ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-8 text-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-indigo-600 inline" />
+                </TableCell>
+              </TableRow>
+            ) : recent.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <EmptyState icon={Activity} title="No transactions yet" />
+                </TableCell>
+              </TableRow>
+            ) : (
+              recent.map((t) => (
+                <TableRow key={t.id}>
+                  <TableCell className={cellMono}>{t.txn_id || "—"}</TableCell>
+                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">{t.user_id}</TableCell>
+                  <TableCell><StatusBadge status={t.transaction_type} /></TableCell>
+                  <TableCell className={cellMono}>{t.order_id || "—"}</TableCell>
+                  <TableCell className={`text-right ${cellAmount}`}>{inr.format(Number(t.amount || 0))}</TableCell>
+                  <TableCell><StatusBadge status={t.status} /></TableCell>
+                  <TableCell className="whitespace-nowrap">{fmtDateTime(t.created_at)}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Panel>
     </div>
   );
 
@@ -389,346 +416,182 @@ export default function AdminDashboard() {
     statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter);
 
   const renderSettlements = () => (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-[22px] font-semibold bg-gradient-to-r from-[#3871C2] via-[#00ADEF] to-[#41B93D] bg-clip-text text-transparent">
-            Settlement Management
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Approve and manage all settlement requests</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger className="w-40 bg-white dark:bg-gray-800 border-[#00ADEF]">
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="requested">Requested</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Settlements"
+        description="Approve and manage settlement requests"
+        actions={
+          <>
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="requested">Requested</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => fetchList(page)}>
+              <RefreshCw /> Refresh
+            </Button>
+          </>
+        }
+      />
 
-          <Button
-            variant="outline"
-            className="border-[#00ADEF] text-[#3871C2] hover:bg-[#00ADEF]/10"
-            onClick={() => fetchList(page)}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Card */}
-      <Card className="border-[#00ADEF]/20 shadow-lg">
-        <CardContent className="p-6">
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-hidden rounded-xl border">
-            <Table>
-              <TableHeader className="bg-gradient-to-r from-[#3871C2]/5 to-[#00ADEF]/5">
-                <TableRow>
-                  <TableHead className="font-semibold text-[#3871C2]">Settlement ID</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2]">Merchant</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2] text-right">Amount</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2]">Date</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2]">Status</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2]">Requested</TableHead>
-                  <TableHead className="font-semibold text-[#3871C2] text-center">Actions</TableHead>
+      <Panel title="Settlement Requests" meta={`${filteredItems.length} results`}>
+        {/* Desktop Table */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Settlement ID</TableHead>
+                <TableHead>Merchant</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Settled</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Requested</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredItems.map((it) => (
+                <TableRow key={it.id}>
+                  <TableCell className={cellMono}>
+                    <span className="truncate max-w-[200px] inline-block align-middle" title={it.txn_id}>{it.txn_id}</span>
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">{it.user_id}</TableCell>
+                  <TableCell className={`text-right ${cellAmount}`}>{inr.format(it.amount)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{fmtDateTime(it.settled_date)}</TableCell>
+                  <TableCell><StatusBadge status={it.status} /></TableCell>
+                  <TableCell className="whitespace-nowrap">{fmtDateTime(it.requested_at)}</TableCell>
+                  <TableCell className="text-right">
+                    {settlementLoadingMap[it.txn_id] ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600 inline" />
+                    ) : (
+                      <div className="flex justify-end">
+                        <ActionMenu
+                          items={
+                            it.status === "pending"
+                              ? [
+                                  { label: "Approve", icon: Check, onClick: () => handleSettlementAction(it.txn_id, "approved") },
+                                  { label: "Reject", icon: X, destructive: true, onClick: () => handleSettlementAction(it.txn_id, "rejected") },
+                                ]
+                              : []
+                          }
+                        />
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map((it) => (
-                  <TableRow key={it.id} className="hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-700/50">
-                    <TableCell className="font-mono text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#3871C2]/10 flex items-center justify-center">
-                          <CreditCard className="h-4 w-4 text-[#3871C2]" />
-                        </div>
-                        <span className="truncate max-w-[180px]" title={it.txn_id}>
-                          {it.txn_id}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{it.user_id}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-bold text-[#41B93D] text-lg">
-                        {inr.format(it.amount)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{fmtDateTime(it.settled_date)}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={it.status} />
-                    </TableCell>
-                    <TableCell>{fmtDateTime(it.requested_at)}</TableCell>
-                    <TableCell>
-                      {it.status === "pending" ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-gradient-to-r from-[#41B93D] to-emerald-500 hover:opacity-90 text-white"
-                            onClick={() => handleSettlementAction(it.txn_id, "approved")}
-                            disabled={settlementLoadingMap[it.txn_id]}
-                          >
-                            {settlementLoadingMap[it.txn_id] ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              "Approve"
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => handleSettlementAction(it.txn_id, "rejected")}
-                            disabled={settlementLoadingMap[it.txn_id]}
-                          >
-                            {settlementLoadingMap[it.txn_id] ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              "Reject"
-                            )}
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
-                      <div className="flex flex-col items-center justify-center">
-                        <Clock className="h-9 w-12 text-gray-300 mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-600 mb-2">No settlements found</h3>
-                        <p className="text-gray-500">Try changing your filters or check back later</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+              {filteredItems.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <EmptyState icon={Clock} title="No settlements found" description="Try changing your filters or check back later" />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-          {/* Mobile View */}
-          <div className="block md:hidden space-y-4">
-            {filteredItems.map((it) => (
-              <Card key={it.id} className="border-[#00ADEF]/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#3871C2]/10 to-[#00ADEF]/10 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-[#3871C2]" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">ID: {it.txn_id.slice(0, 12)}...</div>
-                        <div className="text-xs text-gray-500">Merchant: {it.user_id}</div>
-                      </div>
-                    </div>
-                    <StatusBadge status={it.status} />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                    <div>
-                      <div className="text-gray-500">Amount</div>
-                      <div className="font-bold text-[#41B93D]">{inr.format(it.amount)}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Date</div>
-                      <div>{fmtDate(it.settled_date)}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Currency</div>
-                      <div>{it.currency ?? "INR"}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Requested</div>
-                      <div>{fmtDate(it.requested_at)}</div>
-                    </div>
-                  </div>
-
-                  {it.status === "pending" && (
-                    <div className="flex gap-2 pt-3 border-t">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-gradient-to-r from-[#41B93D] to-emerald-500 text-white"
-                        onClick={() => handleSettlementAction(it.id, "approved")}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 border-red-300 text-red-600"
-                        onClick={() => handleSettlementAction(it.id, "rejected")}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-            {filteredItems.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                No settlements found
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
+          {filteredItems.map((it) => (
+            <div key={it.id} className="p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="min-w-0">
+                  <div className={`${cellMono} truncate`}>{it.txn_id}</div>
+                  <div className="text-[12px] text-gray-500 mt-0.5">Merchant: {it.user_id}</div>
+                </div>
+                <StatusBadge status={it.status} />
               </div>
-            )}
-          </div>
+              <div className="grid grid-cols-2 gap-3 text-[12px]">
+                <div>
+                  <div className="text-gray-500">Amount</div>
+                  <div className={cellAmount}>{inr.format(it.amount)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Settled</div>
+                  <div>{fmtDate(it.settled_date)}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Currency</div>
+                  <div>{it.currency ?? "INR"}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Requested</div>
+                  <div>{fmtDate(it.requested_at)}</div>
+                </div>
+              </div>
+              {it.status === "pending" && (
+                <div className="flex gap-2 mt-3">
+                  <Button variant="success" className="flex-1" onClick={() => handleSettlementAction(it.txn_id, "approved")} disabled={settlementLoadingMap[it.txn_id]}>
+                    Approve
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => handleSettlementAction(it.txn_id, "rejected")} disabled={settlementLoadingMap[it.txn_id]}>
+                    Reject
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {filteredItems.length === 0 && <EmptyState icon={Clock} title="No settlements found" />}
+        </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-500">
-              Showing {filteredItems.length} settlements
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="border-[#00ADEF] text-[#3871C2]"
-              >
-                Previous
-              </Button>
-              <span className="px-4 py-2 bg-gradient-to-r from-[#3871C2]/10 to-[#00ADEF]/10 rounded-lg font-medium text-[#3871C2]">
-                Page {page}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => p + 1)}
-                className="border-[#00ADEF] text-[#3871C2]"
-              >
-                Next
-              </Button>
-            </div>
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800 text-[13px] text-gray-500">
+          <span>Page {page}</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+              Previous
+            </Button>
+            <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </Panel>
     </div>
   );
 
   const renderAnalytics = () => (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-[22px] font-semibold bg-gradient-to-r from-[#3871C2] via-[#00ADEF] to-[#41B93D] bg-clip-text text-transparent">
-            Platform Analytics
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Detailed insights and performance metrics</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* <Button variant="outline" className="border-[#00ADEF] text-[#3871C2]">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button> */}
-        </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader title="Analytics" description="Platform performance and pending workload" />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard label="Transaction Success Rate" value="94.2%" icon={BarChart3} hint="+2.1% from last month" hintTone="up" />
+        <StatCard label="Avg Transaction Size" value="₹8,450" icon={CreditCard} hint="+5.3% from last month" hintTone="up" />
+        <StatCard label="Settlement Processing Time" value="2.4 hrs" icon={Clock} hint="-0.8 hrs from last month" hintTone="up" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="border-l-4 border-l-[#41B93D]">
-          <CardHeader>
-            <CardTitle className="flex items-center text-[#41B93D]">
-              <BarChart3 className="h-5 w-5 mr-2" />
-              Transaction Success Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-[22px] font-semibold text-[#41B93D]">94.2%</div>
-            <div className="flex items-center mt-2 text-sm">
-              <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-green-600">+2.1% from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-[#3871C2]">
-          <CardHeader>
-            <CardTitle className="flex items-center text-[#3871C2]">
-              <CreditCard className="h-5 w-5 mr-2" />
-              Avg Transaction Size
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-[22px] font-semibold text-[#3871C2]">₹8,450</div>
-            <div className="flex items-center mt-2 text-sm">
-              <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-green-600">+5.3% from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-[#00ADEF]">
-          <CardHeader>
-            <CardTitle className="flex items-center text-[#00ADEF]">
-              <Clock className="h-5 w-5 mr-2" />
-              Settlement Processing Time
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-[22px] font-semibold text-[#00ADEF]">2.4 hrs</div>
-            <div className="flex items-center mt-2 text-sm">
-              <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-              <span className="text-green-600">-0.8 hrs from last month</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="bg-gradient-to-br from-gray-50 to-white border">
-        <CardHeader>
-          <CardTitle className="flex items-center text-gray-900 dark:text-gray-100">
-            <Shield className="h-5 w-5 mr-2" />
-            Platform Health Monitor
-          </CardTitle>
-          <CardDescription>Real-time system status and performance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-white rounded-lg border border-emerald-100">
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mr-3">
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="font-medium">API Uptime</div>
-                  <div className="text-sm text-gray-500">Last 30 days</div>
-                </div>
+      <Panel title="Platform Health" meta="Real-time system status">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between rounded-md border border-green-200 bg-green-50/60 dark:border-green-900/60 dark:bg-green-950/20 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-md bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4" />
               </div>
-              <div className="text-2xl font-bold text-emerald-600">99.9%</div>
+              <div>
+                <div className="text-[13px] font-medium text-gray-900 dark:text-gray-100">API Uptime</div>
+                <div className="text-[11px] text-gray-500">Last 30 days</div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { label: "Active Merchants", value: summary?.total_merchants || "—", icon: Users, color: "blue" },
-                { label: "Pending KYC", value: summary?.merchant_kyc_pending || "—", icon: AlertCircle, color: "amber" },
-                { label: "Pending Settlements", value: summary?.total_settle_pending || "—", icon: Clock, color: "orange" },
-              ].map((item, index) => (
-                <div key={index} className="p-4 bg-white dark:bg-gray-800 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-700 dark:text-gray-300">{item.label}</div>
-                      <div className="text-2xl font-bold mt-2" style={{ color: `var(--color-${item.color}-600)` }}>
-                        {item.value}
-                      </div>
-                    </div>
-                    <div className={`w-10 h-10 rounded-full bg-${item.color}-100 flex items-center justify-center`}>
-                      <item.icon className={`h-5 w-5 text-${item.color}-600`} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="text-xl font-bold text-green-700 dark:text-green-400 tabular-nums">99.9%</div>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard label="Active Merchants" value={summary?.total_merchants ?? "—"} icon={Users} />
+            <StatCard label="Pending KYC" value={summary?.merchant_kyc_pending ?? "—"} icon={AlertCircle} />
+            <StatCard label="Pending Settlements" value={summary?.total_settle_pending ?? "—"} icon={Clock} />
+          </div>
+        </div>
+      </Panel>
     </div>
   );
 
@@ -761,11 +624,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <div className="">
-        <div className="max-w-7xl mx-auto sm:px-6 lg:px-0 py-8">
-          {renderContent()}
-        </div>
-      </div>
+      {renderContent()}
     </DashboardLayout>
   );
 }
