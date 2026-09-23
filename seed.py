@@ -11,6 +11,11 @@ This will create:
   - Associated wallet and payout wallet
 """
 
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "app"))
+
 from sqlalchemy.orm import Session
 from utils.database import SessionLocal, init_db
 from utils.authenticate import hash_password
