@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.staticfiles import StaticFiles
-
 from routers.authenticate import router as auth_router
 from routers.merchant  import router as merchants_router
 from routers.admin import router as admin_router
