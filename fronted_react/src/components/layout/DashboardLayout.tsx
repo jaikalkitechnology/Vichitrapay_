@@ -126,14 +126,13 @@ export default function DashboardLayout({
 
   const sidebar = (
     <div className="flex h-full flex-col bg-navy dark:bg-[#0B1929]">
-      <div className="flex h-[52px] items-center gap-2.5 border-b border-white/[0.08] px-4">
-        <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-white">
-          <img src="/logo.png" alt="Vichitrapay logo" className="h-full w-full scale-[1.3] object-contain" />
+      <div className="relative flex items-center justify-center border-b border-white/[0.08] px-4 py-4">
+        <div className="h-20 w-20 overflow-hidden rounded-xl bg-white">
+          <img src="/logo.png" alt="Vichitrapay" className="h-full w-full scale-[1.3] object-contain" />
         </div>
-        <span className="text-[15px] font-semibold tracking-tight text-slate-100">Vichitrapay</span>
         <button
           onClick={() => setMobileOpen(false)}
-          className="ml-auto flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-white/5 hover:text-white md:hidden"
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-white/5 hover:text-white md:hidden"
           aria-label="Close menu"
         >
           <X className="h-4 w-4" />
