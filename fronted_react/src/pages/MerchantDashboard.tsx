@@ -12,7 +12,7 @@ import { BASE_URL } from "@/config"
 import TransactionsPage from "@/components/txn/txnView"
 import ApiDocs from "@/components/txn/apiDocs"
 import PaymentLinkGenerator from "@/components/txn/paymentLinkGenerator"
-import ChangePassword from "@/components/txn/changePassword"
+import MerchantProfile from "@/components/txn/MerchantProfile"
 import PayoutAccountsPage from "@/components/txn/accountView"
 import MerchantTopup from "@/components/txn/MerchantTopup";
 import Passbook from "@/components/txn/passbook";
@@ -49,7 +49,7 @@ const dayMonth = (ymd: string) => {
   return new Date(y, mo - 1, d).toLocaleDateString("en-GB", { day: "numeric", month: "short" }).replace("Sept", "Sep");
 };
 
-const MERCHANT_TABS = ["dashboard", "transactions", "paymentLink", "bankAccount", "settlements", "merchantsTopup", "passbook", "developer", "changePassword"];
+const MERCHANT_TABS = ["dashboard", "transactions", "paymentLink", "bankAccount", "settlements", "merchantsTopup", "passbook", "developer", "profile", "changePassword"];
 
 function getTabFromPath(pathname: string): string {
   const segment = pathname.replace(/^\/merchant\/?/, "").split("/")[0];
@@ -358,7 +358,6 @@ export default function MerchantDashboard() {
   const PassBook = () => <Passbook />;
   const renderDeveloper = () => <ApiDocs />;
   const renderPaymentLink = () => <PaymentLinkGenerator />;
-  const renderChangePassword = () => <ChangePassword />;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -378,15 +377,18 @@ export default function MerchantDashboard() {
         return PassBook();
       case 'developer':
         return renderDeveloper();
+      case 'profile':
+        return <MerchantProfile />;
       case 'changePassword':
-        return renderChangePassword();
+        // old link: Change Password now lives in Profile & Settings → Security
+        return <MerchantProfile initialTab="security" />;
       default:
         return renderDashboard();
     }
   };
 
   return (
-    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <DashboardLayout activeTab={activeTab === "changePassword" ? "profile" : activeTab} onTabChange={setActiveTab}>
       {isRefreshing && !merchant && activeTab === "dashboard" ? (
         <div className="flex flex-col gap-5">
           <Skeleton className="h-8 w-64" />

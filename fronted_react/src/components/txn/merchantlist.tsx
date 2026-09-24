@@ -52,11 +52,13 @@ import {
   Users,
   Check,
   Clock,
+  FileCheck2,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkline } from "@/components/txn/DashboardCharts";
 import { ActionMenu } from "@/components/admin-part/ui";
+import KycReviewDialog from "@/components/txn/KycReviewDialog";
 import api from "@/api/api"
 import {BASE_URL} from "@/config"
 
@@ -370,6 +372,7 @@ export default function MerchatList() {
 
   const searchTimer = useRef<number | null>(null);
   const [viewUser, setViewUser] = useState<UserWithWallets | null>(null);
+  const [kycUser, setKycUser] = useState<UserWithWallets | null>(null);
   const [stats, setStats] = useState<MerchantStats | null>(null);
   const refreshStats = useCallback(() => {
     loadMerchantStats()
@@ -800,6 +803,7 @@ export default function MerchatList() {
                         <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
                           <Button size="sm" variant="outline" onClick={() => setViewUser(u)}>View</Button>
                           <Button size="sm" onClick={() => openEdit(u)}>Edit</Button>
+                          <Button size="sm" variant="outline" onClick={() => setKycUser(u)} className="col-span-2">Review KYC</Button>
                           <Button size="sm" variant="outline" onClick={() => openCredentialsModal(u.id)}>Credentials</Button>
                           <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)}>Settings</Button>
                           <Button size="sm" variant="outline" onClick={() => openModal(u, "to_payout")}>To Payout</Button>
@@ -881,6 +885,7 @@ export default function MerchatList() {
                               <ActionMenu
                                 label={`More actions for ${u.username}`}
                                 items={[
+                                  { label: "Review KYC", icon: FileCheck2, onClick: () => setKycUser(u) },
                                   { label: "Settings", icon: Settings, onClick: () => openSettingsModal(u.id) },
                                   { label: "Credentials", icon: KeyRound, onClick: () => openCredentialsModal(u.id) },
                                   { label: "Transfer to Payout", icon: ArrowUpRight, onClick: () => openModal(u, "to_payout") },
@@ -951,6 +956,8 @@ export default function MerchatList() {
       </div>
 
       {/* View Merchant */}
+      <KycReviewDialog userId={kycUser?.id ?? null} username={kycUser?.username} onClose={() => setKycUser(null)} onVerifiedChange={refreshAll} />
+
       <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>

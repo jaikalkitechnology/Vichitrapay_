@@ -541,3 +541,28 @@ class ProviderCredential(Base):
 
     merchant = relationship("User", lazy="joined")
     provider = relationship("TspProvider", lazy="joined")
+
+
+class MerchantKycItem(Base):
+    """
+    One KYC field or document submitted by a merchant (company type, PAN number, PAN card file, ...).
+    Each item is reviewed by an admin on its own; the item keys are defined in routers/kyc.py.
+    """
+    __tablename__ = "merchant_kyc_items"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_merchant_kyc_item"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(20), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    key = Column(String(50), nullable=False)
+    value = Column(Text, nullable=True)            # text value (e.g. PAN number); None for documents
+    file_path = Column(String(500), nullable=True)  # private path on disk — never served statically
+    file_name = Column(String(255), nullable=True)  # original filename, for downloads
+    file_mime = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending | approved | rejected
+    remark = Column(Text, nullable=True)            # admin's reason when rejected
+    reviewed_by = Column(String(20), nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(india_tz))
+    updated_at = Column(DateTime, default=lambda: datetime.now(india_tz), onupdate=lambda: datetime.now(india_tz))
+
+    user = relationship("User", backref=backref("kyc_items", cascade="all, delete-orphan"))

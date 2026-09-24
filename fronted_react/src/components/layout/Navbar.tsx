@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun, UserCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,8 @@ interface NavbarProps {
   notifications: NavNotification[];
   notificationCount: number;
   onNotificationSelect: (tab: string) => void;
+  /** Shows a "Profile & Settings" entry in the account menu when given. */
+  onProfile?: () => void;
 }
 
 const TONE_DOT: Record<NavNotification["tone"], string> = {
@@ -53,6 +55,7 @@ export default function Navbar({
   notifications,
   notificationCount,
   onNotificationSelect,
+  onProfile,
 }: NavbarProps) {
   const [query, setQuery] = useState("");
   const [isMac] = useState(() => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform));
@@ -204,6 +207,11 @@ export default function Navbar({
                 {userRole && <div className="text-[11px] font-normal text-gray-500">{userRole}</div>}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {onProfile && (
+                <DropdownMenuItem onClick={onProfile}>
+                  <UserCog /> Profile & Settings
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={logout} className="text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/40">
                 <LogOut /> Logout
               </DropdownMenuItem>

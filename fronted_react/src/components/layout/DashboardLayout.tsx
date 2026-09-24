@@ -14,7 +14,7 @@ import {
   PiggyBank,
   Shield,
   Link as LinkIcon,
-  Lock,
+  UserCog,
   X,
   LogOut,
   Layers,
@@ -87,7 +87,7 @@ const merchantSections: NavSection[] = [
     label: "Account",
     tabs: [
       { id: "developer", label: "Developer", icon: Code, color: "text-sky-400" },
-      { id: "changePassword", label: "Change Password", icon: Lock, color: "text-rose-400" },
+      { id: "profile", label: "Profile & Settings", icon: UserCog, color: "text-rose-400" },
     ],
   },
 ];
@@ -228,6 +228,7 @@ export default function DashboardLayout({
           notifications={notifications.items}
           notificationCount={notifications.total}
           onNotificationSelect={handleTabClick}
+          onProfile={isAdmin ? undefined : () => handleTabClick("profile")}
         />
         <main className="min-w-0 flex-1 px-4 pb-5 pt-4 text-gray-700 dark:text-gray-300 md:px-6">
           {children}

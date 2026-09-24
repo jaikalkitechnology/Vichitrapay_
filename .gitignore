@@ -65,3 +65,6 @@ venv/
 env/
 .pytest_cache/
 .mypy_cache/
+
+# ---------- Private uploads (KYC documents) ----------
+private_uploads/

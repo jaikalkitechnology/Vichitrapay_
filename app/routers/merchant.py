@@ -2390,3 +2390,43 @@ def get_my_credentials(
         merchant_id=merchant_id,
         credentials=result
     )
+
+
+@router.get("/fees")
+def get_my_fees(db: Session = Depends(get_db), current_user = Depends(user_required)):
+    """
+    The merchant's PG fees, with worked examples computed by the same functions
+    the live PayIn webhook and live payout API use.
+    """
+    from crud.gateway.live_payout import calculate_payout_charges, GST_RATE, THRESHOLD
+
+    settings = db.query(MerchantSettings).filter(MerchantSettings.id == current_user.id).first()
+    if not settings:
+        return {"configured": False}
+
+    gst_pct = float(GST_RATE * 100)
+    payin_pct = float(settings.payInCharges or 0)
+
+    def payin_example(amount: float):
+        charges = round(amount * payin_pct / 100, 2)
+        gst = round(charges * gst_pct / 100, 2)
+        return {"amount": amount, "charges": charges, "gst": gst, "net": round(amount - charges - gst, 2)}
+
+    def payout_example(amount: float):
+        charges, gst, total = calculate_payout_charges(Decimal(str(amount)), settings)
+        return {"amount": amount, "charges": float(charges), "gst": float(gst), "total_debit": float(total)}
+
+    return {
+        "configured": True,
+        "gst_percent": gst_pct,
+        "payin": {
+            "percent": payin_pct,
+            "examples": [payin_example(a) for a in (1000, 10000, 50000)],
+        },
+        "payout": {
+            "flat": float(settings.payOutChargesFlat or 0),
+            "percent": float(settings.payOutCharges or 0),
+            "flat_up_to": float(THRESHOLD),
+            "examples": [payout_example(a) for a in (500, 1000, 10000, 50000)],
+        },
+    }

@@ -6,9 +6,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { errorText } from "@/components/admin-part/listUtils";
 import { Shield, CheckCircle, AlertCircle, Eye, EyeOff, Lock } from "lucide-react";
 
-export default function ChangePassword() {
+// Defined outside ChangePassword so the inputs keep focus between keystrokes
+function PwdField({
+  id, label, value, onChange, show, setShow, placeholder,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  show: boolean;
+  setShow: (b: boolean) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <Label htmlFor={id} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">{label}</Label>
+      <div className="relative mt-1">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="pr-10"
+          autoComplete="new-password"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          className="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          tabIndex={-1}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function ChangePassword({ embedded = false }: { embedded?: boolean }) {
   const { toast } = useToast();
 
   const [oldPwd, setOldPwd] = useState("");
@@ -65,8 +104,8 @@ export default function ChangePassword() {
         description: "Your password has been changed successfully.",
       });
       reset();
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail || err?.message || "Request failed";
+    } catch (err) {
+      const detail = errorText(err, "Request failed");
       setError(detail);
       toast({ title: "Failed", description: detail, variant: "destructive" });
     } finally {
@@ -74,52 +113,17 @@ export default function ChangePassword() {
     }
   };
 
-  const PwdField = ({
-    id, label, value, onChange, show, setShow, placeholder,
-  }: {
-    id: string;
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    show: boolean;
-    setShow: (b: boolean) => void;
-    placeholder: string;
-  }) => (
-    <div>
-      <Label htmlFor={id} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">{label}</Label>
-      <div className="relative mt-1">
-        <Input
-          id={id}
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="pr-10"
-          autoComplete="new-password"
-        />
-        <button
-          type="button"
-          onClick={() => setShow(!show)}
-          className="absolute right-0.5 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-          tabIndex={-1}
-        >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-4 md:space-y-5 max-w-2xl mx-auto space-y-5">
+    <div className={embedded ? "space-y-5" : "mx-auto max-w-2xl space-y-5 p-4"}>
       {/* Header */}
-      <div>
+      {!embedded && <div>
         <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           Change Password
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Update your account password. You will not be logged out after changing.
         </p>
-      </div>
+      </div>}
 
       {/* Security Tips */}
       <div className="p-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 flex items-start gap-3">
