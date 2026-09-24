@@ -8,7 +8,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 
 const logo = "/logo.png";
-const REMEMBER_KEY = "vichitrapay-remember-login";
 
 const formSchema = z.object({
   email: z.string().refine(
@@ -19,14 +18,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-function readRemembered(): string {
-  try {
-    return localStorage.getItem(REMEMBER_KEY) || "";
-  } catch {
-    return "";
-  }
-}
 
 const inputCls =
   "h-14 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-14 pr-4 text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-60";
@@ -52,11 +43,10 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(() => readRemembered() !== "");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: readRemembered(), password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   if (isAuthenticated && user) {
@@ -67,13 +57,6 @@ export default function Login() {
     try {
       setIsLoading(true);
       setApiError(null);
-      // "Remember me" keeps the email/username on this device for next time
-      try {
-        if (remember) localStorage.setItem(REMEMBER_KEY, data.email);
-        else localStorage.removeItem(REMEMBER_KEY);
-      } catch {
-        // storage unavailable (private mode) — nothing to remember
-      }
       const res = await login(data.email, data.password);
       if (!res.success) setApiError(res.message || "Login failed. Please try again.");
     } catch (err) {
@@ -195,17 +178,6 @@ export default function Login() {
                 )}
               </button>
 
-              <div className="flex items-center pt-1 text-[14px]">
-                <label className="flex cursor-pointer select-none items-center gap-2 text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-5 w-5 rounded-md border-slate-300 accent-indigo-600"
-                  />
-                  Remember me
-                </label>
-              </div>
             </form>
           </Form>
 
