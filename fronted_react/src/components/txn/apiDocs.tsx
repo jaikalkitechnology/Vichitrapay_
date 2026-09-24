@@ -1,7 +1,8 @@
 import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Copy, ChevronRight, Key, Link, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import { AlertCircle, Copy, Download, Globe, Link, FileText, CheckCircle, Lock, Search } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { filterInputCls } from "@/components/admin-part/listUtils";
 import ProviderCredentials from "@/components/txn/ProviderCredentials";
 import { API_ORIGIN } from "@/config";
 // Small helper to render code blocks
@@ -17,9 +18,9 @@ function CodeInline({ children }) {
   );
 }
 
-function Section({ title, description, children }) {
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 p-4 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50 mb-4 md:mb-6">
+    <section className="space-y-4 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
       <div className="pb-3 md:pb-4 border-b border-gray-200 dark:border-gray-800">
         <h3 className="text-base font-semibold flex items-center gap-2 text-gray-900 dark:text-gray-100">
           <FileText className="h-4 w-4 md:h-5 md:w-5 text-indigo-600" />
@@ -34,27 +35,10 @@ function Section({ title, description, children }) {
   );
 }
 
-function EndpointCard({ method, path, description, color = '#4F6BF6' }) {
-  const methodColor = method === 'GET' ? 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400' :
-                     method === 'POST' ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300' :
-                     method === 'PUT' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400' :
-                     method === 'DELETE' ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' : 'bg-gray-100 text-gray-700';
-  
-  return (
-    <div className="flex items-start gap-3 md:gap-4 p-3 md:p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-      <div className={`mt-0.5 rounded px-1.5 py-0.5 text-[11px] font-bold ${methodColor}`}>
-        {method}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-mono text-xs md:text-sm break-words text-indigo-600">{path}</div>
-        <div className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-1">{description}</div>
-      </div>
-    </div>
-  );
-}
-
 export default function ApiDocs() {
   const base = API_ORIGIN;
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
 
   // --- Authentication Examples ------------------------------------------------
   const loginResponseExample = {
@@ -204,177 +188,149 @@ export default function ApiDocs() {
     amount: "500.00"
   };
 
-  const walletTransactionsResponseExample = {
-    items: [
-      {
-        id: 55,
-        user_id: "MER-6377A5C9",
-        transaction_type: "PayOut",
-        credit_debit: "debit",
-        order_id: "ORD1234568",
-        order_token: null,
-        payIn_mode: null,
-        status: "InProgress",
-        customer_id: null,
-        amount: 10,
-        settle_amount: 10.24,
-        balance_amount: 74.26,
-        charges: 0.2,
-        gst: 0.04,
-        reference_id: null,
-        txn_id: "557179688",
-        description: "Saving transfer test ₹10",
-        instrument_mode: "IMPS",
-        api_name: "universepay.direct",
-        created_at: "2025-11-05T20:12:50",
-        refund_id: null
-      }
-    ],
-    meta: { page: 1, per_page: 20, total: 17, total_pages: 1 }
+  const copyToClipboard = async (text: string, what = "Copied") => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: what, description: text });
+    } catch {
+      toast({ title: "Copy failed", description: "Clipboard is not available", variant: "destructive" });
+    }
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
-  };
+  const endpoints: { method: "GET" | "POST"; path: string; description: string; auth: boolean }[] = [
+    { method: "POST", path: "/api/v1/auth/login", description: "Obtain Bearer token (form-urlencoded: username & password)", auth: false },
+    { method: "POST", path: "/live/payin/initiate", description: "Initiate PayIn — creates transaction & returns payment_url", auth: true },
+    { method: "GET", path: "/live/payin/ticket-sizes", description: "Get available ticket sizes for active provider (if required)", auth: true },
+    { method: "POST", path: "/live/payin/upi-intent", description: "UPI Intent PayIn — returns intent_url & qr_data for direct UPI pay", auth: true },
+    { method: "GET", path: "/live/payin/txns/status", description: "Check PayIn status by order_id or merchantOrderId", auth: true },
+    { method: "GET", path: "/api/v1/merchant/wallet-transactions", description: "Paginated wallet transactions with charges, GST, settle_amount", auth: true },
+    { method: "POST", path: "/live/payout/initiate", description: "Initiate payout to bank (IMPS/NEFT/RTGS) with charges + GST", auth: true },
+    { method: "POST", path: "/live/payout/txns/status", description: "Check payout status by order_id (auto-detects provider)", auth: true },
+  ];
+  const q = search.trim().toLowerCase();
+  const shown = endpoints.filter((e) => !q || `${e.method} ${e.path} ${e.description}`.toLowerCase().includes(q));
+
+  const card = "rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900";
+  const copyBtn =
+    "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-[13px] font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800";
+  const quick = [
+    { title: "Authentication", sub: "Get your Bearer token for API access", icon: Lock, tone: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400", wrap: "", label: "Copy Login URL", url: `${base}/api/v1/auth/login` },
+    { title: "PayIn (Initiate)", sub: "Accept customer payments via payment link", icon: Link, tone: "bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", wrap: "bg-violet-50/40 dark:bg-violet-950/10", label: "Copy PayIn URL", url: `${base}/live/payin/initiate` },
+    { title: "Payouts (PayOut)", sub: "Send money to bank accounts", icon: Download, tone: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400", wrap: "bg-amber-50/40 dark:bg-amber-950/10", label: "Copy Payout URL", url: `${base}/live/payout/initiate` },
+  ];
 
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">API Documentation</h1>
-        <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">Integration guides and endpoints for Vichitrapay merchant APIs</p>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">API Documentation</h1>
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">Integration guides and endpoints for Vichitrapay merchant APIs</p>
       </div>
+
       <ProviderCredentials />
-      <div>
-        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Key className="h-4 md:h-5 w-4 md:w-5 text-indigo-600 dark:text-indigo-400" />
-            <span className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Base URL</span>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <code className="text-sm md:text-lg font-mono break-all text-indigo-600 dark:text-indigo-400">{base}</code>
-            <Button
-              onClick={() => copyToClipboard(base)}
-              size="sm"
-              variant="outline"
-              className="self-start sm:self-center border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-             
-            >
-              <Copy className="h-3 w-3 md:h-4 md:w-4 mr-2" />
-              Copy
-            </Button>
+
+      {/* Base URL */}
+      <div className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-start`}>
+        <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <Globe className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[17px] font-bold text-gray-900 dark:text-gray-100">Base URL</h2>
+          <p className="text-[13px] text-gray-500">All API endpoints are relative to this base URL</p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+            <code className="flex-1 break-all rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-2.5 font-mono text-[15px] text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-300">{base}</code>
+            <button type="button" onClick={() => copyToClipboard(base, "Base URL copied")} className={`${copyBtn} h-11 px-4`}>
+              <Copy className="h-4 w-4" /> Copy
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
-        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-green-600/10">
-              <Key className="h-4 md:h-5 w-4 md:w-5 text-green-600" />
+      {/* Quick links */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {quick.map((c) => (
+          <div key={c.title} className={`${card} ${c.wrap} p-5`}>
+            <div className="mb-4 flex items-start gap-3">
+              <span className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${c.tone}`}>
+                <c.icon className="h-6 w-6" />
+              </span>
+              <div>
+                <h3 className="text-[16px] font-bold text-gray-900 dark:text-gray-100">{c.title}</h3>
+                <p className="text-[13px] text-gray-500">{c.sub}</p>
+              </div>
             </div>
-            <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">Authentication</h3>
+            <button type="button" onClick={() => copyToClipboard(c.url, `${c.title} URL copied`)} className={`${copyBtn} h-10 w-full`}>
+              <Copy className="h-4 w-4" /> {c.label}
+            </button>
           </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 mb-3">Get your Bearer token for API access</p>
-          <Button
-            onClick={() => copyToClipboard(`${base}/api/v1/auth/login`)}
-            size="sm"
-            variant="outline"
-            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-           
-          >
-            <Copy className="h-3 w-3 mr-1 md:mr-2" />
-            Copy Login URL
-          </Button>
-        </div>
-
-        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-indigo-600/10">
-              <Link className="h-4 md:h-5 w-4 md:w-5 text-indigo-600" />
-            </div>
-            <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">PayIn (Initiate)</h3>
-          </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 mb-3">Accept customer payments via payment link</p>
-          <Button
-            onClick={() => copyToClipboard(`${base}/live/payin/initiate`)}
-            size="sm"
-            variant="outline"
-            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-           
-          >
-            <Copy className="h-3 w-3 mr-1 md:mr-2" />
-            Copy PayIn URL
-          </Button>
-        </div>
-
-        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-md bg-amber-500/10">
-              <AlertCircle className="h-4 md:h-5 w-4 md:w-5 text-amber-500" />
-            </div>
-            <h3 className="font-bold text-sm md:text-base text-gray-900 dark:text-gray-100">Payouts (PayOut)</h3>
-          </div>
-          <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 dark:text-gray-400 mb-3">Send money to bank accounts</p>
-          <Button
-            onClick={() => copyToClipboard(`${base}/live/payout/initiate`)}
-            size="sm"
-            variant="outline"
-            className="w-full text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-           
-          >
-            <Copy className="h-3 w-3 mr-1 md:mr-2" />
-            Copy Payout URL
-          </Button>
-        </div>
+        ))}
       </div>
 
-      {/* All Endpoints Overview */}
-      <Section title="API Endpoints Overview">
-        <div className="space-y-3">
-          <EndpointCard
-            method="POST"
-            path="/api/v1/auth/login"
-            description="Obtain Bearer token (form-urlencoded: username & password)"
-          />
-          <EndpointCard
-            method="POST"
-            path="/live/payin/initiate"
-            description="Initiate PayIn — creates transaction & returns payment_url"
-          />
-          <EndpointCard
-            method="GET"
-            path="/live/payin/ticket-sizes"
-            description="Get available ticket sizes for active provider (if required)"
-          />
-          <EndpointCard
-            method="POST"
-            path="/live/payin/upi-intent"
-            description="UPI Intent PayIn — returns intent_url & qr_data for direct UPI pay"
-          />
-          <EndpointCard
-            method="GET"
-            path="/live/payin/txns/status"
-            description="Check PayIn status by order_id or merchantOrderId"
-          />
-          <EndpointCard
-            method="GET"
-            path="/api/v1/merchant/wallet-transactions"
-            description="Paginated wallet transactions with charges, GST, settle_amount"
-          />
-          <EndpointCard
-            method="POST"
-            path="/live/payout/initiate"
-            description="Initiate payout to bank (IMPS/NEFT/RTGS) with charges + GST"
-          />
-          <EndpointCard
-            method="POST"
-            path="/live/payout/txns/status"
-            description="Check payout status by order_id (auto-detects provider)"
-          />
+      {/* Endpoints overview */}
+      <div className={`${card} overflow-hidden`}>
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <FileText className="h-6 w-6" />
+            </span>
+            <div>
+              <h2 className="text-[17px] font-bold text-gray-900 dark:text-gray-100">API Endpoints Overview</h2>
+              <p className="text-[13px] text-gray-500">List of available API endpoints for integration</p>
+            </div>
+          </div>
+          <div className="relative sm:w-72">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search endpoints..." className={`${filterInputCls} pl-10`} aria-label="Search endpoints" />
+          </div>
         </div>
-      </Section>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-[13px]">
+            <thead className="border-y border-gray-100 bg-slate-50/80 dark:border-gray-800 dark:bg-gray-800/40">
+              <tr className="whitespace-nowrap text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                <th className="py-3 pl-5 pr-3">Method</th>
+                <th className="px-3 py-3">Endpoint</th>
+                <th className="px-3 py-3">Description</th>
+                <th className="px-3 py-3">Auth</th>
+                <th className="py-3 pl-3 pr-5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {shown.length === 0 ? (
+                <tr><td colSpan={5} className="px-5 py-10 text-center text-gray-500">No endpoints match "{search}"</td></tr>
+              ) : (
+                shown.map((e) => (
+                  <tr key={e.path} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-2.5 pl-5 pr-3">
+                      <span
+                        className={`inline-flex w-16 justify-center rounded-md border py-1 text-[12px] font-bold ${
+                          e.method === "GET"
+                            ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-400"
+                            : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300"
+                        }`}
+                      >
+                        {e.method}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[13.5px] text-blue-700 dark:text-blue-300">{e.path}</td>
+                    <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{e.description}</td>
+                    <td className="whitespace-nowrap px-3 py-2.5">
+                      {e.auth ? (
+                        <span className="rounded-md border border-green-200 bg-green-50 px-2 py-0.5 text-[11.5px] font-semibold text-green-700 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-400">Bearer Token</span>
+                      ) : (
+                        <span className="rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[11.5px] font-semibold text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400">No Auth</span>
+                      )}
+                    </td>
+                    <td className="py-2 pl-3 pr-5 text-right">
+                      <button type="button" onClick={() => copyToClipboard(`${base}${e.path}`, "Endpoint copied")} className={`${copyBtn} h-8`}>
+                        <Copy className="h-3.5 w-3.5" /> Copy
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {/* Authentication Section */}
       <Section
@@ -982,39 +938,11 @@ export default function ApiDocs() {
         </div>
       </Section>
 
-      {/* Quick Copy Buttons */}
-      <div className="p-4 md:p-4 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-        <h3 className="text-base font-semibold mb-3 md:mb-4 text-gray-900 dark:text-gray-100">Quick Copy URLs</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
-          {[
-            { label: 'Login', url: `${base}/api/v1/auth/login` },
-            { label: 'PayIn Initiate', url: `${base}/live/payin/initiate` },
-            { label: 'Ticket Sizes', url: `${base}/live/payin/ticket-sizes` },
-            { label: 'UPI Intent', url: `${base}/live/payin/upi-intent` },
-            { label: 'Wallet Transactions', url: `${base}/api/v1/merchant/wallet-transactions` },
-            { label: 'PayIn Status', url: `${base}/live/payin/txns/status?order_id=<ORDER_ID>` },
-            { label: 'Payout Initiate', url: `${base}/live/payout/initiate` },
-            { label: 'Payout Status', url: `${base}/live/payout/txns/status?order_id=<ORDER_ID>` },
-          ].map((item) => (
-            <Button
-              key={item.label}
-              onClick={() => copyToClipboard(item.url)}
-              variant="outline"
-              className="justify-start text-xs md:text-sm border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-             
-            >
-              <Copy className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-              {item.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
       {/* Footer Note */}
       <div className="p-3 md:p-4 rounded-lg border text-center border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
         <div className="flex items-center justify-center gap-2">
           <CheckCircle className="h-4 md:h-5 w-4 md:w-5 text-green-600 dark:text-green-400" />
-          <span className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">All endpoints require Bearer token authentication</span>
+          <span className="font-medium text-sm md:text-base text-gray-900 dark:text-gray-100">Every endpoint except login requires a Bearer token (Authorization: Bearer &lt;access_token&gt;)</span>
         </div>
       </div>
     </div>
