@@ -1,8 +1,6 @@
 // src/pages/admin/AdminDashboard.tsx (MerchatList.tsx)
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // --- (Your imports remain the same) ---
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -26,7 +24,38 @@ import {
   getMerchantSetting,
   updateMerchantSettings,
 } from "@/api/apiHelper";
-import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff, KeyRound, Lock, Pencil, PlusCircle, Settings } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowDownLeft,
+  ArrowUp,
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Mail,
+  MoreHorizontal,
+  Pencil,
+  Phone,
+  Plus,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Check,
+  Clock,
+} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sparkline } from "@/components/txn/DashboardCharts";
 import { ActionMenu } from "@/components/admin-part/ui";
 import api from "@/api/api"
 import {BASE_URL} from "@/config"
@@ -39,6 +68,113 @@ export interface MerchantSettings {
   webhook: string | null;
   webhook_payout: string | null;
   ip: string | null;
+}
+
+const AVATAR_TONES = [
+  "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+  "bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
+  "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+  "bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
+  "bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
+  "bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-400",
+];
+const avatarTone = (i: number) => AVATAR_TONES[i % AVATAR_TONES.length];
+
+const fmtMoney = (v?: number | string | null) =>
+  v === undefined || v === null ? "—" : `₹${Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const fmtDay = (d?: string | null) => {
+  if (!d) return "—";
+  const t = new Date(d);
+  return `${String(t.getDate()).padStart(2, "0")} ${t.toLocaleString("en-US", { month: "short" })} ${t.getFullYear()}`;
+};
+const fmtTime = (d?: string | null) =>
+  d ? new Date(d).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
+
+/** Page buttons with gaps: 1 … 4 5 6 … 12 */
+function pageNumbers(current: number, total: number): (number | null)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set([1, total, current - 1, current, current + 1].filter((n) => n >= 1 && n <= total));
+  const sorted = [...set].sort((a, b) => a - b);
+  const out: (number | null)[] = [];
+  sorted.forEach((n, i) => {
+    if (i && n - sorted[i - 1] > 1) out.push(null);
+    out.push(n);
+  });
+  return out;
+}
+
+function KycBadge({ verified }: { verified: boolean }) {
+  return verified ? (
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1 text-[12px] font-semibold text-green-700 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-400">
+      <Check className="h-3.5 w-3.5" /> Verified
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[12px] font-semibold text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-400">
+      <Clock className="h-3.5 w-3.5" /> Pending
+    </span>
+  );
+}
+
+type MerchantStats = {
+  total: number;
+  verified: number;
+  pending: number;
+  addedThisMonth: number;
+  addedLastMonth: number;
+  verifiedThisMonth: number;
+  pendingThisMonth: number;
+  trendTotal: number[];
+  trendVerified: number[];
+  trendPending: number[];
+  trendDaily: number[];
+};
+
+const STATS_SAMPLE = 500; // max per_page the API allows
+
+/**
+ * Header-card numbers. Totals come from the API's counts; month and trend figures
+ * come from the newest STATS_SAMPLE sign-ups (exact unless more joined in the window).
+ */
+async function loadMerchantStats(): Promise<MerchantStats> {
+  const [all, verifiedRes] = await Promise.all([
+    fetchUsersWithWallets({ page: 1, per_page: STATS_SAMPLE, sort_by: "created_at", sort_desc: true }),
+    fetchUsersWithWallets({ page: 1, per_page: 1, kyc_verified: true }),
+  ]);
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+  const rows = all.items.map((u) => ({ t: u.created_at ? new Date(u.created_at).getTime() : 0, v: u.kyc_verified }));
+  const total = all.total;
+  const verified = verifiedRes.total;
+  const inMonth = rows.filter((r) => r.t >= monthStart);
+
+  // cumulative count at the end of each of the last 8 weeks
+  const WEEK = 7 * 24 * 3600 * 1000;
+  const cumulative = (count: number, pick: (r: { v: boolean }) => boolean) =>
+    Array.from({ length: 8 }, (_, i) => {
+      const cutoff = now.getTime() - (7 - i) * WEEK;
+      return count - rows.filter((r) => pick(r) && r.t > cutoff).length;
+    });
+
+  const daysSoFar = now.getDate();
+  const trendDaily = Array.from({ length: Math.max(daysSoFar, 2) }, (_, d) => {
+    const start = monthStart + d * 24 * 3600 * 1000;
+    return inMonth.filter((r) => r.t >= start && r.t < start + 24 * 3600 * 1000).length;
+  });
+
+  return {
+    total,
+    verified,
+    pending: Math.max(0, total - verified),
+    addedThisMonth: inMonth.length,
+    addedLastMonth: rows.filter((r) => r.t >= lastMonthStart && r.t < monthStart).length,
+    verifiedThisMonth: inMonth.filter((r) => r.v).length,
+    pendingThisMonth: inMonth.filter((r) => !r.v).length,
+    trendTotal: cumulative(total, () => true),
+    trendVerified: cumulative(verified, (r) => r.v),
+    trendPending: cumulative(Math.max(0, total - verified), (r) => !r.v),
+    trendDaily,
+  };
 }
 
 type SelectedState = { merchant: UserWithWallets; direction: "to_payout" | "to_wallet" } | null;
@@ -233,6 +369,16 @@ export default function MerchatList() {
   }
 
   const searchTimer = useRef<number | null>(null);
+  const [viewUser, setViewUser] = useState<UserWithWallets | null>(null);
+  const [stats, setStats] = useState<MerchantStats | null>(null);
+  const refreshStats = useCallback(() => {
+    loadMerchantStats()
+      .then(setStats)
+      .catch((err) => console.error("merchant stats", err));
+  }, []);
+  useEffect(() => {
+    refreshStats();
+  }, [refreshStats]);
 
   const loadUsers = useCallback(
     async (overrideParams?: Partial<UsersWithWalletsParams>) => {
@@ -275,6 +421,7 @@ export default function MerchatList() {
       await addMerchant(createForm);
       toast({ title: "Merchant created", description: `${createForm.username} created.` });
       await loadUsers({ page: 1 });
+      refreshStats();
       closeCreateModal();
       setCreateForm({ username: "", email: "", password: "", full_name: "", phone_number: "", company_name: "", role: 2 });
     } catch (err: any) {
@@ -313,6 +460,7 @@ export default function MerchatList() {
       });
       setEditingUser(null);
       setEditForm(null);
+      refreshStats();
     } catch (err: any) {
       console.error("update error", err);
       toast({ title: "Update failed", description: getErrorMessage(err) });
@@ -483,258 +631,184 @@ export default function MerchatList() {
     }
   };
 
+  const refreshAll = () => {
+    loadUsers({});
+    refreshStats();
+  };
+
   // Mobile responsive helpers
   const toggleMobileMenu = (merchantId: string) => {
     setMobileMenuOpen(mobileMenuOpen === merchantId ? null : merchantId);
   };
 
+  const startItem = list && list.total > 0 ? (params.page - 1) * params.per_page + 1 : 0;
+  const endItem = list ? Math.min(params.page * params.per_page, list.total) : 0;
+  const kycFilter = params.kyc_verified === undefined ? "all" : params.kyc_verified ? "verified" : "pending";
+
+  const statCards = [
+    { label: "Total Merchants", value: stats?.total, icon: Users, tile: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", line: "#3B6BF6", added: stats?.addedThisMonth, trend: stats?.trendTotal },
+    { label: "KYC Verified", value: stats?.verified, icon: ShieldCheck, tile: "bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", line: "#8B5CF6", added: stats?.verifiedThisMonth, trend: stats?.trendVerified },
+    { label: "New This Month", value: stats?.addedThisMonth, icon: UserPlus, tile: "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400", line: "#22C55E", added: stats?.addedLastMonth, addedLabel: "last month", trend: stats?.trendDaily },
+    { label: "KYC Pending", value: stats?.pending, icon: ShieldAlert, tile: "bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400", line: "#F43F5E", added: stats?.pendingThisMonth, trend: stats?.trendPending, warn: true },
+  ];
+
+  const iconAction =
+    "flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-indigo-600 shadow-sm transition hover:bg-indigo-50 dark:border-gray-700 dark:bg-gray-900 dark:text-indigo-400 dark:hover:bg-indigo-950/40";
+
   return (
     <div className="space-y-5">
-      <div className="max-w-7xl mx-auto space-y-5">
+      <div className="space-y-5">
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Merchants Management</h1>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Manage merchant accounts, balances, and settings</p>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Merchants Management</h1>
+            <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">Manage merchant accounts, balances, and settings</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={openCreateModal}
-              className="h-8"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Merchant
-            </Button>
-          </div>
+          <Button onClick={openCreateModal} className="h-11 rounded-xl px-5 shadow-lg shadow-indigo-600/25">
+            <Plus /> Add Merchant
+          </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Merchants</p>
-                <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
-                  {loading ? '...' : list?.total || 0}
-                </p>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {statCards.map((c) => (
+            <div key={c.label} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex items-start gap-4">
+                <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl ${c.tile}`}>
+                  <c.icon className="h-6 w-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{c.label}</p>
+                  <p className="mt-1 text-[28px] font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">
+                    {c.value === undefined ? "…" : c.value.toLocaleString("en-IN")}
+                  </p>
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">KYC Verified</p>
-                <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
-                  {loading ? '...' : rows.filter(u => u.kyc_verified).length}
-                </p>
-              </div>
-              <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className="mt-2 flex items-end justify-between gap-3">
+                {c.added !== undefined ? (
+                  <p className={`flex items-center gap-1 text-[13px] font-medium ${c.warn && c.added > 0 ? "text-rose-600 dark:text-rose-400" : c.added > 0 ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}>
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    {c.addedLabel ? `${c.added} ${c.addedLabel}` : `+${c.added} this month`}
+                  </p>
+                ) : <span />}
+                {c.trend && <Sparkline values={c.trend} color={c.line} className="h-10 w-24 flex-shrink-0" />}
               </div>
             </div>
-          </div>
-
+          ))}
         </div>
 
         {/* Main Content Card */}
-        <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-2.5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Merchant List</CardTitle>
-                <CardDescription>Manage and monitor all merchant accounts</CardDescription>
-              </div>
+        <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-[20px] font-bold text-gray-900 dark:text-gray-100">Merchant List</h2>
+              <p className="mt-0.5 text-[14px] text-gray-500">Manage and monitor all merchant accounts</p>
+            </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <Input
-                    placeholder="Search merchants..."
-                    value={params.search ?? ""}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9 w-full sm:w-64"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => loadUsers({})}
-                    className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Refresh
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => loadUsers({ sort_desc: !params.sort_desc })}
-                    className="rounded-lg border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    {params.sort_desc ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
-                        </svg>
-                        Latest
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
-                        </svg>
-                        Oldest
-                      </>
-                    )}
-                  </Button>
-                </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search by name, email or contact..."
+                  value={params.search ?? ""}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="h-11 w-full rounded-xl pl-10 sm:w-72"
+                  aria-label="Search merchants"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Select
+                  value={kycFilter}
+                  onValueChange={(v) => loadUsers({ page: 1, kyc_verified: v === "all" ? undefined : v === "verified" })}
+                >
+                  <SelectTrigger className="h-11 w-full rounded-xl sm:w-40" aria-label="KYC status filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All KYC Status</SelectItem>
+                    <SelectItem value="verified">Verified</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={refreshAll} className="h-11 rounded-xl text-indigo-600 dark:text-indigo-400">
+                  <RefreshCw /> Refresh
+                </Button>
               </div>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent className="p-0">
+          <div>
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
-                <p className="mt-4 text-gray-600">Loading merchants...</p>
+              <div className="flex flex-col items-center justify-center border-t border-gray-100 py-16 dark:border-gray-800">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></div>
+                <p className="mt-4 text-[13px] text-gray-500">Loading merchants...</p>
               </div>
             ) : error ? (
-              <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-100 mb-4">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              <div className="border-t border-gray-100 p-8 text-center dark:border-gray-800">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
                 </div>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Error Loading Data</h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">{error}</p>
                 <Button onClick={() => loadUsers()} className="mt-4">
                   Try Again
                 </Button>
               </div>
             ) : !list || list.items.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+              <div className="border-t border-gray-100 p-12 text-center dark:border-gray-800">
+                <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800">
+                  <Users className="h-8 w-8" />
                 </div>
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">No merchants found</h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">Try adjusting your search or create a new merchant</p>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">Try adjusting your search or create a new merchant</p>
                 <Button onClick={openCreateModal} className="mt-4">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add First Merchant
+                  <Plus /> Add First Merchant
                 </Button>
               </div>
             ) : (
               <>
                 {/* Mobile View - Card Layout */}
-                <div className="sm:hidden space-y-3 p-4">
-                  {rows.map((u) => (
-                    <div key={u.id} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3 bg-white dark:bg-gray-900">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="font-semibold text-gray-900 dark:text-gray-100 truncate">{u.username}</div>
-                            {u.kyc_verified && (
-                              <Badge className="bg-green-100 text-green-800 text-xs">
-                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                Verified
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 truncate mt-1">{u.email}</div>
-                          <div className="text-xs text-gray-500 mt-1">{u.company_name || "-"}</div>
+                <div className="space-y-3 border-t border-gray-100 p-4 dark:border-gray-800 sm:hidden">
+                  {rows.map((u, i) => (
+                    <div key={u.id} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                      <div className="flex items-start gap-3">
+                        <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[15px] font-semibold ${avatarTone(i)}`}>
+                          {u.username.charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold text-gray-900 dark:text-gray-100">{u.username}</div>
+                          <div className="truncate text-[13px] text-gray-500">{u.email}</div>
+                          <div className="mt-1.5"><KycBadge verified={u.kyc_verified} /></div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleMobileMenu(u.id)}
-                          className="ml-2"
-                        >
-                          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
-                        </Button>
+                        <button onClick={() => toggleMobileMenu(u.id)} className={iconAction} aria-label={`Actions for ${u.username}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200 dark:border-gray-800">
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500 mb-1">Wallet Balance</div>
-                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                            {u.wallet ? `₹${Number(u.wallet.balance).toLocaleString()}` : "-"}
-                          </div>
+                      <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-3 dark:border-gray-800">
+                        <div>
+                          <div className="mb-1 text-[12px] text-gray-500">Wallet Balance</div>
+                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmtMoney(u.wallet?.balance)}</div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500 mb-1">Payout Balance</div>
-                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                            {u.payout_wallet ? `₹${Number(u.payout_wallet.balance).toLocaleString()}` : "-"}
-                          </div>
+                        <div>
+                          <div className="mb-1 text-[12px] text-gray-500">Payout Balance</div>
+                          <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmtMoney(u.payout_wallet?.balance)}</div>
                         </div>
                       </div>
 
                       {mobileMenuOpen === u.id && (
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button size="sm" onClick={() => openEdit(u)}>
-                              Edit
-                            </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openCredentialsModal(u.id)}
-                            className="rounded-lg border-purple-200 text-purple-700 hover:bg-purple-50 whitespace-nowrap"
-                          >
-                            Credentials
+                        <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                          <Button size="sm" variant="outline" onClick={() => setViewUser(u)}>View</Button>
+                          <Button size="sm" onClick={() => openEdit(u)}>Edit</Button>
+                          <Button size="sm" variant="outline" onClick={() => openCredentialsModal(u.id)}>Credentials</Button>
+                          <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)}>Settings</Button>
+                          <Button size="sm" variant="outline" onClick={() => openModal(u, "to_payout")}>To Payout</Button>
+                          <Button size="sm" variant="outline" onClick={() => openModal(u, "to_wallet")}>To Wallet</Button>
+                          <Button size="sm" variant="outline" onClick={() => openAdjustModal(u.id, "wallet")}>Adjust Wallet</Button>
+                          <Button size="sm" variant="outline" onClick={() => openAdjustModal(u.id, "payout")}>Adjust Payout</Button>
+                          <Button size="sm" variant="outline" onClick={() => openPwdModal(u.id)} className="col-span-2 text-red-600 hover:text-red-700">
+                            Change Password
                           </Button>
-
-
-                            <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)}>
-                              Settings
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openModal(u, "to_payout")}
-                              className="rounded-lg border-blue-200 text-blue-700 hover:bg-blue-50"
-                            >
-                              To Payout
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openModal(u, "to_wallet")}
-                              className="rounded-lg border-orange-200 text-orange-700 hover:bg-orange-50"
-                            >
-                              To Wallet
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => openAdjustModal(u.id, "wallet")} className="rounded-lg border-green-200 text-green-700 hover:bg-green-50">
-                              Adjust Wallet
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => openAdjustModal(u.id, "payout")} className="rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                              Adjust Payout
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => openPwdModal(u.id)} className="rounded-lg border-red-200 text-red-700 hover:bg-red-50">
-                              Change Password
-                            </Button>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -742,85 +816,71 @@ export default function MerchatList() {
                 </div>
 
                 {/* Desktop View - Table Layout */}
-                <div className="hidden sm:block overflow-hidden">
+                <div className="hidden sm:block">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-slate-50/80 dark:bg-gray-800/40 [&>th]:whitespace-nowrap">
+                        <TableHead className="w-10 pl-5">#</TableHead>
                         <TableHead>Merchant</TableHead>
                         <TableHead>Contact</TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead>KYC Status</TableHead>
-                        <TableHead>Password</TableHead>
                         <TableHead className="text-right">Wallet Balance</TableHead>
                         <TableHead className="text-right">Payout Balance</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead>
+                          <button
+                            onClick={() => loadUsers({ page: 1, sort_desc: !params.sort_desc })}
+                            className="inline-flex items-center gap-1 uppercase hover:text-gray-900 dark:hover:text-gray-100"
+                            title={params.sort_desc ? "Newest first — click for oldest first" : "Oldest first — click for newest first"}
+                          >
+                            Created At {params.sort_desc ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                          </button>
+                        </TableHead>
+                        <TableHead className="pr-4 text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {rows.map((u) => (
-                        <TableRow key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      {rows.map((u, i) => (
+                        <TableRow key={u.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <TableCell className="pl-5 text-gray-600 dark:text-gray-400">{startItem + i}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                                  {u.username.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900 dark:text-gray-100">{u.username}</div>
+                              <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[15px] font-semibold ${avatarTone(i)}`}>
+                                {u.username.charAt(0).toUpperCase()}
+                              </span>
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">{u.username}</div>
+                                <div className="max-w-[160px] truncate text-[13px] text-gray-500">{u.full_name || u.id}</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-gray-700 dark:text-gray-300">{u.email}</div>
-                            <div className="text-sm text-gray-500">{u.phone_number || "-"}</div>
+                            <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                              <Phone className="h-3.5 w-3.5 text-gray-400" /> {u.phone_number || "—"}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-2 text-[13px] text-gray-500">
+                              <Mail className="h-3.5 w-3.5 text-gray-400" /> {u.email}
+                            </div>
                           </TableCell>
-                          <TableCell className="text-gray-700 dark:text-gray-300">{u.company_name ?? "-"}</TableCell>
-                          <TableCell>
-                            {u.kyc_verified ? (
-                              <Badge className="bg-green-100 text-green-800 hover:bg-green-200 px-3 py-1">
-                                <svg className="w-3 h-3 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                Verified
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-gray-600 border-gray-300 px-3 py-1">
-                                Pending
-                              </Badge>
-                            )}
+                          <TableCell className="text-gray-700 dark:text-gray-300">{u.company_name || "—"}</TableCell>
+                          <TableCell><KycBadge verified={u.kyc_verified} /></TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmtMoney(u.wallet?.balance)}</TableCell>
+                          <TableCell className="text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100">{fmtMoney(u.payout_wallet?.balance)}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <div className="text-gray-700 dark:text-gray-300">{fmtDay(u.created_at)}</div>
+                            <div className="text-[13px] text-gray-500">{fmtTime(u.created_at)}</div>
                           </TableCell>
-                          <TableCell>
-                            {u.view_password ? (
-                              <button
-                                type="button"
-                                onClick={() => togglePassword(u.id)}
-                                className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                                title={revealed[u.id] ? "Hide password" : "Show password"}
-                              >
-                                {revealed[u.id] ? u.view_password : "••••••••"}
-                                {revealed[u.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          <TableCell className="pr-4">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button onClick={() => setViewUser(u)} className={iconAction} aria-label={`View ${u.username}`} title="View details">
+                                <Eye className="h-4 w-4" />
                               </button>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                              {u.wallet ? `₹${Number(u.wallet.balance).toLocaleString()}` : "-"}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                              {u.payout_wallet ? `₹${Number(u.payout_wallet.balance).toLocaleString()}` : "-"}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end">
+                              <button onClick={() => openEdit(u)} className={iconAction} aria-label={`Edit ${u.username}`} title="Edit merchant">
+                                <Pencil className="h-4 w-4" />
+                              </button>
                               <ActionMenu
-                                label={`Actions for ${u.username}`}
+                                label={`More actions for ${u.username}`}
                                 items={[
-                                  { label: "Edit Merchant", icon: Pencil, onClick: () => openEdit(u) },
                                   { label: "Settings", icon: Settings, onClick: () => openSettingsModal(u.id) },
                                   { label: "Credentials", icon: KeyRound, onClick: () => openCredentialsModal(u.id) },
                                   { label: "Transfer to Payout", icon: ArrowUpRight, onClick: () => openModal(u, "to_payout") },
@@ -832,7 +892,6 @@ export default function MerchatList() {
                               />
                             </div>
                           </TableCell>
-
                         </TableRow>
                       ))}
                     </TableBody>
@@ -843,48 +902,104 @@ export default function MerchatList() {
 
             {/* Pagination */}
             {list && list.total > 0 && (
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 border-t border-gray-200 dark:border-gray-800">
-                <div className="text-sm text-gray-600">
-                  Showing <span className="font-semibold">{((params.page - 1) * params.per_page) + 1}</span> to{" "}
-                  <span className="font-semibold">{Math.min(params.page * params.per_page, list.total)}</span> of{" "}
-                  <span className="font-semibold">{list.total}</span> merchants
+              <div className="flex flex-col items-center justify-between gap-4 border-t border-gray-100 px-5 py-5 dark:border-gray-800 md:flex-row">
+                <div className="text-[14px] text-gray-500">
+                  Showing <span className="font-semibold text-gray-900 dark:text-gray-100">{startItem}</span> to{" "}
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">{endItem}</span> of{" "}
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">{list.total}</span> merchants
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => loadUsers({ page: params.page - 1 })}
                     disabled={params.page <= 1}
-                    className="rounded-lg border-gray-300"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    aria-label="Previous page"
                   >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 rounded-lg">{params.page}</span>
-                    <span className="text-gray-500">of</span>
-                    <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">{totalPages}</span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {pageNumbers(params.page, totalPages).map((n, i) =>
+                    n === null ? (
+                      <span key={`gap${i}`} className="px-1 text-gray-400">…</span>
+                    ) : (
+                      <button
+                        key={n}
+                        onClick={() => n !== params.page && loadUsers({ page: n })}
+                        aria-current={n === params.page ? "page" : undefined}
+                        className={
+                          n === params.page
+                            ? "flex h-10 min-w-10 items-center justify-center rounded-xl bg-indigo-600 px-3 text-[14px] font-semibold text-white shadow-md shadow-indigo-600/25"
+                            : "flex h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-3 text-[14px] text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                        }
+                      >
+                        {n}
+                      </button>
+                    )
+                  )}
+                  <button
                     onClick={() => loadUsers({ page: params.page + 1 })}
                     disabled={params.page >= totalPages}
-                    className="rounded-lg border-gray-300"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    aria-label="Next page"
                   >
-                    Next
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
+
+      {/* View Merchant */}
+      <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Merchant Details</DialogTitle>
+            <DialogDescription>{viewUser?.id}</DialogDescription>
+          </DialogHeader>
+          {viewUser && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
+              {([
+                ["Username", viewUser.username],
+                ["Full Name", viewUser.full_name || "—"],
+                ["Email", viewUser.email],
+                ["Phone", viewUser.phone_number || "—"],
+                ["Company", viewUser.company_name || "—"],
+                ["KYC Status", <KycBadge key="kyc" verified={viewUser.kyc_verified} />],
+                ["Wallet Balance", fmtMoney(viewUser.wallet?.balance)],
+                ["Payout Balance", fmtMoney(viewUser.payout_wallet?.balance)],
+                ["Created At", viewUser.created_at ? `${fmtDay(viewUser.created_at)}, ${fmtTime(viewUser.created_at)}` : "—"],
+                [
+                  "Password",
+                  viewUser.view_password ? (
+                    <button
+                      key="pwd"
+                      type="button"
+                      onClick={() => togglePassword(viewUser.id)}
+                      className="inline-flex items-center gap-1.5 rounded-md font-mono text-[13px] hover:text-indigo-600"
+                      title={revealed[viewUser.id] ? "Hide password" : "Show password"}
+                    >
+                      {revealed[viewUser.id] ? viewUser.view_password : "••••••••"}
+                      {revealed[viewUser.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  ) : "—",
+                ],
+              ] as [string, React.ReactNode][]).map(([k, v]) => (
+                <div key={k} className="min-w-0">
+                  <dt className="text-gray-500">{k}</dt>
+                  <dd className="mt-0.5 break-all font-medium text-gray-900 dark:text-gray-100">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setViewUser(null)}>Close</Button>
+            <Button onClick={() => { const u = viewUser; setViewUser(null); if (u) openEdit(u); }}>
+              <Pencil /> Edit
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* --- Modals --- */}
       {/* Edit Modal */}
