@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import {BASE_URL} from "@/config"
+import { THEME_KEY } from "@/hooks/useTheme";
 // Define role types
 type UserRole = 2 | 3 | 1 | null; // 2 = merchant, 3 = admin
 type StringRole = "merchant" | "admin" | "partner" | null; // For display purposes
@@ -104,9 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1. Clear React state
     setUser(null);
 
-    // 2. Clear localStorage + sessionStorage
+    // 2. Clear localStorage + sessionStorage (keeping the light/dark preference)
+    const theme = localStorage.getItem(THEME_KEY);
     localStorage.removeItem("gurutvapay-user");
     localStorage.clear();
+    if (theme) localStorage.setItem(THEME_KEY, theme);
     sessionStorage.clear();
 
     // 3. Clear cookies (non-HttpOnly)

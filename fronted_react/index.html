@@ -7,6 +7,10 @@
     <link rel="icon" type="image/png" sizes="500x500" href="/logo.png?v=2" />
     <link rel="apple-touch-icon" href="/logo.png?v=2" />
     <title>Vichitrapay</title>
+    <script>
+      // apply the saved light/dark theme before first paint (key: THEME_KEY in src/hooks/useTheme.ts)
+      try { if (localStorage.getItem("vichitrapay-theme") === "dark") document.documentElement.classList.add("dark"); } catch (e) {}
+    </script>
     <meta name="description" content="Professional payment platform supporting INR settlements and USDT payouts with comprehensive merchant and admin panels" />
     <meta name="author" content="Vichitrapay" />
     <meta property="og:title" content="Vichitrapay - Secure Wallet-to-Wallet Payments" />

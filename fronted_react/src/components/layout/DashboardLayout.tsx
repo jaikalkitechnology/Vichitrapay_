@@ -1,8 +1,9 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import useNotifications from "@/components/layout/useNotifications";
+import useTheme from "@/hooks/useTheme";
 import {
   LayoutDashboard,
   CreditCard,
@@ -100,19 +101,7 @@ export default function DashboardLayout({
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Theme toggle
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    try {
-      return (localStorage.getItem("vichitrapay-theme") as "light" | "dark") || "light";
-    } catch { return "light"; }
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    try { localStorage.setItem("vichitrapay-theme", theme); } catch {}
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(t => t === "light" ? "dark" : "light");
+  const { theme, toggleTheme } = useTheme();
 
   const isAdmin = user?.role === 3;
   const basePath = isAdmin ? "/admin" : "/merchant";

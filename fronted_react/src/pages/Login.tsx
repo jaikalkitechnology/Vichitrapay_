@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Loader2, Lock, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
+import useTheme from "@/hooks/useTheme";
 
 const logo = "/logo.png";
 
@@ -20,19 +21,19 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const inputCls =
-  "h-14 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-14 pr-4 text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-60";
+  "h-14 w-full rounded-xl border border-slate-200 bg-slate-50/80 pl-14 pr-4 text-[15px] text-slate-900 placeholder:text-slate-400 transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:bg-slate-800";
 
 const features = [
-  { icon: ShieldCheck, title: "256-bit", sub: "Encryption", tile: "bg-green-50 border-green-100 text-green-600" },
-  { icon: Lock, title: "2FA", sub: "Ready", tile: "bg-sky-50 border-sky-100 text-sky-600" },
-  { icon: Clock, title: "24/7", sub: "Monitoring", tile: "bg-orange-50 border-orange-100 text-orange-500" },
+  { icon: ShieldCheck, title: "256-bit", sub: "Encryption", tile: "bg-green-50 border-green-100 text-green-600 dark:bg-green-950/40 dark:border-green-900/60 dark:text-green-400" },
+  { icon: Lock, title: "2FA", sub: "Ready", tile: "bg-sky-50 border-sky-100 text-sky-600 dark:bg-sky-950/40 dark:border-sky-900/60 dark:text-sky-400" },
+  { icon: Clock, title: "24/7", sub: "Monitoring", tile: "bg-orange-50 border-orange-100 text-orange-500 dark:bg-orange-950/40 dark:border-orange-900/60 dark:text-orange-400" },
 ];
 
 function DotGrid({ className }: { className: string }) {
   return (
     <div className={`pointer-events-none absolute grid grid-cols-6 gap-4 ${className}`} aria-hidden="true">
       {Array.from({ length: 24 }).map((_, i) => (
-        <span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-200/70" />
+        <span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-200/70 dark:bg-indigo-400/20" />
       ))}
     </div>
   );
@@ -43,6 +44,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,12 +70,21 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/60 px-4 py-10">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-indigo-50/60 px-4 py-10 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/60">
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-600 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-800"
+        title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+        aria-label="Toggle theme"
+      >
+        {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+      </button>
       {/* Background decoration */}
-      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-100 to-sky-100/60" aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-100 to-sky-100/60 dark:from-indigo-900/30 dark:to-sky-900/20" aria-hidden="true" />
       <DotGrid className="left-[6%] top-[16%] hidden sm:grid" />
       <DotGrid className="bottom-[24%] right-[4%] hidden sm:grid" />
-      <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] w-full" viewBox="0 0 1440 480" preserveAspectRatio="none" aria-hidden="true">
+      <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] w-full dark:opacity-30" viewBox="0 0 1440 480" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="wave1" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stopColor="#c7d2fe" stopOpacity="0.55" />
@@ -90,16 +101,18 @@ export default function Login() {
       </svg>
 
       {/* Card */}
-      <div className="relative w-full max-w-[460px] overflow-hidden rounded-[28px] border border-white bg-white/95 px-7 pb-8 pt-10 shadow-[0_20px_60px_-15px_rgba(79,107,246,0.25)] sm:px-10">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-sky-100 to-indigo-100/70" aria-hidden="true" />
+      <div className="relative w-full max-w-[460px] overflow-hidden rounded-[28px] border border-white bg-white/95 px-7 dark:border-slate-800 dark:bg-slate-900/95 pb-8 pt-10 shadow-[0_20px_60px_-15px_rgba(79,107,246,0.25)] sm:px-10 dark:shadow-black/40">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-sky-100 to-indigo-100/70 dark:from-sky-900/30 dark:to-indigo-900/20" aria-hidden="true" />
 
         <div className="relative">
           <div className="mb-8 flex justify-center">
-            <img src={logo} alt="Vichitrapay" className="h-36 w-36 scale-125 object-contain" />
+            <div className="dark:rounded-3xl dark:bg-white dark:px-5 dark:py-2 dark:shadow-lg dark:shadow-black/30">
+              <img src={logo} alt="Vichitrapay" className="h-36 w-36 scale-125 object-contain dark:h-28 dark:w-28 dark:scale-110" />
+            </div>
           </div>
 
           {apiError && (
-            <div className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700" role="alert">
+            <div className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400" role="alert">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
               <span>{apiError}</span>
             </div>
@@ -114,7 +127,7 @@ export default function Login() {
                   <FormItem className="space-y-1.5">
                     <FormLabel className="sr-only">Email or Username</FormLabel>
                     <div className="relative">
-                      <Mail className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                      <Mail className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                       <FormControl>
                         <input
                           {...field}
@@ -137,7 +150,7 @@ export default function Login() {
                   <FormItem className="space-y-1.5">
                     <FormLabel className="sr-only">Password</FormLabel>
                     <div className="relative">
-                      <Lock className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                      <Lock className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                       <FormControl>
                         <input
                           {...field}
@@ -151,7 +164,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -183,9 +196,9 @@ export default function Login() {
 
           {/* Secure Access */}
           <div className="relative my-6 flex items-center">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="px-4 text-[14px] text-slate-500">Secure Access</span>
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <span className="px-4 text-[14px] text-slate-500 dark:text-slate-400">Secure Access</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -194,18 +207,18 @@ export default function Login() {
                 <div className={`mb-2 flex h-12 w-12 items-center justify-center rounded-xl border ${f.tile}`}>
                   <f.icon className="h-6 w-6" />
                 </div>
-                <div className="text-[15px] font-bold text-slate-900">{f.title}</div>
-                <div className="text-[13px] text-slate-500">{f.sub}</div>
+                <div className="text-[15px] font-bold text-slate-900 dark:text-slate-100">{f.title}</div>
+                <div className="text-[13px] text-slate-500 dark:text-slate-400">{f.sub}</div>
               </div>
             ))}
           </div>
 
-          <div className="mt-7 border-t border-slate-200 pt-5 text-center text-[12px] leading-relaxed text-slate-500">
-            <span className="font-medium text-indigo-600">© {new Date().getFullYear()} Vichitrapay</span>
+          <div className="mt-7 border-t border-slate-200 pt-5 text-center text-[12px] leading-relaxed text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            <span className="font-medium text-indigo-600 dark:text-indigo-400">© {new Date().getFullYear()} Vichitrapay</span>
             <span className="mx-2">•</span>
             Secure wallet-to-wallet payments
             <br />
-            <span className="text-slate-400">All rights reserved.</span>
+            <span className="text-slate-400 dark:text-slate-500">All rights reserved.</span>
           </div>
         </div>
       </div>
