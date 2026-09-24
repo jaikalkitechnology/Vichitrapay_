@@ -325,6 +325,9 @@ def get_payout_bank_account(
     return record
 
 
+MIN_WITHDRAW_AMOUNT = 100.0
+
+
 @router.post("/withdraw", response_model=WithdrawResponse)
 def merchant_withdraw(payload: WithdrawRequest, db: Session = Depends(get_db), current_user = Depends(user_required)):
     user_id = current_user.id
@@ -334,8 +337,25 @@ def merchant_withdraw(payload: WithdrawRequest, db: Session = Depends(get_db), c
         raise HTTPException(status_code=400, detail="Payout wallet not found")
 
     amount = float(payload.amount)
+    if amount < MIN_WITHDRAW_AMOUNT:
+        raise HTTPException(status_code=400, detail=f"Minimum withdrawal is ₹{MIN_WITHDRAW_AMOUNT:,.0f}")
     if payout_wallet.balance < amount:
         raise HTTPException(status_code=400, detail="Insufficient payout wallet balance")
+
+    # Only the merchant's own, admin-verified accounts can receive a withdrawal
+    try:
+        bank_account_id = int(str(payload.bank_account_id).strip())
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid bank account")
+    account = (
+        db.query(PayoutBankAccount)
+        .filter(PayoutBankAccount.id == bank_account_id, PayoutBankAccount.user_id == user_id)
+        .first()
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+    if not account.is_validate:
+        raise HTTPException(status_code=400, detail="This bank account is still awaiting admin verification")
 
     try:
         # Use the existing transaction (don't call db.begin() if one is already active)
@@ -350,7 +370,7 @@ def merchant_withdraw(payload: WithdrawRequest, db: Session = Depends(get_db), c
             credit_debit=credit_debitTypeEnum.debit,
             amount=float(amount),
             description=f"Payout to bank account {payload.bank_account_id}",
-            reference_id=payload.bank_account_id,
+            reference_id=str(bank_account_id),
             status="pending",
             created_at=datetime.now(india_tz),
             )
@@ -388,6 +408,88 @@ def list_transaction_settled(db: Session = Depends(get_db), current_user = Depen
     q = q.order_by(TransactionSettled.created_date.desc())
     items = q.offset((page-1)*per_page).limit(per_page).all()
     return items
+
+
+@router.get("/settlements", response_model=Dict[str, Any], summary="Withdrawal requests with bank account and counts")
+def list_my_settlements(
+    db: Session = Depends(get_db),
+    current_user=Depends(user_required),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    status: Optional[str] = Query(None, description="pending | success | failed"),
+):
+    """
+    The merchant's withdrawal requests (debit settlements), newest first, each with the
+    bank account it was sent to (from the matching wallet transaction), plus status counts.
+    """
+    base = db.query(TransactionSettled).filter(
+        TransactionSettled.user_id == current_user.id, TransactionSettled.txn_type == "debit"
+    )
+    counts = {st: int(c) for st, c in base.with_entities(TransactionSettled.status, func.count(TransactionSettled.id)).group_by(TransactionSettled.status).all()}
+    q = base.filter(TransactionSettled.status == status) if status else base
+    total = q.count()
+    rows = q.order_by(TransactionSettled.created_date.desc()).offset((page - 1) * per_page).limit(per_page).all()
+
+    # withdraw() stores the settlement id as the wallet txn's order_id and the bank account id as reference_id
+    wts = {
+        w.order_id: w
+        for w in db.query(WalletTransaction)
+        .filter(WalletTransaction.user_id == current_user.id, WalletTransaction.order_id.in_([r.txn_id for r in rows] or [""]))
+        .all()
+    }
+    acc_ids = set()
+    for w in wts.values():
+        try:
+            acc_ids.add(int(str(w.reference_id).strip()))
+        except (TypeError, ValueError):
+            pass
+    accounts = {
+        a.id: a
+        for a in db.query(PayoutBankAccount)
+        .filter(PayoutBankAccount.user_id == current_user.id, PayoutBankAccount.id.in_(list(acc_ids) or [-1]))
+        .all()
+    }
+
+    items = []
+    for r in rows:
+        w = wts.get(r.txn_id)
+        acc = None
+        if w is not None:
+            try:
+                acc = accounts.get(int(str(w.reference_id).strip()))
+            except (TypeError, ValueError):
+                acc = None
+        items.append({
+            "id": r.id,
+            "txn_id": r.txn_id,
+            "amount": r.amount,
+            "status": r.status,
+            "requested_at": r.created_date.isoformat() if r.created_date else None,
+            # settled_date is written at request time, so only report it once the request is done
+            "settled_at": None if r.status == "pending" else (r.settled_date.isoformat() if r.settled_date else None),
+            "utr": getattr(w, "utr", None) if w else None,
+            "bank_account": {
+                "id": acc.id,
+                "bank_name": acc.bank_name,
+                "last4": (acc.account_number or "")[-4:],
+                "holder": acc.account_holder_name,
+                "ifsc": acc.ifsc_code,
+            } if acc else None,
+        })
+
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "items": items,
+        "stats": {
+            "total": sum(counts.values()),
+            "completed": counts.get("success", 0),
+            "pending": counts.get("pending", 0),
+            "rejected": counts.get("failed", 0),
+        },
+        "min_amount": MIN_WITHDRAW_AMOUNT,
+    }
 
 
 @router.get("/display-accounts")

@@ -1206,6 +1206,11 @@ async def settle_approved(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Payout bank account not found",
         )
+    # never pay out to an account that isn't the merchant's own verified account
+    if account.user_id != wt.user_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Bank account does not belong to this merchant")
+    if not account.is_validate:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Bank account is not verified")
 
     # 4) Prepare UniversePay payload
     payload = {
@@ -1257,6 +1262,7 @@ async def settle_approved(
         # If you have timestamp fields, set them here
         # e.g., _set_timestamp_if_exists(ts, "settled_date")
         ts.status = target_status
+        ts.settled_date = datetime.now(india_tz)  # record when it was actually paid out
         wt.status = target_status
 
         db.add(ts)

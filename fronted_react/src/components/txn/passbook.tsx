@@ -1,237 +1,163 @@
-// src/components/Passbook.jsx
-import React, { useEffect, useState, useCallback } from "react";
+// Merchant Passbook — ledger of payout-wallet transactions and charges
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import api from "@/api/api";
 import { API_ORIGIN, BASE_URL } from "@/config";
-import { PageHeader, StatCard, StatusBadge, inputCls } from "@/components/admin-part/ui";
-import { Download, IndianRupee, Receipt, RefreshCw, Wallet } from "lucide-react";
+import { AlertCircle, ArrowLeftRight, BarChart3, BookOpen, Coins, Download, Eye, FileText, Inbox, Info, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { EmptyState, StatusBadge } from "@/components/admin-part/ui";
+import { TspStat } from "@/components/admin-part/tspShared";
+import Pager from "@/components/admin-part/Pager";
+import { currentMonthRange, errorText, filterInputCls, rangeText } from "@/components/admin-part/listUtils";
+import useAnalytics from "@/components/txn/useAnalytics";
 
-/*
-  Passbook / Wallet Transactions UI + Download report + Monthly summary
-  - LIST_URL fetches transactions (existing)
-  - EXPORT_URL downloads .xlsx (existing)
-  - SUMMARY_URL calls /merchant/summary to get aggregated totals for the selected date range + status
-  - Backend route: /mnt/data/merchant.py (merchant/summary)
-*/
-
+// All endpoints are scoped to the logged-in merchant's payout wallet (PayOut ledger)
 const API_BASE = `${BASE_URL}/merchant`;
 const LIST_URL = `${API_BASE}/wallet-transactions`;
 const EXPORT_URL = `${API_BASE}/payouts/export`;
-const SUMMARY_URL = `${API_BASE}/merchant/summary`; // <-- new
+const SUMMARY_URL = `${API_BASE}/merchant/summary`;
+const CHECK_STATUS_URL = `${API_ORIGIN}/live/payout/status/zeepay`;
 
-// small util to format number
-const fmt = (v) =>
-  v == null ? "-" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-
-export default function Passbook() {
-  // table data + meta
-  const [items, setItems] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, per_page: 20, total: 0, total_pages: 0 });
-
-  // filters / sort
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
-  const [status, setStatus] = useState("");
-  const [minAmount, setMinAmount] = useState("");
-  const [maxAmount, setMaxAmount] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState("created_at");
-  const [sortDir, setSortDir] = useState("desc");
-
-  // summary state
-  const [summary, setSummary] = useState({
-    total_txns: 0,
-    total_volume: "0.00",
-    total_charges: "0.00",
-    date_from: null,
-    date_to: null,
-  });
-  const [summaryLoading, setSummaryLoading] = useState(false);
-
-  // UX state
-  const [loading, setLoading] = useState(false);
-  const [loadingCheckMap, setLoadingCheckMap] = useState({}); // txnOrderId -> boolean
-  const [error, setError] = useState(null);
-  const [info, setInfo] = useState(null);
-  const [downloadLoading, setDownloadLoading] = useState(false);
-
-  const CHECK_STATUS_URL = `${API_ORIGIN}/live/payout/status/zeepay`;
-  const CHECK_STATUS = async (txnId) => {
-    const { data } = await api.post(CHECK_STATUS_URL, null, { params: { txn_id: txnId } });
-    return data;
-  };
-
-  // Build request params object (used by both list & summary)
-  const buildParams = () => {
-    return {
-      page,
-      per_page: perPage,
-      status: status || undefined,
-      min_amount: minAmount || undefined,
-      max_amount: maxAmount || undefined,
-      from_date: fromDate || undefined,
-      to_date: toDate || undefined,
-      search: search || undefined,
-      sort_by: sortBy,
-      sort_dir: sortDir,
-    };
-  };
-
-  // Forces date into YYYY-MM-DD regardless of timezone or input format
-const toYMD = (v) => {
-  if (!v) return undefined; // backend default month logic works
-  try {
-    const d = new Date(v);
-    if (isNaN(d.getTime())) return undefined;
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  } catch {
-    return undefined;
-  }
+type Row = {
+  id: number;
+  order_id?: string | null;
+  txn_id?: string | null;
+  utr?: string | null;
+  amount: number;
+  charges?: number | null;
+  gst?: number | null;
+  settle_amount?: number | null;
+  balance_amount?: number | null;
+  status?: string | null;
+  credit_debit?: string | null;
+  transaction_type?: string | null;
+  instrument_mode?: string | null;
+  description?: string | null;
+  reference_id?: string | null;
+  created_at?: string | null;
 };
 
+type Filters = { status: string; min: string; max: string; from: string; to: string; search: string; sort: string };
+const EMPTY: Filters = { status: "", min: "", max: "", from: "", to: "", search: "", sort: "created_at:desc" };
 
-  // fetch summary (new)
-  const fetchSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    setError(null);
-    try {
-      // summary endpoint expects date_from/date_to/status (no pagination)
-      const params = {
-        status: status || undefined,
-        date_from: toYMD(fromDate) || undefined,
-        date_to: toYMD(toDate) || undefined,
-      };
-      const { data } = await api.get(SUMMARY_URL, { params });
-      // backend returns total_volume/total_charges as decimal strings
-      setSummary({
-        total_txns: data.total_txns ?? 0,
-        total_volume: data.total_volume ?? "0.00",
-        total_charges: data.total_charges ?? "0.00",
-        date_from: toYMD(data.date_from) ?? null,
-        date_to: toYMD(data.date_to) ?? null,
-      });
-      //console.log("Fetched summary", data);
-    } catch (err) {
-      console.error("Summary error", err);
-      setError(err?.response?.data?.detail || err.message || "Failed to load summary");
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [status, fromDate, toDate]);
+const money = (v?: number | null) => (v == null ? "—" : `₹${Number(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+const money0 = (v?: number | string | null) => `₹${Number(v || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+const when = (d?: string | null) => (d ? new Date(d).toLocaleString("en-US", { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—");
 
-  // fetch list
+/** "PayOut - Bank" style description from the row's own fields. */
+const describe = (r: Row) => {
+  const kind = r.credit_debit === "credit" ? "Credit" : "PayOut";
+  const mode = r.instrument_mode ? r.instrument_mode.replace(/_/g, " ") : null;
+  return mode ? `${kind} - ${mode}` : r.description || kind;
+};
+
+export default function Passbook() {
+  const [draft, setDraft] = useState<Filters>(EMPTY);
+  const [applied, setApplied] = useState<Filters>(EMPTY);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [items, setItems] = useState<Row[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<{ total_txns: number; total_volume: string; total_charges: string; date_from?: string; date_to?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [checking, setChecking] = useState<Record<number, boolean>>({});
+  const [downloading, setDownloading] = useState(false);
+  const [view, setView] = useState<Row | null>(null);
+
+  const [sortBy, sortDir] = applied.sort.split(":");
+  // summary defaults to the current month when no dates are chosen
+  const month = currentMonthRange();
+  const range = { from: applied.from || month.from, to: applied.to || month.to };
+  const trend = useAnalytics({ from_date: range.from, to_date: range.to, transaction_type: "PayOut", status: applied.status || undefined }, "/merchant/analytics");
+
   const fetchList = useCallback(async () => {
-    setLoading(true);
+    setItems(null);
     setError(null);
     try {
-      const params = buildParams();
+      const params: Record<string, string | number> = { page, per_page: perPage, sort_by: sortBy, sort_dir: sortDir };
+      if (applied.status) params.status = applied.status;
+      if (applied.min) params.min_amount = applied.min;
+      if (applied.max) params.max_amount = applied.max;
+      if (applied.from) params.from_date = applied.from;
+      if (applied.to) params.to_date = applied.to;
+      if (applied.search.trim()) params.search = applied.search.trim();
       const { data } = await api.get(LIST_URL, { params });
       setItems(data.items || []);
-      setMeta(data.meta || { page: 1, per_page: perPage, total: 0, total_pages: 0 });
+      setTotal(data.meta?.total ?? 0);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || err.message || "Failed to load transactions");
-    } finally {
-      setLoading(false);
+      setError(errorText(err, "Failed to load transactions"));
+      setItems([]);
     }
-  }, [page, perPage, status, minAmount, maxAmount, fromDate, toDate, search, sortBy, sortDir]);
+  }, [applied, page, perPage, sortBy, sortDir]);
 
-  // call both when filters change / page changes
+  const fetchSummary = useCallback(async () => {
+    try {
+      const { data } = await api.get(SUMMARY_URL, {
+        params: { status: applied.status || undefined, date_from: applied.from || undefined, date_to: applied.to || undefined },
+      });
+      setSummary(data);
+    } catch (err) {
+      console.error("summary error", err);
+      setSummary(null);
+    }
+  }, [applied]);
+
   useEffect(() => {
     fetchList();
-    fetchSummary();
-  }, [fetchList, fetchSummary]);
-
-  // Reset page when certain filters change (so user sees page 1 results)
+  }, [fetchList]);
   useEffect(() => {
-    setPage(1);
-  }, [status, minAmount, maxAmount, fromDate, toDate, search, perPage]);
+    fetchSummary();
+  }, [fetchSummary]);
 
-  // check status action — only for pending/InProgress txns
-  const handleCheckStatus = async (row) => {
-    const txnId = row.txn_id;
-    if (!txnId) {
-      setError("No transaction ID available for this row.");
-      return;
-    }
-    setLoadingCheckMap((m) => ({ ...m, [row.order_id]: true }));
+  const refreshAll = () => {
+    fetchList();
+    fetchSummary();
+    trend.reload();
+  };
+
+  const checkStatus = async (r: Row) => {
+    if (!r.txn_id) return setError("No transaction ID available for this row.");
+    setChecking((m) => ({ ...m, [r.id]: true }));
     setError(null);
     setInfo(null);
-
     try {
-      const result = await CHECK_STATUS(txnId);
-      const providerStatus = (result?.status || "").toUpperCase();
-      const utr = result?.utr || row.utr;
-
-      let uiStatus = row.status;
-      if (providerStatus === "SUCCESS") uiStatus = "success";
-      else if (providerStatus === "FAILED" || providerStatus === "FAILURE") uiStatus = "failed";
-      else if (providerStatus === "INPROGRESS" || providerStatus === "PENDING") uiStatus = "InProgress";
-
-      setItems((prev) =>
-        prev.map((r) =>
-          r.order_id === row.order_id
-            ? { ...r, status: uiStatus, utr: utr || r.utr, txn_id: result?.txn_id || r.txn_id }
-            : r
-        )
-      );
-
-      setInfo(`Status: ${providerStatus}${utr ? ` | UTR: ${utr}` : ""}`);
+      const { data } = await api.post(CHECK_STATUS_URL, null, { params: { txn_id: r.txn_id } });
+      const ps = String(data?.status || "").toUpperCase();
+      const next = ps === "SUCCESS" ? "success" : ps === "FAILED" || ps === "FAILURE" ? "failed" : ps === "INPROGRESS" || ps === "PENDING" ? "InProgress" : r.status;
+      setItems((prev) => (prev ?? []).map((x) => (x.id === r.id ? { ...x, status: next, utr: data?.utr || x.utr, txn_id: data?.txn_id || x.txn_id } : x)));
+      setInfo(`Order ${r.order_id ?? r.id}: ${ps || "unknown"}${data?.utr ? ` · UTR ${data.utr}` : ""}`);
     } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.detail ?? err?.message ?? "Failed to check status");
+      setError(errorText(err, "Failed to check status"));
     } finally {
-      setLoadingCheckMap((m) => ({ ...m, [row.order_id]: false }));
+      setChecking((m) => ({ ...m, [r.id]: false }));
     }
   };
 
-  // change page handler
-  const changePage = (p) => {
-    if (p < 1 || p > meta.total_pages) return;
-    setPage(p);
-  };
-
-  // Download report (xlsx) using current filters
-  const handleDownloadReport = async () => {
+  const download = async () => {
     setError(null);
-    setInfo(null);
-    setDownloadLoading(true);
+    setDownloading(true);
     try {
       const params = {
-        status: status || undefined,
-        min_amount: minAmount || undefined,
-        max_amount: maxAmount || undefined,
-        from_date: fromDate || undefined,
-        to_date: toDate || undefined,
-        search: search || undefined,
+        status: applied.status || undefined,
+        min_amount: applied.min || undefined,
+        max_amount: applied.max || undefined,
+        from_date: applied.from || undefined,
+        to_date: applied.to || undefined,
+        search: applied.search.trim() || undefined,
       };
-
       const res = await api.get(EXPORT_URL, { params, responseType: "blob" });
-
-      const blob = new Blob([res.data], {
-        type:
-          res.headers["content-type"] ||
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-
-      let filename = `payouts_${fromDate || "start"}_to_${toDate || "end"}.xlsx`;
-      const cd = res.headers["content-disposition"] || res.headers["Content-Disposition"];
-      if (cd) {
-        const m = cd.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)/i);
-        if (m && m[1]) {
-          try {
-            filename = decodeURIComponent(m[1]);
-          } catch (e) {
-            filename = m[1];
-          }
+      const blob = new Blob([res.data], { type: res.headers["content-type"] || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      let filename = `passbook_${applied.from || "start"}_to_${applied.to || "end"}.xlsx`;
+      const cd = res.headers["content-disposition"];
+      const m = typeof cd === "string" ? cd.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)/i) : null;
+      if (m?.[1]) {
+        try {
+          filename = decodeURIComponent(m[1]);
+        } catch {
+          filename = m[1];
         }
       }
-
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -240,323 +166,249 @@ const toYMD = (v) => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-
-      setInfo(`Download started: ${filename}`);
     } catch (err) {
-      console.error("Download error", err);
-      const msg =
-        err?.response?.data?.detail ||
-        err?.message ||
-        "Failed to download report";
-      setError(msg);
+      setError(errorText(err, "Failed to download report"));
     } finally {
-      setDownloadLoading(false);
+      setDownloading(false);
     }
   };
 
-  const resetFilters = () => {
-    setStatus("");
-    setMinAmount("");
-    setMaxAmount("");
-    setFromDate("");
-    setToDate("");
-    setSearch("");
-    setPage(1);
-  };
+  const daily = trend.data?.daily ?? [];
+  const scope = rangeText(summary?.date_from || range.from, summary?.date_to || range.to);
+  const statusBadge = (s?: string | null) => (
+    <StatusBadge status={s === "InProgress" ? "processing" : s}>{s === "InProgress" ? "In progress" : undefined}</StatusBadge>
+  );
+  const TH = "whitespace-nowrap px-3 py-3 text-[11px] font-semibold uppercase tracking-wide text-gray-500";
+  const TD = "whitespace-nowrap px-3 py-3 text-[13px] text-gray-700 dark:text-gray-300";
+  const AMT = "whitespace-nowrap px-3 py-3 text-right text-[13px] tabular-nums";
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Passbook"
-        description="Complete ledger of your wallet transactions and charges"
-        actions={
-          <>
-            <Button variant="outline" onClick={handleDownloadReport} disabled={downloadLoading}>
-              {downloadLoading ? <RefreshCw className="animate-spin" /> : <Download />} Download Excel
-            </Button>
-            <Button variant="outline" onClick={() => { setPage(1); fetchList(); fetchSummary(); }}>
-              <RefreshCw /> Refresh
-            </Button>
-          </>
-        }
-      />
-
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Txns" value={summaryLoading ? "…" : summary.total_txns.toLocaleString("en-IN")} icon={Receipt} />
-        <StatCard label="Volume" value={summaryLoading ? "…" : `₹${fmt(summary.total_volume)}`} icon={Wallet} />
-        <StatCard label="Charges" value={summaryLoading ? "…" : `₹${fmt(summary.total_charges)}`} icon={IndianRupee} hint="Incl. GST" />
-      </div>
-
-      {/* Filter row */}
-      <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-[repeat(8,minmax(0,1fr))_auto]">
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputCls} aria-label="Status">
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="InProgress">In progress</option>
-            <option value="success">Success</option>
-            <option value="failed">Failed</option>
-          </select>
-          <input type="number" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} placeholder="Min ₹" className={inputCls} aria-label="Min amount" />
-          <input type="number" value={maxAmount} onChange={(e) => setMaxAmount(e.target.value)} placeholder="Max ₹" className={inputCls} aria-label="Max amount" />
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={inputCls} aria-label="From date" title="From date" />
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className={inputCls} aria-label="To date" title="To date" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Order ID, Txn ID, UTR" className={inputCls} aria-label="Search" />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={inputCls} aria-label="Sort by">
-            <option value="created_at">Sort: Date</option>
-            <option value="amount">Sort: Amount</option>
-            <option value="status">Sort: Status</option>
-            <option value="order_id">Sort: Order ID</option>
-          </select>
-          <select value={sortDir} onChange={(e) => setSortDir(e.target.value)} className={inputCls} aria-label="Sort direction">
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-          <div className="col-span-2 flex gap-2 md:col-span-4 xl:col-span-1">
-            <Button onClick={() => { setPage(1); fetchList(); fetchSummary(); }}>Apply</Button>
-            <Button variant="outline" onClick={resetFilters}>Reset</Button>
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+            <BookOpen className="h-7 w-7" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Passbook</h1>
+            <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">Complete ledger of your payout wallet transactions and charges</p>
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={download} disabled={downloading} className="h-11 rounded-xl px-4">
+            {downloading ? <Loader2 className="animate-spin" /> : <Download />} Download Excel
+          </Button>
+          <Button variant="outline" onClick={refreshAll} className="h-11 rounded-xl px-4 text-indigo-600 dark:text-indigo-400">
+            <RefreshCw /> Refresh
+          </Button>
         </div>
       </div>
 
-      {/* Messages */}
-      {error && (
-        <div className="p-4 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-          <div className="flex items-center text-red-700">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <span className="font-medium">Error:</span>
-            <span className="ml-2">{String(error)}</span>
-          </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <TspStat
+          label="Total Transactions"
+          value={summary ? summary.total_txns.toLocaleString("en-IN") : "…"}
+          icon={ArrowLeftRight}
+          tile="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          hint={scope}
+          trend={daily.map((d) => d.payout_total)}
+          color="#3B6BF6"
+        />
+        <TspStat
+          label="Total Volume"
+          value={summary ? money0(summary.total_volume) : "…"}
+          icon={BarChart3}
+          tile="bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          hint="Payout debits"
+          trend={daily.map((d) => d.payout_volume)}
+          color="#22C55E"
+        />
+        <TspStat
+          label="Total Charges"
+          value={summary ? money0(summary.total_charges) : "…"}
+          icon={Coins}
+          tile="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+          hint="Incl. GST"
+          trend={daily.map((d) => d.fees)}
+          color="#F59E0B"
+        />
+      </div>
+
+      {/* Filters */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setPage(1);
+          setApplied(draft);
+        }}
+        className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 md:grid-cols-4 xl:grid-cols-[repeat(7,minmax(0,1fr))_auto]"
+      >
+        <select value={draft.status} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))} className={filterInputCls} aria-label="Status">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="InProgress">In progress</option>
+          <option value="success">Success</option>
+          <option value="failed">Failed</option>
+        </select>
+        <input type="number" min={0} value={draft.min} onChange={(e) => setDraft((d) => ({ ...d, min: e.target.value }))} placeholder="Min ₹" className={filterInputCls} aria-label="Min amount" />
+        <input type="number" min={0} value={draft.max} onChange={(e) => setDraft((d) => ({ ...d, max: e.target.value }))} placeholder="Max ₹" className={filterInputCls} aria-label="Max amount" />
+        <input type="date" value={draft.from} max={draft.to || undefined} onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))} className={`${filterInputCls} dark:[color-scheme:dark]`} aria-label="From date" />
+        <input type="date" value={draft.to} min={draft.from || undefined} onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))} className={`${filterInputCls} dark:[color-scheme:dark]`} aria-label="To date" />
+        <input value={draft.search} onChange={(e) => setDraft((d) => ({ ...d, search: e.target.value }))} placeholder="Order ID, Txn ID" className={filterInputCls} aria-label="Search" />
+        <select value={draft.sort} onChange={(e) => setDraft((d) => ({ ...d, sort: e.target.value }))} className={filterInputCls} aria-label="Sort">
+          <option value="created_at:desc">Newest first</option>
+          <option value="created_at:asc">Oldest first</option>
+          <option value="amount:desc">Amount: high</option>
+          <option value="amount:asc">Amount: low</option>
+          <option value="status:asc">By status</option>
+        </select>
+        <div className="col-span-2 flex gap-2 md:col-span-4 xl:col-span-1">
+          <Button type="submit" className="h-11 flex-1 rounded-xl px-5 xl:flex-none">Apply</Button>
+          <Button type="button" variant="outline" onClick={() => { setDraft(EMPTY); setApplied(EMPTY); setPage(1); }} className="h-11 flex-1 rounded-xl px-4 xl:flex-none">
+            Reset
+          </Button>
+        </div>
+      </form>
+
+      {(error || info) && (
+        <div
+          className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[13px] ${
+            error ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400" : "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300"
+          }`}
+        >
+          {error ? <AlertCircle className="h-4 w-4" /> : <Info className="h-4 w-4" />} {error || info}
         </div>
       )}
-      
-      {info && (
-        <div className="p-4 rounded-lg border border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
-          <div className="flex items-center text-green-600 dark:text-green-400">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            {info}
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between gap-3 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+              <FileText className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-[17px] font-bold text-gray-900 dark:text-gray-100">Transaction History</h2>
+              <p className="text-[13px] text-gray-500">{items === null ? "Loading…" : `${total.toLocaleString("en-IN")} results`}</p>
+            </div>
           </div>
+          <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} className={`${filterInputCls.replace("w-full", "w-auto")} h-10`} aria-label="Rows per page">
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>{n} / page</option>
+            ))}
+          </select>
         </div>
-      )}
-
-      {/* Table Section */}
-    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-
-  {/* Header */}
-  <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-    <div className="flex items-baseline gap-2">
-      <h3 className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">Transaction History</h3>
-      <span className="text-[11px] text-gray-500">{loading ? "Loading..." : `${meta.total} results`}</span>
-    </div>
-    <label className="flex items-center gap-1.5 text-[12px] text-gray-500">
-      Rows
-      <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} className={`${inputCls} px-2`}>
-        {[10, 20, 50, 100].map((n) => (
-          <option key={n} value={n}>{n}</option>
-        ))}
-      </select>
-    </label>
-  </div>
-
-  {/* Responsive Table */}
-  <div className="overflow-x-auto w-full">
-    <table className="min-w-[900px] w-full divide-y divide-gray-200 dark:divide-gray-700">
-      <thead className="bg-gray-50 dark:bg-gray-800/50">
-        <tr>
-          {[
-            "Date",
-            "Order ID",
-            "Txn ID",
-            "UTR",
-            "Amount",
-            "Charges",
-            "GST",
-            "Settle",
-            "Status",
-            "Description",
-            "Actions",
-          ].map((col) => (
-            <th
-              key={col}
-              className={`px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 ${
-                col === "Amount" || col === "Charges" || col === "GST" || col === "Settle"
-                  ? "text-right"
-                  : col === "Actions"
-                  ? "text-center"
-                  : "text-left"
-              }`}
-            >
-              {col}
-            </th>
-          ))}
-        </tr>
-      </thead>
-
-      <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-        {loading ? (
-          <tr>
-            <td colSpan={11} className="px-6 py-8 text-center">
-              <div className="flex flex-col items-center justify-center">
-                <div
-                  className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600 mx-auto"
-                ></div>
-                <p className="mt-3 text-gray-600 dark:text-gray-400">Loading transactions...</p>
-              </div>
-            </td>
-          </tr>
-        ) : items.length === 0 ? (
-          <tr>
-            <td colSpan={11} className="px-6 py-8 text-center">
-              <div className="flex flex-col items-center justify-center">
-                <svg
-                  className="w-12 h-8 text-gray-400 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-                <p className="text-gray-600 dark:text-gray-400 font-medium">No transactions found</p>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Try adjusting your filters</p>
-              </div>
-            </td>
-          </tr>
-        ) : (
-          items.map((r) => (
-            <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-gray-900 dark:text-gray-100">
-                {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] font-medium text-gray-900 dark:text-gray-100">
-                {r.order_id || "-"}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap font-mono text-[12px] text-gray-600 dark:text-gray-400">{r.txn_id || "-"}</td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap font-mono text-[12px] text-gray-600 dark:text-gray-400 max-w-[140px] truncate" title={r.utr || ""}>{r.utr || "-"}</td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-right font-mono tabular-nums font-medium text-gray-900 dark:text-gray-100">
-                ₹{fmt(r.amount)}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-right font-mono tabular-nums text-gray-700 dark:text-gray-300">
-                ₹{fmt(r.charges)}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-right font-mono tabular-nums text-gray-700 dark:text-gray-300">
-                ₹{fmt(r.gst)}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-[13px] text-right font-mono tabular-nums text-gray-700 dark:text-gray-300">
-                ₹{fmt(r.settle_amount)}
-              </td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap">
-                <StatusBadge status={r.status === "InProgress" ? "processing" : r.status}>
-                  {r.status === "InProgress" ? "In progress" : undefined}
-                </StatusBadge>
-              </td>
-
-              <td className="px-4 py-2.5 text-[13px] text-gray-700 dark:text-gray-300 max-w-[150px] truncate">{r.description || "-"}</td>
-
-              <td className="px-4 py-2.5 whitespace-nowrap text-center">
-                {r.status === "pending" || r.status === "InProgress" ? (
-                  <button
-                    onClick={() => handleCheckStatus(r)}
-                    disabled={!!loadingCheckMap[r.order_id]}
-                    title="Check status"
-                    aria-label={`Check status of ${r.order_id || r.txn_id}`}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 text-indigo-600 hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-gray-800"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${loadingCheckMap[r.order_id] ? "animate-spin" : ""}`} />
-                  </button>
-                ) : (
-                  <span className="text-gray-300 dark:text-gray-600">—</span>
-                )}
-              </td>
-
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-
-  {/* Pagination (Responsive) */}
-  {!loading && items.length > 0 && (
-    <div className="px-4 py-2.5 border-t border-gray-200 dark:border-gray-800">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-
-        <div className="text-sm text-center sm:text-left text-gray-900 dark:text-gray-100">
-          Showing{" "}
-          <span className="font-semibold">
-            {(page - 1) * perPage + 1}-{Math.min(page * perPage, meta.total)}
-          </span>{" "}
-          of <span className="font-semibold">{meta.total}</span> transactions
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="border-y border-gray-100 bg-slate-50/80 dark:border-gray-800 dark:bg-gray-800/40">
+              <tr>
+                <th className={`${TH} pl-5 text-left`}>#</th>
+                <th className={`${TH} text-left`}>Date &amp; Time</th>
+                <th className={`${TH} text-left`}>Order ID</th>
+                <th className={`${TH} text-left`}>Txn ID</th>
+                <th className={`${TH} text-left`}>UTR</th>
+                <th className={`${TH} text-right`}>Amount</th>
+                <th className={`${TH} text-right`}>Charges</th>
+                <th className={`${TH} text-right`}>GST</th>
+                <th className={`${TH} text-right`}>Settle Amt</th>
+                <th className={`${TH} text-left`}>Status</th>
+                <th className={`${TH} text-left`}>Description</th>
+                <th className={`${TH} sticky right-0 bg-slate-50 pr-5 text-center shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.25)] dark:bg-gray-800`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {items === null ? (
+                <tr><td colSpan={12} className="py-12 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-indigo-600" /></td></tr>
+              ) : items.length === 0 ? (
+                <tr><td colSpan={12}><EmptyState icon={Inbox} title="No transactions found" description="Try adjusting your filters" /></td></tr>
+              ) : (
+                items.map((r, i) => {
+                  const canCheck = r.status === "pending" || r.status === "InProgress";
+                  return (
+                    <tr key={r.id} className="group hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className={`${TD} pl-5 text-gray-500`}>{(page - 1) * perPage + i + 1}</td>
+                      <td className={TD}>{when(r.created_at)}</td>
+                      <td className={`${TD} font-mono text-[12.5px]`}>{r.order_id || "—"}</td>
+                      <td className={`${TD} font-mono text-[12.5px]`}>{r.txn_id || "—"}</td>
+                      <td className={`${TD} font-mono text-[12.5px]`}>{r.utr || "—"}</td>
+                      <td className={`${AMT} font-semibold text-gray-900 dark:text-gray-100`}>{money0(r.amount)}</td>
+                      <td className={`${AMT} text-gray-600 dark:text-gray-400`}>{money(r.charges)}</td>
+                      <td className={`${AMT} text-gray-600 dark:text-gray-400`}>{money(r.gst)}</td>
+                      <td className={`${AMT} text-gray-700 dark:text-gray-300`}>{money(r.settle_amount)}</td>
+                      <td className={TD}>{statusBadge(r.status)}</td>
+                      <td className={`${TD} max-w-[180px] truncate`} title={r.description ?? undefined}>{describe(r)}</td>
+                      <td className="sticky right-0 bg-white px-3 py-2 pr-5 shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.25)] group-hover:bg-gray-50 dark:bg-gray-900 dark:group-hover:bg-gray-800">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setView(r)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-400"
+                            aria-label={`View transaction ${r.id}`}
+                            title="View details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {canCheck && (
+                            <button
+                              onClick={() => checkStatus(r)}
+                              disabled={!!checking[r.id]}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                              aria-label={`Check status of ${r.order_id ?? r.id}`}
+                              title="Check status with the payout provider"
+                            >
+                              <RefreshCw className={`h-4 w-4 ${checking[r.id] ? "animate-spin" : ""}`} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {/* Page info */}
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="text-sm text-gray-900 dark:text-gray-100">Page</span>
-            <span className="text-sm font-semibold">{page}</span>
-            <span className="text-sm text-gray-600 dark:text-gray-400">of</span>
-            <span className="text-sm font-semibold">{meta.total_pages}</span>
-          </div>
-
-          {/* Buttons */}
-          <button
-            onClick={() => changePage(1)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 h-8 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-            disabled={page === 1}
-           
-          >
-            « First
-          </button>
-
-          <button
-            onClick={() => changePage(page - 1)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 h-8 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px] border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200"
-            disabled={page === 1}
-           
-          >
-            ‹ Prev
-          </button>
-
-          <button
-            onClick={() => changePage(page + 1)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 h-8 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px]"
-            disabled={page >= meta.total_pages}
-            style={{ borderColor: "#06B6D4", color: "#4F6BF6" }}
-          >
-            Next ›
-          </button>
-
-          <button
-            onClick={() => changePage(meta.total_pages)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 h-8 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap text-[13px]"
-            disabled={page >= meta.total_pages}
-            style={{ borderColor: "#06B6D4", color: "#4F6BF6" }}
-          >
-            Last »
-          </button>
-        </div>
-
+        {total > 0 && <Pager page={page} perPage={perPage} total={total} noun="transactions" onPage={setPage} />}
       </div>
-    </div>
-  )}
-</div>
 
+      <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogDescription>{view?.order_id || `#${view?.id}`}</DialogDescription>
+          </DialogHeader>
+          {view && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px] sm:grid-cols-3">
+              {([
+                ["Status", statusBadge(view.status)],
+                ["Credit / Debit", view.credit_debit || "—"],
+                ["Channel", view.instrument_mode || "—"],
+                ["Amount", money(view.amount)],
+                ["Charges", money(view.charges)],
+                ["GST", money(view.gst)],
+                ["Settle Amount", money(view.settle_amount)],
+                ["Balance After", money(view.balance_amount)],
+                ["Date", view.created_at ? new Date(view.created_at).toLocaleString() : "—"],
+                ["Txn ID", view.txn_id || "—"],
+                ["UTR", view.utr || "—"],
+                ["Reference", view.reference_id || "—"],
+              ] as [string, ReactNode][]).map(([k, v]) => (
+                <div key={k} className="min-w-0">
+                  <dt className="text-gray-500">{k}</dt>
+                  <dd className="mt-0.5 break-all font-medium text-gray-900 dark:text-gray-100">{v}</dd>
+                </div>
+              ))}
+              {view.description && (
+                <div className="col-span-full">
+                  <dt className="text-gray-500">Description</dt>
+                  <dd className="mt-0.5 text-gray-900 dark:text-gray-100">{view.description}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
