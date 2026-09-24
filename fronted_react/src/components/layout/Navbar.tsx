@@ -58,7 +58,9 @@ export default function Navbar({
       </button>
 
       <div className="flex items-center gap-2 md:hidden">
-        <div className="flex h-6 w-6 items-center justify-center rounded-[5px] bg-indigo-600 text-xs font-bold text-white">V</div>
+        <div className="h-8 w-8 overflow-hidden rounded-md bg-white">
+          <img src="/logo.png" alt="Vichitrapay logo" className="h-full w-full scale-[1.3] object-contain" />
+        </div>
         <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Vichitrapay</span>
       </div>
 

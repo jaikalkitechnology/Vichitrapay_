@@ -127,7 +127,9 @@ export default function DashboardLayout({
   const sidebar = (
     <div className="flex h-full flex-col bg-navy dark:bg-[#0B1929]">
       <div className="flex h-[52px] items-center gap-2.5 border-b border-white/[0.08] px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">V</div>
+        <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-white">
+          <img src="/logo.png" alt="Vichitrapay logo" className="h-full w-full scale-[1.3] object-contain" />
+        </div>
         <span className="text-[15px] font-semibold tracking-tight text-slate-100">Vichitrapay</span>
         <button
           onClick={() => setMobileOpen(false)}
