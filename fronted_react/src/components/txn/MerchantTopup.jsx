@@ -818,7 +818,7 @@ export default function MerchantTopup() {
 
       {/* Quick Transfer Modal */}
       {quickOpen && selectedAccount && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 !m-0">
           <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6 border border-gray-200 dark:border-gray-800">
             <div className="flex justify-between items-center mb-6">
               <div>

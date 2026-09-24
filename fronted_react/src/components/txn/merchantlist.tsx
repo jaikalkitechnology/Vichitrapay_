@@ -889,7 +889,7 @@ export default function MerchatList() {
       {/* --- Modals --- */}
       {/* Edit Modal */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Edit Merchant</h3>
@@ -978,7 +978,7 @@ export default function MerchatList() {
 
       {/* Create Modal */}
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Create New Merchant</h3>
@@ -989,11 +989,12 @@ export default function MerchatList() {
               </button>
             </div>
 
-            <form className="space-y-4" onSubmit={handleCreateSubmit}>
+            <form className="space-y-4" onSubmit={handleCreateSubmit} autoComplete="off">
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username *</label>
                 <Input
                   placeholder="Enter username"
+                  autoComplete="off"
                   value={createForm.username}
                   onChange={e => setCreateForm(s => ({ ...s, username: e.target.value }))}
                   required
@@ -1004,6 +1005,7 @@ export default function MerchatList() {
                 <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email *</label>
                 <Input
                   placeholder="Enter email"
+                  autoComplete="off"
                   type="email"
                   value={createForm.email}
                   onChange={e => setCreateForm(s => ({ ...s, email: e.target.value }))}
@@ -1016,6 +1018,7 @@ export default function MerchatList() {
                 <Input
                   placeholder="Enter password"
                   type="password"
+                  autoComplete="new-password"
                   value={createForm.password}
                   onChange={e => setCreateForm(s => ({ ...s, password: e.target.value }))}
                   required
@@ -1072,7 +1075,7 @@ export default function MerchatList() {
 
       {/* Settings Modal */}
       {settingsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Merchant Settings</h3>
@@ -1183,7 +1186,7 @@ export default function MerchatList() {
 
       {/* Transfer Modal */}
       {open && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -1271,7 +1274,7 @@ export default function MerchatList() {
       )}
 
       {credOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
 
       <div className="flex justify-between items-center mb-4">
@@ -1361,15 +1364,16 @@ export default function MerchatList() {
 
       {/* Password Change Modal */}
       {pwdOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Change Password</h3>
             <p className="text-sm text-gray-500 mb-4">Merchant: <span className="font-mono">{pwdUserId}</span></p>
-            <form onSubmit={handlePwdSubmit}>
+            <form onSubmit={handlePwdSubmit} autoComplete="off">
               <div className="mb-4">
                 <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1 block">New Password</label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Minimum 6 characters"
                   value={pwdValue}
                   onChange={(e) => setPwdValue(e.target.value)}
@@ -1393,7 +1397,7 @@ export default function MerchatList() {
 
       {/* Wallet Adjust Modal */}
       {adjustOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">
               Adjust {adjustWalletType === "wallet" ? "Wallet" : "Payout Wallet"} Balance

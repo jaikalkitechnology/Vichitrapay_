@@ -228,7 +228,7 @@ async function handleSubmit(e?: React.FormEvent) {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={closeModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 !m-0" onClick={closeModal}>
           <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-lg w-full p-6 z-10" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold mb-4">Add Payout Bank Account</h2>
 

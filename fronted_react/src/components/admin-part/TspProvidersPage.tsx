@@ -438,7 +438,7 @@ export default function TspProvidersPage(): JSX.Element {
 
       {/* Create Modal */}
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 !m-0">
           <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -535,7 +535,7 @@ export default function TspProvidersPage(): JSX.Element {
 
       {/* Edit Modal */}
       {editing && editForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 !m-0">
           <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
