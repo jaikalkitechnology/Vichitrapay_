@@ -35,12 +35,26 @@ import {
   Activity,
   Check,
   X,
+  Eye,
+  Copy,
+  ExternalLink,
+  CalendarDays,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getAdminSummary, AdminSummaryOut } from "@/api/apiHelper";
 import api from "@/api/api";
 import { BASE_URL } from "@/config";
-import DashboardCharts from "@/components/txn/DashboardCharts";
+import DashboardCharts, { Sparkline } from "@/components/txn/DashboardCharts";
+import useChartData from "@/components/txn/useChartData";
 import MerchatList from "@/components/txn/merchantlist";
 import MerchantTransactionsPage from "@/components/txn/merchantTxnView";
 import AdminPayoutManagement from "@/components/txn/AdminPayoutManagement";
@@ -83,6 +97,12 @@ const inrCompact = (n: number) => {
   return `₹${Math.round(v).toLocaleString("en-IN")}`;
 };
 
+/** Balance may arrive pre-formatted ("4,50,000"); show it as ₹ either way. */
+const fmtBalance = (b: string) => {
+  const n = Number(String(b).replace(/[,₹\s]/g, ""));
+  return Number.isFinite(n) ? inr.format(n) : `₹${b}`;
+};
+
 const fmtDateTime = (d?: string | null) =>
   d ? new Date(d).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-";
 const fmtDate = (d?: string | null) =>
@@ -99,12 +119,12 @@ type RecentTxn = {
   created_at?: string | null;
 };
 
-// Tinted "pending action" cards (admin_panel_design.html)
+// Pending-action cards with a faint watermark icon
 const ACTION_TONES = {
-  amber: { card: "bg-amber-50/60 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/60", icon: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" },
-  indigo: { card: "bg-indigo-50/60 border-indigo-200 dark:bg-indigo-950/30 dark:border-indigo-900/60", icon: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400" },
-  red: { card: "bg-red-50/60 border-red-200 dark:bg-red-950/20 dark:border-red-900/60", icon: "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400" },
-  green: { card: "bg-green-50/60 border-green-200 dark:bg-green-950/20 dark:border-green-900/60", icon: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" },
+  amber: { card: "bg-amber-50 border-amber-200/70 dark:bg-amber-950/20 dark:border-amber-900/60", icon: "bg-amber-500 text-white shadow-amber-500/30", mark: "text-amber-500", cta: "text-amber-700 dark:text-amber-400" },
+  indigo: { card: "bg-indigo-50 border-indigo-200/70 dark:bg-indigo-950/30 dark:border-indigo-900/60", icon: "bg-indigo-600 text-white shadow-indigo-600/30", mark: "text-indigo-500", cta: "text-indigo-700 dark:text-indigo-400" },
+  red: { card: "bg-rose-50 border-rose-200/70 dark:bg-rose-950/20 dark:border-rose-900/60", icon: "bg-rose-500 text-white shadow-rose-500/30", mark: "text-rose-500", cta: "text-rose-700 dark:text-rose-400" },
+  green: { card: "bg-emerald-50 border-emerald-200/70 dark:bg-emerald-950/20 dark:border-emerald-900/60", icon: "bg-emerald-500 text-white shadow-emerald-500/30", mark: "text-emerald-500", cta: "text-emerald-700 dark:text-emerald-400" },
 } as const;
 
 function PendingAction({
@@ -114,16 +134,70 @@ function PendingAction({
 }) {
   const t = ACTION_TONES[tone];
   return (
-    <div className={`rounded-lg border p-4 flex items-start gap-3 ${t.card}`}>
-      <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${t.icon}`}>
-        <Icon className="h-4 w-4" />
+    <div className={`relative overflow-hidden rounded-2xl border p-5 ${t.card}`}>
+      <Icon className={`pointer-events-none absolute -bottom-4 -right-3 h-24 w-24 opacity-[0.08] ${t.mark}`} aria-hidden="true" />
+      <div className="relative flex items-start gap-4">
+        <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl shadow-lg ${t.icon}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium text-gray-600 dark:text-gray-400">{label}</p>
+          <p className="mt-1 text-2xl font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
+          <button onClick={onClick} className={`mt-2 inline-flex items-center gap-1 text-[13px] font-semibold hover:underline ${t.cta}`}>
+            {cta} <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-[12px] text-gray-600 dark:text-gray-400">{label}</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-tight mt-0.5">{value}</p>
-        <button onClick={onClick} className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline mt-1 inline-flex items-center gap-1">
-          {cta} <ArrowRight className="h-3 w-3" />
-        </button>
+    </div>
+  );
+}
+
+const STAT_TONES = {
+  blue: { tile: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30", line: "#3B6BF6" },
+  purple: { tile: "bg-gradient-to-br from-violet-500 to-purple-600 shadow-violet-500/30", line: "#8B5CF6" },
+  green: { tile: "bg-gradient-to-br from-emerald-400 to-green-600 shadow-emerald-500/30", line: "#22C55E" },
+  amber: { tile: "bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30", line: "#F59E0B" },
+} as const;
+
+/** % change of today vs yesterday; null when there is no baseline. */
+const pctChange = (today: number, yesterday: number) =>
+  yesterday > 0 ? ((today - yesterday) / yesterday) * 100 : null;
+
+function DashStat({
+  label, value, icon: Icon, tone, change, hint, trend,
+}: {
+  label: string;
+  value: ReactNode;
+  icon: typeof Users;
+  tone: keyof typeof STAT_TONES;
+  change?: number | null;
+  hint: string;
+  trend?: number[];
+}) {
+  const t = STAT_TONES[tone];
+  const up = (change ?? 0) >= 0;
+  return (
+    <div className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex items-start gap-4">
+        <div className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${t.tile}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400">{label}</p>
+          <p className="mt-1 truncate text-[26px] font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-end justify-between gap-3">
+        <div className="min-w-0 text-[12px] leading-5 text-gray-500 dark:text-gray-400">
+          {change != null && (
+            <div className={`flex items-center gap-0.5 text-[13px] font-semibold ${up ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+              {up ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+              {Math.abs(change).toFixed(1)}%
+            </div>
+          )}
+          <div className="truncate" title={hint}>{hint}</div>
+        </div>
+        {trend && <Sparkline values={trend} color={t.line} className="h-10 w-24 flex-shrink-0" />}
       </div>
     </div>
   );
@@ -275,94 +349,151 @@ export default function AdminDashboard() {
     fetchRecent();
   }, []);
 
+  const [days, setDays] = useState(30);
+  const chart = useChartData(days);
+  const [viewTxn, setViewTxn] = useState<RecentTxn | null>(null);
+
+  const copyText = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied", description: text });
+    } catch {
+      toast({ title: "Copy failed", description: "Clipboard is not available", variant: "destructive" });
+    }
+  };
+
   const refreshDashboard = () => {
     fetchBalance();
     fetchRecent();
+    chart.reload();
     getAdminSummary().then(setSummary).catch(() => {});
   };
 
   const todaySuccess = (summary?.today?.payin?.success || 0) + (summary?.today?.payout?.success || 0);
   const yesterdaySuccess = (summary?.yesterday?.payin?.success || 0) + (summary?.yesterday?.payout?.success || 0);
 
+  const daily = chart.data?.daily ?? [];
+  const trendVolume = daily.map((d) => Number(d.payin_volume || 0) + Number(d.payout_volume || 0));
+  const trendCount = daily.map((d) => Number(d.payin_count || 0) + Number(d.payout_count || 0));
+  const trendFees = daily.map((d) => Number(d.fees || 0));
+  const todayVolume = Number(summary?.today?.success_volume || 0);
+  const todayFees = Number(summary?.today?.charges || 0);
+  const yesterdayFees = Number(summary?.yesterday?.charges || 0);
+
   const renderDashboard = () => (
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Dashboard"
-        description="Overview of today's platform activity"
+        description="Overview of your platform activity"
         actions={
-          <Button variant="outline" onClick={refreshDashboard}>
-            <RefreshCw /> Refresh
-          </Button>
+          <>
+            <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+              <SelectTrigger className="h-10 w-[160px] rounded-xl bg-white shadow-sm dark:bg-gray-900" aria-label="Date range">
+                <CalendarDays className="mr-2 h-4 w-4 text-gray-500" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 Days</SelectItem>
+                <SelectItem value="14">Last 14 Days</SelectItem>
+                <SelectItem value="30">Last 30 Days</SelectItem>
+                <SelectItem value="90">Last 90 Days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" className="h-10 rounded-xl bg-white shadow-sm dark:bg-gray-900" onClick={refreshDashboard}>
+              <RefreshCw /> Refresh
+            </Button>
+          </>
         }
       />
 
       {/* Stat Cards */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-800 animate-pulse rounded mb-3" />
-              <div className="h-7 w-20 bg-gray-100 dark:bg-gray-800 animate-pulse rounded" />
+            <div key={i} className="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-800" />
+                <div className="flex-1">
+                  <div className="mb-2 h-3 w-24 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                  <div className="h-7 w-20 animate-pulse rounded bg-gray-100 dark:bg-gray-800" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
       ) : summary ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <DashStat
             label="Total Merchants"
             value={Number(summary.total_merchants || 0).toLocaleString("en-IN")}
             icon={Users}
+            tone="blue"
             hint={`${summary.merchant_kyc_pending || 0} awaiting KYC`}
           />
-          <StatCard
+          <DashStat
             label="Today's Volume"
-            value={inrCompact(Number(summary.today?.success_volume || 0))}
+            value={inrCompact(todayVolume)}
             icon={TrendingUp}
-            hint={`${summary.today?.success_count || 0} success txns`}
+            tone="purple"
+            change={pctChange(todayVolume, Number(summary.yesterday?.success_volume || 0))}
+            hint="vs yesterday"
+            trend={trendVolume}
           />
-          <StatCard
+          <DashStat
             label="Success Txns"
             value={todaySuccess.toLocaleString("en-IN")}
             icon={CheckCircle}
-            hint={`${yesterdaySuccess.toLocaleString("en-IN")} yesterday`}
-            hintTone={todaySuccess >= yesterdaySuccess ? "up" : "down"}
+            tone="green"
+            change={pctChange(todaySuccess, yesterdaySuccess)}
+            hint={`vs ${yesterdaySuccess.toLocaleString("en-IN")} yesterday`}
+            trend={trendCount}
           />
-          <StatCard
+          <DashStat
             label="Platform Fees"
-            value={inrCompact(Number(summary.today?.charges || 0))}
+            value={inrCompact(todayFees)}
             icon={IndianRupee}
-            hint={`${inrCompact(Number(summary.yesterday?.charges || 0))} yesterday`}
+            tone="amber"
+            change={pctChange(todayFees, yesterdayFees)}
+            hint={`vs ${inrCompact(yesterdayFees)} yesterday`}
+            trend={trendFees}
           />
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
           <EmptyState icon={AlertCircle} title="No summary data" description={error ?? undefined} />
         </div>
       )}
 
       {/* Charts */}
-      <DashboardCharts />
+      <DashboardCharts
+        data={chart.data}
+        loading={chart.loading}
+        rangeLabel={`Last ${days} days`}
+        onViewDetails={() => navigate("/admin/transactions")}
+      />
 
       {/* Pending Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <PendingAction label="KYC Pending" value={summary?.merchant_kyc_pending || 0} icon={UserCheck} tone="amber" cta="Review now" onClick={() => navigate("/admin/merchants")} />
         <PendingAction label="Pending Settlements" value={summary?.total_settle_pending || 0} icon={CreditCard} tone="indigo" cta="Process now" onClick={() => navigate("/admin/settlements")} />
         <PendingAction label="Bank Approvals" value={summary?.pending_bank_approvals || 0} icon={Shield} tone="red" cta="Review now" onClick={() => navigate("/admin/bankApproval")} />
-        <PendingAction label="Payout Balance" value={balance ? `₹${balance.balance}` : "—"} icon={Wallet} tone="green" cta="Refresh" onClick={fetchBalance} />
+        <PendingAction label="Payout Balance" value={balance ? fmtBalance(balance.balance) : "—"} icon={Wallet} tone="green" cta="Refresh" onClick={fetchBalance} />
       </div>
 
       {/* Recent Transactions */}
-      <Panel
-        title="Recent Transactions"
-        actions={
-          <Button variant="outline" onClick={() => navigate("/admin/transactions")}>
-            View All
+      <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between gap-3 px-5 py-4">
+          <div>
+            <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100">Recent Transactions</h3>
+            <p className="mt-0.5 text-[13px] text-gray-500">Latest activity across all merchants</p>
+          </div>
+          <Button variant="outline" className="rounded-xl" onClick={() => navigate("/admin/transactions")}>
+            View All <ArrowRight />
           </Button>
-        }
-      >
+        </div>
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-gray-50/80 dark:bg-gray-800/40">
               <TableHead>Txn ID</TableHead>
               <TableHead>Merchant</TableHead>
               <TableHead>Type</TableHead>
@@ -370,18 +501,19 @@ export default function AdminDashboard() {
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {recent === null ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-indigo-600 inline" />
+                <TableCell colSpan={8} className="py-8 text-center">
+                  <Loader2 className="inline h-5 w-5 animate-spin text-indigo-600" />
                 </TableCell>
               </TableRow>
             ) : recent.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <EmptyState icon={Activity} title="No transactions yet" />
                 </TableCell>
               </TableRow>
@@ -395,12 +527,56 @@ export default function AdminDashboard() {
                   <TableCell className={`text-right ${cellAmount}`}>{inr.format(Number(t.amount || 0))}</TableCell>
                   <TableCell><StatusBadge status={t.status} /></TableCell>
                   <TableCell className="whitespace-nowrap">{fmtDateTime(t.created_at)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setViewTxn(t)}
+                        className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-400"
+                        aria-label="View transaction"
+                        title="View details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <ActionMenu
+                        items={[
+                          { label: "Open in Transactions", icon: ExternalLink, onClick: () => navigate("/admin/transactions") },
+                          { label: "Copy Txn ID", icon: Copy, disabled: !t.txn_id, onClick: () => t.txn_id && copyText(t.txn_id) },
+                        ]}
+                      />
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
-      </Panel>
+      </div>
+
+      <Dialog open={!!viewTxn} onOpenChange={(o) => !o && setViewTxn(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogDescription>{viewTxn?.txn_id || "—"}</DialogDescription>
+          </DialogHeader>
+          {viewTxn && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-[13px]">
+              {[
+                ["Merchant", viewTxn.user_id],
+                ["Type", <StatusBadge key="type" status={viewTxn.transaction_type} />],
+                ["Order ID", viewTxn.order_id || "—"],
+                ["Amount", inr.format(Number(viewTxn.amount || 0))],
+                ["Status", <StatusBadge key="status" status={viewTxn.status} />],
+                ["Date", fmtDateTime(viewTxn.created_at)],
+              ].map(([k, v]) => (
+                <div key={String(k)} className="min-w-0">
+                  <dt className="text-gray-500">{k}</dt>
+                  <dd className="mt-0.5 break-all font-medium text-gray-900 dark:text-gray-100">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
