@@ -120,7 +120,16 @@ export default function DashboardCharts() {
       setLoading(true);
       try {
         const res = await api.get(`${BASE_URL}/admin/chart-data?days=${days}`);
-        setData(res.data);
+        // Normalise so a partial response can't crash the charts
+        const d = res.data ?? {};
+        setData({
+          daily: Array.isArray(d.daily) ? d.daily : [],
+          status: {
+            success: Number(d.status?.success || 0),
+            pending: Number(d.status?.pending || 0),
+            failed: Number(d.status?.failed || 0),
+          },
+        });
       } catch { /* non-critical */ }
       setLoading(false);
     })();

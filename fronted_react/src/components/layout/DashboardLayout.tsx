@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
+import useNotifications from "@/components/layout/useNotifications";
 import {
   LayoutDashboard,
   CreditCard,
@@ -117,6 +118,7 @@ export default function DashboardLayout({
   const basePath = isAdmin ? "/admin" : "/merchant";
   const sections = isAdmin ? adminSections : merchantSections;
   const roleLabel = isAdmin ? "Administrator" : "Merchant";
+  const notifications = useNotifications(isAdmin);
 
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);
@@ -234,8 +236,11 @@ export default function DashboardLayout({
           userRole={roleLabel}
           searchItems={sections.flatMap((s) => s.tabs.map(({ id, label }) => ({ id, label })))}
           onSearchSelect={handleTabClick}
+          notifications={notifications.items}
+          notificationCount={notifications.total}
+          onNotificationSelect={handleTabClick}
         />
-        <main className="min-w-0 flex-1 px-4 py-5 text-gray-700 dark:text-gray-300 md:px-6">
+        <main className="min-w-0 flex-1 px-4 pb-5 pt-4 text-gray-700 dark:text-gray-300 md:px-6">
           {children}
         </main>
       </div>
