@@ -664,34 +664,119 @@ def download_report(
     )
 
 
+def _bank_account_query(
+    db: Session,
+    status: Optional[str] = None,
+    user_id: Optional[str] = None,
+    bank_name: Optional[str] = None,
+    search: Optional[str] = None,
+):
+    """Payout bank accounts joined with their merchant; status is pending | approved | all."""
+    q = db.query(PayoutBankAccount, User).outerjoin(User, User.id == PayoutBankAccount.user_id)
+    if status == "pending":
+        q = q.filter(PayoutBankAccount.is_validate == False)  # noqa: E712
+    elif status == "approved":
+        q = q.filter(PayoutBankAccount.is_validate == True)  # noqa: E712
+    elif status not in (None, "", "all"):
+        raise HTTPException(status_code=422, detail="status must be pending, approved or all")
+    if user_id:
+        q = q.filter(PayoutBankAccount.user_id == user_id)
+    if bank_name:
+        q = q.filter(PayoutBankAccount.bank_name == bank_name)
+    if search:
+        term = f"%{search.strip()}%"
+        q = q.filter(
+            or_(
+                PayoutBankAccount.account_holder_name.ilike(term),
+                PayoutBankAccount.account_number.ilike(term),
+                PayoutBankAccount.ifsc_code.ilike(term),
+                PayoutBankAccount.user_id.ilike(term),
+                User.username.ilike(term),
+                User.company_name.ilike(term),
+            )
+        )
+    return q
+
+
+def _serialize_bank_account(a: PayoutBankAccount, u: Optional[User]) -> Dict[str, Any]:
+    return {
+        "id": a.id,
+        "user_id": a.user_id,
+        "merchant_username": u.username if u else None,
+        "merchant_company": u.company_name if u else None,
+        "account_holder_name": a.account_holder_name,
+        "account_number": a.account_number,
+        "ifsc_code": a.ifsc_code,
+        "bank_name": a.bank_name,
+        "bank_branch": a.bank_branch,
+        "account_type": a.account_type,
+        "bank_address": a.bank_address,
+        "is_validate": a.is_validate,
+    }
+
+
+@router.get("/bank-accounts")
+def list_bank_accounts(
+    status: Optional[str] = Query("pending", description="pending | approved | all"),
+    user_id: Optional[str] = Query(None),
+    bank_name: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, description="holder, account no, IFSC, merchant id/name/company"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    q = _bank_account_query(db, status, user_id, bank_name, search)
+    total = q.count()
+    rows = q.order_by(PayoutBankAccount.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    return {"total": total, "page": page, "per_page": per_page, "items": [_serialize_bank_account(a, u) for a, u in rows]}
+
+
 @router.get("/bank-accounts/pending")
 def list_pending_bank_accounts(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    q = db.query(PayoutBankAccount).filter(PayoutBankAccount.is_validate == False)
-    total = q.count()
-    items = q.order_by(PayoutBankAccount.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
-    return {
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "items": [
-            {
-                "id": a.id,
-                "user_id": a.user_id,
-                "account_holder_name": a.account_holder_name,
-                "account_number": a.account_number,
-                "ifsc_code": a.ifsc_code,
-                "bank_name": a.bank_name,
-                "bank_branch": a.bank_branch,
-                "account_type": a.account_type,
-                "is_validate": a.is_validate,
-            }
-            for a in items
-        ],
-    }
+    return list_bank_accounts(status="pending", user_id=None, bank_name=None, search=None, page=page, per_page=per_page, db=db)
+
+
+@router.get("/bank-accounts/stats")
+def bank_account_stats(db: Session = Depends(get_db)):
+    """Counts for the Bank Approval page and the bank names used in its filter."""
+    pending = db.query(func.count(PayoutBankAccount.id)).filter(PayoutBankAccount.is_validate == False).scalar() or 0  # noqa: E712
+    approved = db.query(func.count(PayoutBankAccount.id)).filter(PayoutBankAccount.is_validate == True).scalar() or 0  # noqa: E712
+    merchants = db.query(func.count(func.distinct(PayoutBankAccount.user_id))).scalar() or 0
+    banks = [
+        b for (b,) in db.query(PayoutBankAccount.bank_name)
+        .filter(PayoutBankAccount.bank_name.isnot(None), PayoutBankAccount.bank_name != "")
+        .distinct().order_by(PayoutBankAccount.bank_name).all()
+    ]
+    return {"pending": int(pending), "approved": int(approved), "total": int(pending + approved), "merchants": int(merchants), "banks": banks}
+
+
+@router.get("/bank-accounts/export")
+def export_bank_accounts(
+    status: Optional[str] = Query("pending"),
+    user_id: Optional[str] = Query(None),
+    bank_name: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """CSV of bank accounts matching the filters (max 10,000 rows)."""
+    rows = _bank_account_query(db, status, user_id, bank_name, search).order_by(PayoutBankAccount.id.desc()).limit(10000).all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Merchant ID", "Merchant", "Company", "Account Holder", "Account Number", "IFSC", "Bank", "Branch", "Type", "Status"])
+    for a, u in rows:
+        writer.writerow([
+            a.id, a.user_id, u.username if u else "", u.company_name if u else "", a.account_holder_name,
+            a.account_number, a.ifsc_code, a.bank_name or "", a.bank_branch or "", a.account_type or "",
+            "approved" if a.is_validate else "pending",
+        ])
+    output.seek(0)
+    filename = f"bank_accounts_{status or 'all'}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 @router.post("/bank-accounts/{account_id}/approve")
