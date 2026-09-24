@@ -339,7 +339,7 @@ export default function TspMappingPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Merchants</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : merchants.length}
                   </p>
                 </div>
@@ -357,7 +357,7 @@ export default function TspMappingPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">TSP Providers</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.length}
                   </p>
                 </div>
@@ -375,7 +375,7 @@ export default function TspMappingPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Active Mappings</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : mappings.length}
                   </p>
                 </div>
@@ -393,7 +393,7 @@ export default function TspMappingPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Selected Merchant</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100 truncate">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100 truncate">
                     {selectedMerchant ? selectedMerchant.username : 'None'}
                   </p>
                 </div>

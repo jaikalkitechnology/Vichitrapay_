@@ -243,7 +243,7 @@ export default function TspProvidersPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Providers</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.length}
                   </p>
                 </div>
@@ -261,7 +261,7 @@ export default function TspProvidersPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-In Providers</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.filter(p => p.default_direction === 'payin').length}
                   </p>
                 </div>
@@ -279,7 +279,7 @@ export default function TspProvidersPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-Out Providers</p>
-                  <p className="text-xl sm:text-2xl lg:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
+                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
                     {loading ? '...' : providers.filter(p => p.default_direction === 'payout').length}
                   </p>
                 </div>

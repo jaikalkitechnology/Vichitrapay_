@@ -21,6 +21,7 @@ import {
   Landmark,
   BookOpen,
   Wallet,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
@@ -31,33 +32,33 @@ interface DashboardLayoutProps {
   onTabChange: (tab: string) => void;
 }
 
-type NavTab = { id: string; label: string; icon: LucideIcon };
+type NavTab = { id: string; label: string; icon: LucideIcon; color: string };
 type NavSection = { label: string; tabs: NavTab[] };
 
 const adminSections: NavSection[] = [
   {
     label: "Main",
     tabs: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "merchants", label: "Merchants", icon: Users },
-      { id: "tspMappings", label: "TSP Mappings", icon: Layers },
-      { id: "tspProviders", label: "TSP Providers", icon: Network },
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-indigo-400" },
+      { id: "merchants", label: "Merchants", icon: Users, color: "text-blue-400" },
+      { id: "tspMappings", label: "TSP Mappings", icon: Layers, color: "text-violet-400" },
+      { id: "tspProviders", label: "TSP Providers", icon: Network, color: "text-orange-400" },
     ],
   },
   {
     label: "Finance",
     tabs: [
-      { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
-      { id: "settlements", label: "Settlements", icon: CreditCard },
-      { id: "analytics", label: "Analytics", icon: BarChart3 },
-      { id: "payouts", label: "Payouts", icon: PiggyBank },
+      { id: "transactions", label: "Transactions", icon: ArrowLeftRight, color: "text-emerald-400" },
+      { id: "settlements", label: "Settlements", icon: CreditCard, color: "text-indigo-400" },
+      { id: "analytics", label: "Analytics", icon: BarChart3, color: "text-pink-400" },
+      { id: "payouts", label: "Payouts", icon: PiggyBank, color: "text-amber-400" },
     ],
   },
   {
     label: "Operations",
     tabs: [
-      { id: "report", label: "Report", icon: FileText },
-      { id: "bankApproval", label: "Bank Approval", icon: Shield },
+      { id: "report", label: "Report", icon: FileText, color: "text-sky-400" },
+      { id: "bankApproval", label: "Bank Approval", icon: Shield, color: "text-green-400" },
     ],
   },
 ];
@@ -66,25 +67,25 @@ const merchantSections: NavSection[] = [
   {
     label: "Main",
     tabs: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "transactions", label: "Transactions", icon: ArrowLeftRight },
-      { id: "paymentLink", label: "Payment Link", icon: LinkIcon },
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-indigo-400" },
+      { id: "transactions", label: "Transactions", icon: ArrowLeftRight, color: "text-emerald-400" },
+      { id: "paymentLink", label: "Payment Link", icon: LinkIcon, color: "text-cyan-400" },
     ],
   },
   {
     label: "Finance",
     tabs: [
-      { id: "bankAccount", label: "Payout Accounts", icon: Landmark },
-      { id: "settlements", label: "Settlements", icon: FileText },
-      { id: "merchantsTopup", label: "Top Up", icon: Wallet },
-      { id: "passbook", label: "Passbook", icon: BookOpen },
+      { id: "bankAccount", label: "Payout Accounts", icon: Landmark, color: "text-blue-400" },
+      { id: "settlements", label: "Settlements", icon: FileText, color: "text-violet-400" },
+      { id: "merchantsTopup", label: "Top Up", icon: Wallet, color: "text-amber-400" },
+      { id: "passbook", label: "Passbook", icon: BookOpen, color: "text-pink-400" },
     ],
   },
   {
     label: "Account",
     tabs: [
-      { id: "developer", label: "Developer", icon: Code },
-      { id: "changePassword", label: "Change Password", icon: Lock },
+      { id: "developer", label: "Developer", icon: Code, color: "text-sky-400" },
+      { id: "changePassword", label: "Change Password", icon: Lock, color: "text-rose-400" },
     ],
   },
 ];
@@ -139,50 +140,64 @@ export default function DashboardLayout({
         </button>
       </div>
 
-      <nav className="vp-sidebar-scroll flex-1 overflow-y-auto py-2">
+      <nav className="vp-sidebar-scroll flex-1 overflow-y-auto px-3 pb-3">
         {sections.map((section) => (
           <div key={section.label}>
-            <div className="px-4 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+            <div className="px-2 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               {section.label}
             </div>
-            {section.tabs.map((tab) => {
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabClick(tab.id)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 border-l-[3px] px-4 py-2 text-left text-[13px] font-medium transition-colors",
-                    active
-                      ? "border-indigo-600 bg-indigo-600/10 text-white"
-                      : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
-                  )}
-                >
-                  <tab.icon className={cn("h-4 w-4 flex-shrink-0", active ? "opacity-100" : "opacity-70")} />
-                  {tab.label}
-                </button>
-              );
-            })}
+            <div className="flex flex-col gap-1">
+              {section.tabs.map((tab) => {
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabClick(tab.id)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium transition-all",
+                      active
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                        : "text-slate-200 hover:bg-white/[0.06] hover:text-white"
+                    )}
+                  >
+                    <tab.icon className={cn("h-[18px] w-[18px] flex-shrink-0", active ? "text-white" : tab.color)} />
+                    <span className="flex-1 truncate">{tab.label}</span>
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5",
+                        active ? "text-white" : "text-slate-500"
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
 
-      <div className="flex items-center gap-2.5 border-t border-white/[0.08] px-4 py-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600/25 text-xs font-semibold text-indigo-400">
-          {initials(user?.name)}
+      <div className="border-t border-white/[0.08] p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-white/[0.05] p-3">
+          <div className="relative flex-shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-semibold text-white">
+              {initials(user?.name)}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-navy bg-green-500 dark:border-[#0B1929]" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14px] font-semibold text-white">{user?.name}</div>
+            <div className="text-[12px] text-slate-400">{roleLabel}</div>
+          </div>
+          <button
+            onClick={logout}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+            title="Logout"
+            aria-label="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium text-slate-200">{user?.name}</div>
-          <div className="text-[11px] text-slate-500">{roleLabel}</div>
-        </div>
-        <button
-          onClick={logout}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5 hover:text-white"
-          title="Logout"
-          aria-label="Logout"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );
@@ -190,7 +205,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120]">
       {/* Sidebar (desktop, fixed full height) */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[220px] md:block">{sidebar}</aside>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] md:block">{sidebar}</aside>
 
       {/* Mobile drawer */}
       <div
@@ -202,14 +217,14 @@ export default function DashboardLayout({
       />
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-[220px] transform transition-transform duration-200 md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[248px] transform transition-transform duration-200 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {sidebar}
       </aside>
 
-      <div className="flex min-h-screen flex-col md:ml-[220px]">
+      <div className="flex min-h-screen flex-col md:ml-[248px]">
         <Navbar
           theme={theme}
           toggleTheme={toggleTheme}
