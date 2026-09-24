@@ -28,12 +28,12 @@ class ProviderOut(BaseModel):
         from_attribute = True
 
 class ProviderUpdate(BaseModel):
-    name: Optional[str]
-    code: Optional[str]
-    description: Optional[str]
-    default_direction: Optional[TspDirectionEnum]
-    status: Optional[TspStatusEnum]
-    capabilities: Optional[dict]
+    name: Optional[str] = None
+    code: Optional[str] = None
+    description: Optional[str] = None
+    default_direction: Optional[TspDirectionEnum] = None
+    status: Optional[TspStatusEnum] = None
+    capabilities: Optional[dict] = None
 
 class MappingCreate(BaseModel):
     merchant_id: str
@@ -66,9 +66,9 @@ class MappingOut(BaseModel):
         from_attribute = True
 
 class MappingUpdate(BaseModel):
-    enabled: Optional[bool]
-    priority: Optional[int]
-    config: Optional[dict]
-    min_amount: Optional[float]
-    max_amount: Optional[float]
-    direction: Optional[TspDirectionEnum]
+    enabled: Optional[bool] = None
+    priority: Optional[int] = None
+    config: Optional[dict] = None
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
+    direction: Optional[TspDirectionEnum] = None

@@ -2,11 +2,31 @@
 import React, { useEffect, useState } from "react";
 import api from "@/api/api";
 import { API_ORIGIN, BASE_URL } from "@/config";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Blocks,
+  CalendarDays,
+  FileText,
+  Info,
+  Loader2,
+  Pencil,
+  PieChart,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings2,
+  Trash2,
+  X,
+} from "lucide-react";
+import { ProviderCode, ProviderIcon, TspStat } from "@/components/admin-part/tspShared";
+import { DIRECTION_LABEL, cumulativeByWeek, fmtDate, thisMonthCount } from "@/components/admin-part/tspUtils";
 
 /**
  * TSP Providers management page
@@ -24,6 +44,7 @@ import { Badge } from "@/components/ui/badge";
 
 /* ----------------------------- Types ------------------------------ */
 type Direction = "payin" | "payout" | "both" | null;
+type ProviderStatus = "active" | "inactive";
 
 export type Provider = {
   id: number;
@@ -31,6 +52,7 @@ export type Provider = {
   name: string;
   description?: string | null;
   default_direction?: Direction;
+  status?: ProviderStatus | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -42,7 +64,7 @@ export type ProviderCreatePayload = {
   default_direction?: Direction;
 };
 
-export type ProviderUpdatePayload = Partial<ProviderCreatePayload>;
+export type ProviderUpdatePayload = Partial<ProviderCreatePayload> & { status?: ProviderStatus };
 
 /* --------------------------- API helpers -------------------------- */
 
@@ -70,27 +92,39 @@ async function deleteProvider(providerId: number) {
 
 /* --------------------------- Component ---------------------------- */
 
+type ProviderForm = {
+  code: string;
+  name: string;
+  description: string;
+  default_direction: Direction;
+  status: ProviderStatus;
+};
+
+const EMPTY_FORM: ProviderForm = { code: "", name: "", description: "", default_direction: "both", status: "active" };
+
+const errMsg = (err: any) =>
+  String(err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? err);
+
+const fieldCls =
+  "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-[13px] text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100";
+
 export default function TspProvidersPage(): JSX.Element {
   const { toast } = useToast();
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "payin" | "payout" | "both">("all");
 
-  // Create modal state
-  const [createOpen, setCreateOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [createForm, setCreateForm] = useState<ProviderCreatePayload>({
-    code: "",
-    name: "",
-    description: "",
-    default_direction: null,
-  });
-
-  // Edit modal state
+  // Create / edit share one form dialog; `editing` null = create
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Provider | null>(null);
-  const [editingSaving, setEditingSaving] = useState(false);
-  const [editForm, setEditForm] = useState<ProviderUpdatePayload | null>(null);
+  const [form, setForm] = useState<ProviderForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+
+  const [deleting, setDeleting] = useState<Provider | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     loadProviders();
@@ -101,530 +135,360 @@ export default function TspProvidersPage(): JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchProviders();
-      setProviders(data);
+      setProviders(await fetchProviders());
     } catch (err: any) {
       console.error("fetch providers error", err);
       setError(err?.message ?? "Failed to load providers");
-      toast({ title: "Failed to load", description: String(err?.message ?? err) });
+      toast({ title: "Failed to load", description: errMsg(err) });
     } finally {
       setLoading(false);
     }
   }
 
   function openCreate() {
-    setCreateForm({ code: "", name: "", description: "", default_direction: null });
-    setCreateOpen(true);
-  }
-  function closeCreate() {
-    setCreateOpen(false);
-    setCreating(false);
-  }
-
-  async function submitCreate(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!createForm || !createForm.name || createForm.name.trim() === "") {
-      toast({ title: "Validation", description: "Name is required" });
-      return;
-    }
-    setCreating(true);
-    try {
-      const payload: ProviderCreatePayload = {
-        code: createForm.code ? String(createForm.code).trim() : undefined,
-        name: String(createForm.name).trim(),
-        description: createForm.description ? String(createForm.description).trim() : undefined,
-        default_direction: createForm.default_direction ?? null,
-      };
-      const created = await createProvider(payload);
-      // update list
-      setProviders((p) => [created, ...p]);
-      toast({ title: "Created", description: `${created.name} created.` });
-      closeCreate();
-    } catch (err: any) {
-      console.error("create provider error", err);
-      toast({ title: "Create failed", description: String(err?.response?.data?.message ?? err?.message ?? err) });
-      setCreating(false);
-    }
-  }
-
-  function openEdit(provider: Provider) {
-    setEditing(provider);
-    setEditForm({
-      code: provider.code ?? undefined,
-      name: provider.name,
-      description: provider.description ?? undefined,
-      default_direction: provider.default_direction ?? null,
-    });
-  }
-
-  function closeEdit() {
     setEditing(null);
-    setEditForm(null);
-    setEditingSaving(false);
+    setForm(EMPTY_FORM);
+    setFormOpen(true);
   }
 
-  async function submitEdit() {
-    if (!editing || !editForm) return;
-    if (!editForm.name || String(editForm.name).trim() === "") {
-      toast({ title: "Validation", description: "Name is required" });
+  function openEdit(p: Provider) {
+    setEditing(p);
+    setForm({
+      code: p.code ?? "",
+      name: p.name,
+      description: p.description ?? "",
+      default_direction: p.default_direction ?? "both",
+      status: p.status ?? "active",
+    });
+    setFormOpen(true);
+  }
+
+  async function submitForm(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!form.name.trim() || !form.code.trim()) {
+      toast({ title: "Validation", description: "Name and code are required" });
       return;
     }
-    setEditingSaving(true);
+    setSaving(true);
     try {
-      const payload: ProviderUpdatePayload = {
-        code: editForm.code ? String(editForm.code).trim() : null,
-        name: String(editForm.name).trim(),
-        description: editForm.description ? String(editForm.description).trim() : null,
-        default_direction: editForm.default_direction ?? null,
+      const base = {
+        code: form.code.trim(),
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        default_direction: form.default_direction ?? "both",
       };
-      const updated = await updateProvider(editing.id, payload);
-      setProviders((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      toast({ title: "Updated", description: `${updated.name} updated.` });
-      closeEdit();
+      if (editing) {
+        const updated = await updateProvider(editing.id, { ...base, status: form.status });
+        setProviders((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        toast({ title: "Updated", description: `${updated.name} updated.` });
+      } else {
+        const created = await createProvider(base);
+        setProviders((p) => [created, ...p]);
+        toast({ title: "Created", description: `${created.name} created.` });
+      }
+      setFormOpen(false);
     } catch (err: any) {
-      console.error("update provider error", err);
-      toast({ title: "Update failed", description: String(err?.response?.data?.message ?? err?.message ?? err) });
-      setEditingSaving(false);
+      console.error("save provider error", err);
+      toast({ title: editing ? "Update failed" : "Create failed", description: errMsg(err) });
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function handleDelete(provider: Provider) {
-    // confirm
-    // using window.confirm for simplicity
-    // replace with nicer modal if you have one
-    const ok = window.confirm(`Delete provider "${provider.name}"? This cannot be undone.`);
-    if (!ok) return;
+  async function confirmDelete() {
+    if (!deleting) return;
+    setDeleteBusy(true);
     try {
-      await deleteProvider(provider.id);
-      setProviders((p) => p.filter((x) => x.id !== provider.id));
-      toast({ title: "Deleted", description: `${provider.name} deleted.` });
+      await deleteProvider(deleting.id);
+      setProviders((p) => p.filter((x) => x.id !== deleting.id));
+      toast({ title: "Deleted", description: `${deleting.name} deleted.` });
+      setDeleting(null);
     } catch (err: any) {
       console.error("delete provider error", err);
-      toast({ title: "Delete failed", description: String(err?.response?.data?.message ?? err?.message ?? err) });
+      toast({ title: "Delete failed", description: errMsg(err) });
+    } finally {
+      setDeleteBusy(false);
     }
   }
+
+  const q = search.trim().toLowerCase();
+  const visible = providers
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => typeFilter === "all" || (p.default_direction ?? "both") === typeFilter)
+    .filter(({ p }) => !q || [p.name, p.code, p.description].some((v) => (v ?? "").toLowerCase().includes(q)));
+
+  const handlesPayin = providers.filter((p) => p.default_direction !== "payout").length;
+  const handlesPayout = providers.filter((p) => p.default_direction !== "payin").length;
+  const active = providers.filter((p) => (p.status ?? "active") === "active").length;
+  const inactive = providers.length - active;
+  const added = thisMonthCount(providers);
+  const trend = cumulativeByWeek(providers);
 
   return (
     <div className="space-y-5">
-      <div className="max-w-7xl mx-auto space-y-5">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">TSP Providers</h1>
-            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">Manage payment gateway providers and their configurations</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={loadProviders}
-              className="rounded-lg border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh
-            </Button>
-            <Button
-              onClick={openCreate}
-              className="h-8"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Provider
-            </Button>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">TSP Providers</h1>
+          <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">Manage payment gateway providers and their configurations</p>
         </div>
-
-        {/* Stats Card */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Total Providers</p>
-                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
-                    {loading ? '...' : providers.length}
-                  </p>
-                </div>
-                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-In Providers</p>
-                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
-                    {loading ? '...' : providers.filter(p => p.default_direction === 'payin').length}
-                  </p>
-                </div>
-                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-medium uppercase tracking-widest text-gray-500 dark:text-gray-400">Pay-Out Providers</p>
-                  <p className="text-xl sm:text-2xl xl:text-[28px] font-bold leading-tight mt-1 tabular-nums text-gray-900 dark:text-gray-100">
-                    {loading ? '...' : providers.filter(p => p.default_direction === 'payout').length}
-                  </p>
-                </div>
-                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={loadProviders} className="h-11 rounded-xl px-4">
+            <RefreshCw /> Refresh
+          </Button>
+          <Button onClick={openCreate} className="h-11 rounded-xl px-5 shadow-lg shadow-indigo-600/25">
+            <Plus /> Create Provider
+          </Button>
         </div>
-
-        {/* Main Content Card */}
-        <Card className="overflow-hidden">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-800 px-4 py-3">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">Payment Gateway Providers</CardTitle>
-                <p className="text-gray-600 text-sm mt-1">Configure and manage all TSP (Third-Party Service) providers</p>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <Input
-                    placeholder="Search providers..."
-                    className="pl-9 w-full md:w-64"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-200 border-t-indigo-600"></div>
-                <p className="mt-4 text-gray-600">Loading providers...</p>
-              </div>
-            ) : error ? (
-              <div className="p-8 text-center">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-100 mb-4">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Error Loading Providers</h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">{error}</p>
-                <Button onClick={loadProviders} className="mt-4">
-                  Try Again
-                </Button>
-              </div>
-            ) : providers.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">No providers found</h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-2">Get started by creating your first TSP provider</p>
-                <Button onClick={openCreate} className="mt-4">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create First Provider
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-                {providers.map((p) => (
-                  <div key={p.id} className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-white dark:bg-gray-900 transition-all duration-300 hover:border-blue-200">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100">{p.name}</h4>
-                          {p.code && (
-                            <Badge className="mt-1 bg-blue-100 text-blue-800 hover:bg-blue-200">
-                              {p.code}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 mb-6">
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Description</div>
-                        <div className="text-sm text-gray-700 dark:text-gray-300">{p.description || "No description"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Default Direction</div>
-                        <div>
-                          {p.default_direction ? (
-                            <Badge className={
-                              p.default_direction === 'payin' ? 'bg-blue-100 text-blue-800' :
-                              p.default_direction === 'payout' ? 'bg-orange-100 text-orange-800' :
-                              'bg-purple-100 text-purple-800'
-                            }>
-                              {p.default_direction}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm text-gray-500">Not specified</span>
-                          )}
-                        </div>
-                      </div>
-                      {p.created_at && (
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Created</div>
-                          <div className="text-sm text-gray-600">
-                            {new Date(p.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <div className="text-xs text-gray-500">
-                        ID: {p.id}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => openEdit(p)}
-                          className="rounded-lg px-4"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(p)}
-                          className="rounded-lg px-4"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Create Modal */}
-      {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 !m-0">
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Create TSP Provider</h3>
-                <p className="text-gray-600 text-sm mt-1">Add a new payment gateway provider</p>
-              </div>
-              <button onClick={closeCreate} className="p-2 hover:bg-gray-100 rounded-lg">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <form onSubmit={submitCreate} className="space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Code <span className="text-gray-500">(optional)</span>
-                </label>
-                <Input 
-                  value={createForm.code ?? ""} 
-                  onChange={(e) => setCreateForm(s => ({ ...s, code: e.target.value }))} 
-                  placeholder="e.g., RAZORPAY, PAYTM"
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <Input 
-                  value={createForm.name ?? ""} 
-                  onChange={(e) => setCreateForm(s => ({ ...s, name: e.target.value }))} 
-                  required 
-                  placeholder="Enter provider name"
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Description <span className="text-gray-500">(optional)</span>
-                </label>
-                <Input 
-                  value={createForm.description ?? ""} 
-                  onChange={(e) => setCreateForm(s => ({ ...s, description: e.target.value }))} 
-                  placeholder="Provider description or notes"
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Default Direction
-                </label>
-                <select
-                  value={createForm.default_direction ?? ""}
-                  onChange={(e) => setCreateForm(s => ({ ...s, default_direction: e.target.value ? (e.target.value as Direction) : null }))}
-                  className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                >
-                  <option value="">Select direction (optional)</option>
-                  <option value="payin">Pay-In</option>
-                  <option value="payout">Pay-Out</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <TspStat
+          label="Total Providers"
+          value={loading ? "…" : providers.length}
+          icon={Blocks}
+          tile="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+          hint={added > 0 ? `+${added} this month` : "No new this month"}
+          hintUp={added > 0}
+          trend={trend}
+          color="#3B6BF6"
+        />
+        <TspStat
+          label="Pay-in Providers"
+          value={loading ? "…" : handlesPayin}
+          icon={ArrowDownLeft}
+          tile="bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          hint="Handle collections"
+        />
+        <TspStat
+          label="Pay-out Providers"
+          value={loading ? "…" : handlesPayout}
+          icon={ArrowUpRight}
+          tile="bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
+          hint="Handle payouts"
+        />
+        <TspStat
+          label="Active Providers"
+          value={loading ? "…" : active}
+          icon={PieChart}
+          tile="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+          hint={providers.length === 0 ? "No providers yet" : inactive === 0 ? "All providers active" : `${inactive} inactive`}
+        />
+      </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">
-                <Button 
-                  variant="outline" 
-                  type="button" 
-                  onClick={closeCreate}
-                  className="rounded-lg px-6"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={creating}
-                  className="px-4"
-                >
-                  {creating ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Creating...
-                    </>
-                  ) : 'Create Provider'}
-                </Button>
-              </div>
-            </form>
+      {/* Providers */}
+      <div className="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-[20px] font-bold text-gray-900 dark:text-gray-100">Payment Gateway Providers</h2>
+            <p className="mt-0.5 text-[14px] text-gray-500">Configure and manage all TSP (Third-Party Service) providers</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                placeholder="Search providers..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-11 w-full rounded-xl pl-10 sm:w-72"
+                aria-label="Search providers"
+              />
+            </div>
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+              <SelectTrigger className="h-11 w-full rounded-xl sm:w-40" aria-label="Provider type filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="payin">Pay-in</SelectItem>
+                <SelectItem value="payout">Pay-out</SelectItem>
+                <SelectItem value="both">Pay-in &amp; Pay-out</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      )}
 
-      {/* Edit Modal */}
-      {editing && editForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 !m-0">
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Edit Provider</h3>
-                <p className="text-gray-600 text-sm mt-1">Update provider details</p>
-              </div>
-              <button onClick={closeEdit} className="p-2 hover:bg-gray-100 rounded-lg">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+            <p className="mt-4 text-[13px] text-gray-500">Loading providers...</p>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center">
+            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <AlertCircle className="h-5 w-5" />
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Code <span className="text-gray-500">(optional)</span>
-                </label>
-                <Input 
-                  value={editForm.code ?? ""} 
-                  onChange={(e) => setEditForm(s => ({ ...s!, code: e.target.value }))} 
-                  placeholder="e.g., RAZORPAY, PAYTM"
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <Input 
-                  value={editForm.name ?? ""} 
-                  onChange={(e) => setEditForm(s => ({ ...s!, name: e.target.value }))} 
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Description <span className="text-gray-500">(optional)</span>
-                </label>
-                <Input 
-                  value={editForm.description ?? ""} 
-                  onChange={(e) => setEditForm(s => ({ ...s!, description: e.target.value }))} 
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Default Direction
-                </label>
-                <select
-                  value={editForm.default_direction ?? ""}
-                  onChange={(e) => setEditForm(s => ({ ...s!, default_direction: e.target.value ? (e.target.value as Direction) : null }))}
-                  className="w-full h-8 rounded-md border border-gray-300 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                >
-                  <option value="">Select direction (optional)</option>
-                  <option value="payin">Pay-In</option>
-                  <option value="payout">Pay-Out</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">
-                <Button 
-                  variant="outline" 
-                  onClick={closeEdit}
-                  className="rounded-lg px-6"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={submitEdit} 
-                  disabled={editingSaving}
-                  className="rounded-lg px-6"
-                >
-                  {editingSaving ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Saving...
-                    </>
-                  ) : 'Save Changes'}
-                </Button>
-              </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Error Loading Providers</h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">{error}</p>
+            <Button onClick={loadProviders} className="mt-4">Try Again</Button>
+          </div>
+        ) : providers.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800">
+              <Blocks className="h-8 w-8" />
             </div>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">No providers found</h3>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">Get started by creating your first TSP provider</p>
+            <Button onClick={openCreate} className="mt-4"><Plus /> Create First Provider</Button>
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="p-12 text-center text-[14px] text-gray-500">No providers match your search or filter.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 px-5 pb-5 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map(({ p, i }) => {
+              const isActive = (p.status ?? "active") === "active";
+              return (
+                <div key={p.id} className="flex flex-col rounded-2xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-900">
+                  <div className="flex items-start gap-4">
+                    <ProviderIcon index={i} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-[17px] font-semibold text-gray-900 dark:text-gray-100">{p.name}</h3>
+                      {p.code && <div className="mt-1"><ProviderCode index={i} code={p.code} /></div>}
+                    </div>
+                    <span
+                      className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-semibold ${
+                        isActive
+                          ? "border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-400"
+                          : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-400"
+                      }`}
+                    >
+                      <span className={`h-2 w-2 rounded-full ${isActive ? "bg-green-500" : "bg-amber-500"}`} />
+                      {isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+
+                  <dl className="mt-5 flex-1 space-y-3 border-t border-gray-100 pt-4 text-[13px] dark:border-gray-800">
+                    {[
+                      { icon: Settings2, k: "Provider Type", v: DIRECTION_LABEL[p.default_direction ?? "both"] },
+                      { icon: CalendarDays, k: "Created Date", v: fmtDate(p.created_at) },
+                      { icon: FileText, k: "Description", v: p.description || "—" },
+                    ].map((row) => (
+                      <div key={row.k} className="grid grid-cols-[20px_110px_1fr] items-start gap-2">
+                        <row.icon className="mt-0.5 h-4 w-4 text-gray-400" />
+                        <dt className="text-gray-500">{row.k}</dt>
+                        <dd className="min-w-0 break-words font-medium text-gray-800 dark:text-gray-200">{row.v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <span className="text-[13px] text-gray-500">ID: {p.id}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openEdit(p)}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3.5 text-[13px] font-medium text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-300"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleting(p)}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 text-[13px] font-medium text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-400"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mx-5 mb-5 flex items-start gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+          <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400">
+            <Info className="h-6 w-6" />
+          </span>
+          <div>
+            <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Provider Configuration Guide</h3>
+            <p className="mt-1 text-[13px] text-gray-600 dark:text-gray-400">
+              Providers listed here become available on the TSP Mappings page, where you enable them per merchant for pay-in and
+              pay-out, choose the default route, and set merchant IDs and amount limits. Inactive providers stay listed but should
+              not be used for new routing.
+            </p>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Create / Edit */}
+      <Dialog open={formOpen} onOpenChange={(o) => !saving && setFormOpen(o)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Provider" : "Create TSP Provider"}</DialogTitle>
+            <DialogDescription>{editing ? "Update provider details" : "Add a new payment gateway provider"}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submitForm} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Name <span className="text-red-500">*</span></span>
+                <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Templamart" required />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Code <span className="text-red-500">*</span></span>
+                <Input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. TEMPLAMART" required />
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Description</span>
+              <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="What this provider is used for" />
+            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Provider Type</span>
+                <select
+                  value={form.default_direction ?? "both"}
+                  onChange={(e) => setForm((f) => ({ ...f, default_direction: e.target.value as Direction }))}
+                  className={fieldCls}
+                >
+                  <option value="payin">Pay-in</option>
+                  <option value="payout">Pay-out</option>
+                  <option value="both">Pay-in &amp; Pay-out</option>
+                </select>
+              </label>
+              {editing && (
+                <label className="block">
+                  <span className="mb-1.5 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Status</span>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as ProviderStatus }))}
+                    className={fieldCls}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </label>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button>
+              <Button type="submit" disabled={saving}>
+                {saving && <Loader2 className="animate-spin" />}
+                {editing ? "Save Changes" : "Create Provider"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && !deleteBusy && setDeleting(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete provider?</DialogTitle>
+            <DialogDescription>
+              "{deleting?.name}" and all of its merchant mappings will be removed. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleting(null)} disabled={deleteBusy}>
+              <X /> Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleteBusy}>
+              {deleteBusy ? <Loader2 className="animate-spin" /> : <Trash2 />} Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
