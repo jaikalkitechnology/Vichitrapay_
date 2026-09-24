@@ -129,6 +129,35 @@ def read_my_transactions(
     }
 
 
+@router.get("/analytics", response_model=Dict[str, Any], summary="Daily series and totals for the current merchant")
+def merchant_analytics(
+    from_date: Optional[str] = Query(None, description="YYYY-MM-DD; default 6 days before to_date"),
+    to_date: Optional[str] = Query(None, description="YYYY-MM-DD; default today"),
+    transaction_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user=Depends(user_required),
+):
+    """Same shape as /admin/analytics, always scoped to the logged-in merchant."""
+    from routers.admin import _analytics, _parse_date_input  # lazy: avoid import cycles
+
+    today = datetime.now(india_tz).date()
+    end_dt = _parse_date_input(to_date)
+    end = end_dt.date() if end_dt else today
+    start_dt = _parse_date_input(from_date)
+    start = start_dt.date() if start_dt else end - timedelta(days=6)
+    if start > end:
+        raise HTTPException(status_code=422, detail="from_date must be <= to_date")
+    if (end - start).days > 366:
+        raise HTTPException(status_code=422, detail="Range is limited to one year")
+    filters = dict(user_id=current_user.id, transaction_type=transaction_type, status=status, search=search)
+    cur = _analytics(db, start, end, **filters)
+    span = (end - start).days + 1
+    prev = _analytics(db, start - timedelta(days=span), start - timedelta(days=1), **filters)
+    return {"from_date": start.isoformat(), "to_date": end.isoformat(), **cur, "previous": prev["totals"]}
+
+
 @router.get("/merchant/metrics", summary="Get metrics for current merchant")
 def merchant_wallet_metrics(
     db: Session = Depends(get_db),

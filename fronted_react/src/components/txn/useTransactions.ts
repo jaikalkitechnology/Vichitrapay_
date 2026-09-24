@@ -40,9 +40,9 @@ export default function useTransactions(initialQuery: Query = {}) {
       const nextQuery = { ...query, ...overrides, page: overrides.page ?? query.page ?? 1 };
 
       // handle search debounce: if search exists in overrides or query has search
-      const searchValue = overrides.search !== undefined ? overrides.search : query.search;
-      // if debounce requested and search provided, debounce for 400ms
-      if (debounceSearch && searchValue !== undefined) {
+      // debounce only when the search text itself changes (paging/sorting must not reset to page 1)
+      const searchChanged = overrides.search !== undefined && overrides.search !== query.search;
+      if (debounceSearch && searchChanged) {
         if (searchTimer.current) window.clearTimeout(searchTimer.current);
         searchTimer.current = window.setTimeout(() => {
           fetchData({ ...overrides, page: 1 }, false);

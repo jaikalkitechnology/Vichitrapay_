@@ -64,8 +64,9 @@ export const toChartData = (a: Analytics | null): ChartData | null =>
     status: a.status,
   };
 
-/** GET /admin/analytics for the given filters; refetches when they change. */
-export default function useAnalytics(params: AnalyticsParams) {
+/** GET analytics for the given filters; refetches when they change. */
+/** Pass endpoint "/merchant/analytics" for the logged-in merchant's own numbers. */
+export default function useAnalytics(params: AnalyticsParams, endpoint = "/admin/analytics") {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export default function useAnalytics(params: AnalyticsParams) {
     setError(null);
     try {
       const clean = Object.fromEntries(Object.entries(JSON.parse(key)).filter(([, v]) => v !== undefined && v !== ""));
-      const res = await api.get(`${BASE_URL}/admin/analytics`, { params: clean });
+      const res = await api.get(`${BASE_URL}${endpoint}`, { params: clean });
       setData(res.data);
     } catch (err: any) {
       console.error("analytics error", err);
@@ -84,7 +85,7 @@ export default function useAnalytics(params: AnalyticsParams) {
     } finally {
       setLoading(false);
     }
-  }, [key]);
+  }, [key, endpoint]);
 
   useEffect(() => {
     load();

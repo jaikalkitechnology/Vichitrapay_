@@ -182,3 +182,64 @@ export function FeesChart({ points, loading, subtitle }: { points: (Point & { fe
     </div>
   );
 }
+
+/** Grouped PayIn / PayOut volume bars per day (successful transactions). */
+export function VolumeBarsChart({
+  points,
+  loading,
+  title,
+  subtitle,
+  height = 220,
+}: {
+  points: (Point & { payin: number; payout: number })[];
+  loading: boolean;
+  title: string;
+  subtitle?: string;
+  height?: number;
+}) {
+  const has = points.some((p) => p.payin || p.payout);
+  const ref = useChart(
+    (_ctx, t) =>
+      has && {
+        type: "bar",
+        data: {
+          labels: points.map((p) => p.label),
+          datasets: [
+            { label: "PayIn", data: points.map((p) => p.payin), backgroundColor: CHART_COLORS.payin, borderRadius: 5, maxBarThickness: 18 },
+            { label: "PayOut", data: points.map((p) => p.payout), backgroundColor: "#A855F7", borderRadius: 5, maxBarThickness: 18 },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltip(t.dark), callbacks: { label: (c: { dataset: { label: string }; raw: unknown }) => ` ${c.dataset.label}   ₹${Number(c.raw).toLocaleString("en-IN")}` } },
+          },
+          scales: {
+            x: { grid: { display: false }, border: { display: false }, ticks: { color: t.text, maxRotation: 0 } },
+            y: { grid: { color: t.grid }, border: { display: false }, beginAtZero: true, ticks: { color: t.text, callback: (v: number) => "₹" + formatLakhs(v) } },
+          },
+        },
+      },
+    [points, has]
+  );
+  return (
+    <div className={`${cardCls} flex flex-col`}>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[16px] font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-[13px] text-gray-500">{subtitle}</p>}
+        </div>
+        <div className="flex gap-4 text-[12.5px] text-gray-600 dark:text-gray-400">
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS.payin }} /> PayIn</span>
+          <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#A855F7]" /> PayOut</span>
+        </div>
+      </div>
+      <div className="relative flex-1" style={{ minHeight: height }}>
+        {loading ? <Loading /> : !has ? <Empty /> : <div className="absolute inset-0"><canvas ref={ref} /></div>}
+      </div>
+    </div>
+  );
+}
