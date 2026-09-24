@@ -33,8 +33,6 @@ import {
   UserCheck,
   ArrowRight,
   Activity,
-  Check,
-  X,
   Eye,
   Copy,
   ExternalLink,
@@ -61,21 +59,11 @@ import AdminPayoutManagement from "@/components/txn/AdminPayoutManagement";
 import TspMappingPage from "@/components/admin-part/TspMappingPage";
 import TspProvidersPage from "@/components/admin-part/TspProvidersPage";
 import AdminReport from "@/components/txn/AdminReport";
+import AdminSettlements from "@/components/txn/AdminSettlements";
 import BankApproval from "@/components/txn/BankApproval";
 import { ActionMenu, EmptyState, PageHeader, Panel, StatCard, StatusBadge } from "@/components/admin-part/ui";
 
 // ---- helpers ---------------------------------------------------------------
-type SettlementStatus = "pending" | "approved" | "rejected" | "requested" | "completed" | "failed";
-type SettlementItem = {
-  id: string | number;
-  txn_id: string;
-  user_id: string;
-  amount: number;
-  currency?: string;
-  settled_date?: string | null;
-  requested_at?: string | null;
-  status: SettlementStatus;
-};
 type BalanceAmount = { balance: string };
 type BalanceResponse = {
   success: boolean;
@@ -105,8 +93,6 @@ const fmtBalance = (b: string) => {
 
 const fmtDateTime = (d?: string | null) =>
   d ? new Date(d).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-";
-const fmtDate = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString(undefined, { dateStyle: "medium" }) : "-";
 
 type RecentTxn = {
   id: number;
@@ -227,9 +213,6 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<AdminSummaryOut | null>(null);
   const [balance, setBalance] = useState<BalanceAmount | null>(null);
-  const [items, setItems] = useState<SettlementItem[]>([]);
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<"all" | SettlementStatus>("all");
 
   useEffect(() => {
     let mounted = true;
@@ -252,19 +235,6 @@ export default function AdminDashboard() {
       mounted = false;
     };
   }, []);
-
-  const fetchList = async (p = 1) => {
-    try {
-      const r = await api.get(`${BASE_URL}/admin/settled?page=${p}&per_page=20`);
-      setItems(r.data as SettlementItem[]);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-  
-  useEffect(() => {
-    fetchList(page);
-  }, [page]);
 
   const fetchBalance = async () => {
     try {
@@ -302,38 +272,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchBalance();
   }, []);
-
-  const [settlementLoadingMap, setSettlementLoadingMap] = useState<Record<string, boolean>>({});
-
-  const setSettlementLoading = (id: string | number, v: boolean) => {
-    setSettlementLoadingMap((s) => ({ ...s, [String(id)]: v }));
-  };
-
-  const handleSettlementAction = async (settlementId: string | number, action: "approved" | "rejected") => {
-    const idStr = String(settlementId);
-    const verb = action === "approved" ? "approve" : "reject";
-    setSettlementLoading(idStr, true);
-
-    try {
-      const res = await api.post(`${BASE_URL}/admin/${encodeURIComponent(idStr)}/${verb}`);
-      toast({
-        title: "✅ Settlement Updated",
-        description: `Settlement ${action} successfully`,
-        variant: "default",
-      });
-      await fetchList(page);
-    } catch (err: any) {
-      console.error("settlement action error", err);
-      toast({
-        title: "❌ Update Failed",
-        description: err?.response?.data?.detail || "Failed to update settlement",
-        variant: "destructive",
-      });
-    } finally {
-      setSettlementLoading(idStr, false);
-    }
-  };
-
 
   const [recent, setRecent] = useState<RecentTxn[] | null>(null);
   const fetchRecent = async () => {
@@ -588,153 +526,7 @@ export default function AdminDashboard() {
   const renderReport = () => <AdminReport />;
   const renderBankApproval = () => <BankApproval />;
 
-  const filteredItems =
-    statusFilter === "all" ? items : items.filter((i) => i.status === statusFilter);
-
-  const renderSettlements = () => (
-    <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Settlements"
-        description="Approve and manage settlement requests"
-        actions={
-          <>
-            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="requested">Requested</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={() => fetchList(page)}>
-              <RefreshCw /> Refresh
-            </Button>
-          </>
-        }
-      />
-
-      <Panel title="Settlement Requests" meta={`${filteredItems.length} results`}>
-        {/* Desktop Table */}
-        <div className="hidden md:block">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Settlement ID</TableHead>
-                <TableHead>Merchant</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Settled</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Requested</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItems.map((it) => (
-                <TableRow key={it.id}>
-                  <TableCell className={cellMono}>
-                    <span className="truncate max-w-[200px] inline-block align-middle" title={it.txn_id}>{it.txn_id}</span>
-                  </TableCell>
-                  <TableCell className="font-medium text-gray-900 dark:text-gray-100">{it.user_id}</TableCell>
-                  <TableCell className={`text-right ${cellAmount}`}>{inr.format(it.amount)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{fmtDateTime(it.settled_date)}</TableCell>
-                  <TableCell><StatusBadge status={it.status} /></TableCell>
-                  <TableCell className="whitespace-nowrap">{fmtDateTime(it.requested_at)}</TableCell>
-                  <TableCell className="text-right">
-                    {settlementLoadingMap[it.txn_id] ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-indigo-600 inline" />
-                    ) : (
-                      <div className="flex justify-end">
-                        <ActionMenu
-                          items={
-                            it.status === "pending"
-                              ? [
-                                  { label: "Approve", icon: Check, onClick: () => handleSettlementAction(it.txn_id, "approved") },
-                                  { label: "Reject", icon: X, destructive: true, onClick: () => handleSettlementAction(it.txn_id, "rejected") },
-                                ]
-                              : []
-                          }
-                        />
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredItems.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <EmptyState icon={Clock} title="No settlements found" description="Try changing your filters or check back later" />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Mobile View */}
-        <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800">
-          {filteredItems.map((it) => (
-            <div key={it.id} className="p-4">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <div className={`${cellMono} truncate`}>{it.txn_id}</div>
-                  <div className="text-[12px] text-gray-500 mt-0.5">Merchant: {it.user_id}</div>
-                </div>
-                <StatusBadge status={it.status} />
-              </div>
-              <div className="grid grid-cols-2 gap-3 text-[12px]">
-                <div>
-                  <div className="text-gray-500">Amount</div>
-                  <div className={cellAmount}>{inr.format(it.amount)}</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Settled</div>
-                  <div>{fmtDate(it.settled_date)}</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Currency</div>
-                  <div>{it.currency ?? "INR"}</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Requested</div>
-                  <div>{fmtDate(it.requested_at)}</div>
-                </div>
-              </div>
-              {it.status === "pending" && (
-                <div className="flex gap-2 mt-3">
-                  <Button variant="success" className="flex-1" onClick={() => handleSettlementAction(it.txn_id, "approved")} disabled={settlementLoadingMap[it.txn_id]}>
-                    Approve
-                  </Button>
-                  <Button variant="destructive" className="flex-1" onClick={() => handleSettlementAction(it.txn_id, "rejected")} disabled={settlementLoadingMap[it.txn_id]}>
-                    Reject
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-          {filteredItems.length === 0 && <EmptyState icon={Clock} title="No settlements found" />}
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-800 text-[13px] text-gray-500">
-          <span>Page {page}</span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-              Previous
-            </Button>
-            <Button variant="outline" onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
-      </Panel>
-    </div>
-  );
+  const renderSettlements = () => <AdminSettlements />;
 
   const renderAnalytics = () => (
     <div className="flex flex-col gap-5">

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Form
 from typing import List, Optional, Dict, Any, Tuple
 
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, desc, asc, and_
+from sqlalchemy import func, or_, desc, asc, and_, case, true
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -774,16 +774,128 @@ def read_my_transactions(
     }
 
 
+def _settled_filters(
+    status: Optional[str] = None,
+    user_id: Optional[str] = None,
+    txn_type: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    search: Optional[str] = None,
+) -> list:
+    """Filters shared by the settlement list and its stats (dates apply to created_date)."""
+    f = []
+    if status:
+        f.append(TransactionSettled.status == status)
+    if user_id:
+        f.append(TransactionSettled.user_id == user_id)
+    if txn_type:
+        f.append(TransactionSettled.txn_type == txn_type)
+    if min_amount is not None:
+        f.append(TransactionSettled.amount >= float(min_amount))
+    if max_amount is not None:
+        f.append(TransactionSettled.amount <= float(max_amount))
+    fd = _parse_date_input(from_date)
+    td = _parse_date_input(to_date)
+    if fd:
+        f.append(TransactionSettled.created_date >= fd)
+    if td:
+        if to_date and len(to_date.strip()) == 10:
+            td = td + timedelta(days=1) - timedelta(microseconds=1)
+        f.append(TransactionSettled.created_date <= td)
+    if search:
+        f.append(TransactionSettled.txn_id.ilike(f"%{search}%"))
+    return f
+
+
 @router.get("/settled", response_model=List[TransactionSettledOut])
 def list_transaction_settled(db: Session = Depends(get_db),
                              page: int = Query(1, ge=1), per_page: int = Query(20, ge=1, le=200),
-                             status: Optional[str] = None):
+                             status: Optional[str] = None,
+                             user_id: Optional[str] = None,
+                             txn_type: Optional[str] = Query(None, description="debit = withdrawal requests, credit = top-up ledger"),
+                             min_amount: Optional[float] = None,
+                             max_amount: Optional[float] = None,
+                             from_date: Optional[str] = Query(None, description="YYYY-MM-DD, on created_date"),
+                             to_date: Optional[str] = Query(None, description="YYYY-MM-DD, on created_date"),
+                             search: Optional[str] = None):
     q = db.query(TransactionSettled)
-    if status:
-        q = q.filter(TransactionSettled.status == status)
+    f = _settled_filters(status, user_id, txn_type, min_amount, max_amount, from_date, to_date, search)
+    if f:
+        q = q.filter(and_(*f))
     q = q.order_by(TransactionSettled.created_date.desc())
     items = q.offset((page-1)*per_page).limit(per_page).all()
     return items
+
+
+@router.get("/settled/stats", response_model=Dict[str, Any])
+def settled_stats(db: Session = Depends(get_db),
+                  status: Optional[str] = None,
+                  user_id: Optional[str] = None,
+                  txn_type: Optional[str] = None,
+                  min_amount: Optional[float] = None,
+                  max_amount: Optional[float] = None,
+                  from_date: Optional[str] = None,
+                  to_date: Optional[str] = None,
+                  search: Optional[str] = None,
+                  current_user: User = Depends(admin_required)):
+    """
+    Numbers for the admin Settlements page.
+      total            – rows matching the filters (for pagination)
+      pending          – pending requests (merchant/type filters only)
+      approved_month / rejected_month / settled_amount_month / settled_amount_last_month
+                       – calendar-month figures by created_date
+      daily            – last 14 days: approved, rejected, pending counts and settled amount
+    """
+    def base(extra: list):
+        f = _settled_filters(None, user_id, txn_type) + extra
+        return db.query(TransactionSettled).filter(and_(*f)) if f else db.query(TransactionSettled)
+
+    listed = _settled_filters(status, user_id, txn_type, min_amount, max_amount, from_date, to_date, search)
+    total = (db.query(func.count(TransactionSettled.id)).filter(and_(*listed)).scalar()
+             if listed else db.query(func.count(TransactionSettled.id)).scalar()) or 0
+
+    now = datetime.now(india_tz).replace(tzinfo=None)
+    month_start = datetime(now.year, now.month, 1)
+    last_month_start = datetime(now.year - 1, 12, 1) if now.month == 1 else datetime(now.year, now.month - 1, 1)
+    in_month = [TransactionSettled.created_date >= month_start]
+    in_last = [TransactionSettled.created_date >= last_month_start, TransactionSettled.created_date < month_start]
+
+    def count(extra):
+        return int(base(extra).with_entities(func.count(TransactionSettled.id)).scalar() or 0)
+
+    def amount(extra):
+        return float(base(extra).with_entities(func.coalesce(func.sum(TransactionSettled.amount), 0)).scalar() or 0)
+
+    ok = TransactionSettled.status == "success"
+    bad = TransactionSettled.status == "failed"
+    pend = TransactionSettled.status == "pending"
+
+    day0 = datetime(now.year, now.month, now.day) - timedelta(days=13)
+    daily = []
+    for i in range(14):
+        ds, de = day0 + timedelta(days=i), day0 + timedelta(days=i + 1)
+        rng = [TransactionSettled.created_date >= ds, TransactionSettled.created_date < de]
+        daily.append({
+            "date": ds.date().isoformat(),
+            "approved": count(rng + [ok]),
+            "rejected": count(rng + [bad]),
+            "pending": count(rng + [pend]),
+            "settled_amount": amount(rng + [ok]),
+        })
+
+    return {
+        "total": int(total),
+        "pending": count([pend]),
+        "approved_month": count(in_month + [ok]),
+        "rejected_month": count(in_month + [bad]),
+        "settled_amount_month": amount(in_month + [ok]),
+        "settled_amount_last_month": amount(in_last + [ok]),
+        "daily": daily,
+    }
+
+
 def _set_timestamp_if_exists(obj, attr_name: str):
     if hasattr(obj, attr_name):
         try:
@@ -1725,12 +1837,161 @@ def _parse_date_input(v: Optional[str]) -> Optional[datetime]:
         return None
 
 
+def _wallet_txn_filters(
+    user_id: Optional[str] = None,
+    status: Optional[str] = None,
+    transaction_type: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    order_id: Optional[str] = None,
+    txn_id: Optional[str] = None,
+    instrument_mode: Optional[str] = None,
+    search: Optional[str] = None,
+) -> list:
+    """Filter list shared by the admin transaction list and its stats endpoint."""
+    filters = []
+    # admin route: no user_id means all merchants
+    if user_id:
+        filters.append(WalletTransaction.user_id == user_id)
+    if status:
+        filters.append(WalletTransaction.status == status)
+    if transaction_type:
+        try:
+            filters.append(WalletTransaction.transaction_type == TransactionTypeEnum(transaction_type))
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Unknown transaction_type {transaction_type!r}")
+    if order_id:
+        filters.append(WalletTransaction.order_id == order_id)
+    if txn_id:
+        filters.append(WalletTransaction.txn_id == txn_id)
+    if instrument_mode:
+        filters.append(WalletTransaction.instrument_mode == instrument_mode)
+    if min_amount is not None:
+        filters.append(WalletTransaction.amount >= float(min_amount))
+    if max_amount is not None:
+        filters.append(WalletTransaction.amount <= float(max_amount))
+
+    fd = _parse_date_input(from_date)
+    td = _parse_date_input(to_date)
+    if fd:
+        filters.append(WalletTransaction.created_at >= fd)
+    if td:
+        # a bare YYYY-MM-DD includes the whole day
+        if to_date and len(to_date.strip()) == 10:
+            td = td + timedelta(days=1) - timedelta(microseconds=1)
+        filters.append(WalletTransaction.created_at <= td)
+
+    if search:
+        term = f"%{search}%"
+        filters.append(
+            or_(
+                WalletTransaction.order_id.ilike(term),
+                WalletTransaction.txn_id.ilike(term),
+                WalletTransaction.utr.ilike(term),
+                WalletTransaction.reference_id.ilike(term),
+                WalletTransaction.description.ilike(term),
+            )
+        )
+    return filters
+
+
+@router.get("/wallet-transactions/stats", response_model=Dict[str, Any])
+def wallet_transaction_stats(
+    user_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    transaction_type: Optional[str] = Query(None),
+    min_amount: Optional[float] = Query(None),
+    max_amount: Optional[float] = Query(None),
+    from_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    to_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_required),
+):
+    """
+    Totals for the admin Transactions page, using the same filters as /wallet-transactions:
+    total_txns (all statuses), payin_volume / payout_volume / total_charges (success only,
+    unless a status filter is given). When both dates are set, `previous` holds the same
+    totals for the equally long window right before it.
+    """
+    def totals(fd: Optional[str], td: Optional[str]) -> Dict[str, Any]:
+        f = _wallet_txn_filters(user_id=user_id, status=status, transaction_type=transaction_type,
+                                min_amount=min_amount, max_amount=max_amount,
+                                from_date=fd, to_date=td, search=search)
+        base = db.query(WalletTransaction).filter(and_(*f)) if f else db.query(WalletTransaction)
+        total_txns = base.with_entities(func.count(WalletTransaction.id)).scalar() or 0
+        vol = base if status else base.filter(WalletTransaction.status == "success")
+
+        def vsum(col, ttype=None):
+            q = vol
+            if ttype is not None:
+                q = q.filter(WalletTransaction.transaction_type == ttype)
+            return float(q.with_entities(func.coalesce(func.sum(col), 0)).scalar() or 0)
+
+        return {
+            "total_txns": int(total_txns),
+            "payin_volume": vsum(WalletTransaction.amount, TransactionTypeEnum.PayIn),
+            "payout_volume": vsum(WalletTransaction.amount, TransactionTypeEnum.PayOut),
+            "total_charges": vsum(func.coalesce(WalletTransaction.charges, 0) + func.coalesce(WalletTransaction.gst, 0)),
+        }
+
+    current = totals(from_date, to_date)
+    previous = None
+    daily = []
+    start, end = _parse_date_input(from_date), _parse_date_input(to_date)
+    if start and end and end >= start:
+        span = (end.date() - start.date()).days + 1
+        prev_end = start.date() - timedelta(days=1)
+        prev_start = prev_end - timedelta(days=span - 1)
+        previous = totals(prev_start.isoformat(), prev_end.isoformat())
+
+        # per-day series for the stat-card trend lines (up to today, max ~3 months)
+        last = min(end.date(), datetime.now(india_tz).date())
+        if span <= 93 and last >= start.date():
+            f = _wallet_txn_filters(user_id=user_id, status=status, transaction_type=transaction_type,
+                                    min_amount=min_amount, max_amount=max_amount,
+                                    from_date=from_date, to_date=last.isoformat(), search=search)
+            day = func.date(WalletTransaction.created_at)
+            ok = true() if status else (WalletTransaction.status == "success")
+
+            def when(cond, val):
+                return func.coalesce(func.sum(case((cond, val), else_=0)), 0)
+
+            rows = (
+                db.query(
+                    day.label("d"),
+                    func.count(WalletTransaction.id),
+                    when(and_(ok, WalletTransaction.transaction_type == TransactionTypeEnum.PayIn), WalletTransaction.amount),
+                    when(and_(ok, WalletTransaction.transaction_type == TransactionTypeEnum.PayOut), WalletTransaction.amount),
+                    when(ok, func.coalesce(WalletTransaction.charges, 0) + func.coalesce(WalletTransaction.gst, 0)),
+                )
+                .filter(and_(*f))
+                .group_by(day)
+                .all()
+            )
+            by_day = {str(r[0]): r for r in rows}
+            for i in range((last - start.date()).days + 1):
+                d = (start.date() + timedelta(days=i)).isoformat()
+                r = by_day.get(d)
+                daily.append({
+                    "date": d,
+                    "txns": int(r[1]) if r else 0,
+                    "payin_volume": float(r[2]) if r else 0.0,
+                    "payout_volume": float(r[3]) if r else 0.0,
+                    "charges": float(r[4]) if r else 0.0,
+                })
+    return {**current, "previous": previous, "daily": daily}
+
+
 @router.get("/wallet-transactions", response_model=Dict[str, Any])
 def list_wallet_transactions(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=200),
-    user_id: Optional[str] = Query(None, description="Filter by user_id (admin only)"),
+    user_id: Optional[str] = Query(None, description="Filter by merchant; omit for all merchants"),
     status: Optional[str] = Query(None, description="status filter"),
+    transaction_type: Optional[str] = Query(None, description="PayIn, PayOut, ..."),
     min_amount: Optional[float] = Query(None, description="Minimum amount"),
     max_amount: Optional[float] = Query(None, description="Maximum amount"),
     from_date: Optional[str] = Query(None, description="From created_at (ISO or YYYY-MM-DD)"),
@@ -1738,75 +1999,22 @@ def list_wallet_transactions(
     order_id: Optional[str] = Query(None, description="Filter by order_id"),
     txn_id: Optional[str] = Query(None, description="Filter by txn_id"),
     instrument_mode: Optional[str] = Query(None, description="Filter by instrument mode"),
-    search: Optional[str] = Query(None, description="Search in order_id, txn_id, description"),
+    search: Optional[str] = Query(None, description="Search in order_id, txn_id, utr, reference_id, description"),
     sort_by: Optional[str] = Query("created_at", description="Sort field: created_at, amount, status, order_id"),
     sort_dir: Optional[str] = Query("desc", description="asc or desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_required),
 ):
     """
-    List wallet transactions with pagination and filters.
-    Non-admin users only see their own transactions. Admins can pass user_id to filter any user.
+    List wallet transactions with pagination and filters (admin only).
+    Without user_id, transactions of all merchants are returned.
     """
-    # --- permission check: only admins can filter by other users
-    #is_admin = getattr(current_user, "is_admin", False) or getattr(current_user, "role", None) in ("admin", "superadmin")
-    # is_admin = current_user.role is 2
-    # if user_id and not is_admin:
-    #     raise HTTPException(status_code=403, detail="Only admin can filter by user_id")
-
-    # base query: only PayOut type (keep if required), otherwise remove
     query = db.query(WalletTransaction)
-
-    # build filter list
-    filters = []
-
-    # restrict to current user for non-admins
-    #if is_admin:
-    if user_id:
-        filters.append(WalletTransaction.user_id == user_id)
-    else:
-        filters.append(WalletTransaction.user_id == getattr(current_user, "id"))
-
-    if status:
-        filters.append(WalletTransaction.status == status)
-
-    if order_id:
-        filters.append(WalletTransaction.order_id == order_id)
-
-    if txn_id:
-        filters.append(WalletTransaction.txn_id == txn_id)
-
-    if instrument_mode:
-        filters.append(WalletTransaction.instrument_mode == instrument_mode)
-
-    if min_amount is not None:
-        filters.append(WalletTransaction.amount >= float(min_amount))
-
-    if max_amount is not None:
-        filters.append(WalletTransaction.amount <= float(max_amount))
-
-    # date parsing
-    fd = _parse_date_input(from_date)
-    td = _parse_date_input(to_date)
-    if fd:
-        filters.append(WalletTransaction.created_at >= fd)
-    if td:
-        # if the input was only a date we already set time 00:00:00; include whole day
-        # to be safe, if user passed YYYY-MM-DD we want end of that day
-        if len(td.isoformat()) == 19 and td.hour == 0 and td.minute == 0 and td.second == 0 and (to_date and len(to_date) == 10):
-            td = td + timedelta(days=1) - timedelta(microseconds=1)
-        filters.append(WalletTransaction.created_at <= td)
-
-    # search partial across multiple fields
-    if search:
-        term = f"%{search}%"
-        filters.append(
-            or_(
-                WalletTransaction.order_id.ilike(term),
-                WalletTransaction.txn_id.ilike(term),
-                WalletTransaction.description.ilike(term),
-            )
-        )
+    filters = _wallet_txn_filters(
+        user_id=user_id, status=status, transaction_type=transaction_type,
+        min_amount=min_amount, max_amount=max_amount, from_date=from_date, to_date=to_date,
+        order_id=order_id, txn_id=txn_id, instrument_mode=instrument_mode, search=search,
+    )
 
     if filters:
         query = query.filter(and_(*filters))
@@ -1854,6 +2062,7 @@ def list_wallet_transactions(
             "gst": float(getattr(r, "gst", None)) if getattr(r, "gst", None) is not None else None,
             "reference_id": getattr(r, "reference_id", None),
             "txn_id": r.txn_id,
+            "utr": getattr(r, "utr", None),
             "description": getattr(r, "description", None),
             "instrument_mode": getattr(r, "instrument_mode", None),
             "api_name": getattr(r, "api_name", None),

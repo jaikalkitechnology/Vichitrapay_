@@ -82,6 +82,7 @@ export type WalletTransactionOut = {
   gst?: number | null;
   reference_id?: string | null;
   txn_id?: string | null;
+  utr?: string | null;
   description?: string | null;
   instrument_mode?: string | null;
   api_name?: string | null;

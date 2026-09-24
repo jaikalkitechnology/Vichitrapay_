@@ -78,6 +78,22 @@ export function Sparkline({ values, color, className = "h-12 w-28" }: { values: 
   );
 }
 
+/** Small SVG bar series for stat cards. */
+export function MiniBars({ values, color, className = "h-12 w-24" }: { values: number[]; color: string; className?: string }) {
+  if (values.length === 0) return null;
+  const w = 96, h = 48, gap = 3;
+  const max = Math.max(...values, 0) || 1;
+  const bw = (w - gap * (values.length - 1)) / values.length;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none" aria-hidden="true">
+      {values.map((v, i) => {
+        const bh = Math.max(2, (v / max) * (h - 2));
+        return <rect key={i} x={i * (bw + gap)} y={h - bh} width={bw} height={bh} rx={Math.min(2, bw / 2)} fill={color} opacity={v ? 0.35 + 0.65 * (v / max) : 0.15} />;
+      })}
+    </svg>
+  );
+}
+
 const cardCls = "rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900";
 
 function ChartLoading({ height }: { height: number }) {
