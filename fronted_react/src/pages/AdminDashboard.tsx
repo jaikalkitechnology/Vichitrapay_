@@ -24,9 +24,7 @@ import {
   IndianRupee,
   Loader2,
   Wallet,
-  BarChart3,
   CheckCircle,
-  Clock,
   AlertCircle,
   Shield,
   RefreshCw,
@@ -60,8 +58,10 @@ import TspMappingPage from "@/components/admin-part/TspMappingPage";
 import TspProvidersPage from "@/components/admin-part/TspProvidersPage";
 import AdminReport from "@/components/txn/AdminReport";
 import AdminSettlements from "@/components/txn/AdminSettlements";
+import AdminAnalytics from "@/components/txn/AdminAnalytics";
+import PendingAction from "@/components/admin-part/PendingAction";
 import BankApproval from "@/components/txn/BankApproval";
-import { ActionMenu, EmptyState, PageHeader, Panel, StatCard, StatusBadge } from "@/components/admin-part/ui";
+import { ActionMenu, EmptyState, PageHeader, StatusBadge } from "@/components/admin-part/ui";
 
 // ---- helpers ---------------------------------------------------------------
 type BalanceAmount = { balance: string };
@@ -104,39 +104,6 @@ type RecentTxn = {
   amount: number;
   created_at?: string | null;
 };
-
-// Pending-action cards with a faint watermark icon
-const ACTION_TONES = {
-  amber: { card: "bg-amber-50 border-amber-200/70 dark:bg-amber-950/20 dark:border-amber-900/60", icon: "bg-amber-500 text-white shadow-amber-500/30", mark: "text-amber-500", cta: "text-amber-700 dark:text-amber-400" },
-  indigo: { card: "bg-indigo-50 border-indigo-200/70 dark:bg-indigo-950/30 dark:border-indigo-900/60", icon: "bg-indigo-600 text-white shadow-indigo-600/30", mark: "text-indigo-500", cta: "text-indigo-700 dark:text-indigo-400" },
-  red: { card: "bg-rose-50 border-rose-200/70 dark:bg-rose-950/20 dark:border-rose-900/60", icon: "bg-rose-500 text-white shadow-rose-500/30", mark: "text-rose-500", cta: "text-rose-700 dark:text-rose-400" },
-  green: { card: "bg-emerald-50 border-emerald-200/70 dark:bg-emerald-950/20 dark:border-emerald-900/60", icon: "bg-emerald-500 text-white shadow-emerald-500/30", mark: "text-emerald-500", cta: "text-emerald-700 dark:text-emerald-400" },
-} as const;
-
-function PendingAction({
-  label, value, icon: Icon, tone, cta, onClick,
-}: {
-  label: string; value: ReactNode; icon: typeof Users; tone: keyof typeof ACTION_TONES; cta: string; onClick: () => void;
-}) {
-  const t = ACTION_TONES[tone];
-  return (
-    <div className={`relative overflow-hidden rounded-2xl border p-5 ${t.card}`}>
-      <Icon className={`pointer-events-none absolute -bottom-4 -right-3 h-24 w-24 opacity-[0.08] ${t.mark}`} aria-hidden="true" />
-      <div className="relative flex items-start gap-4">
-        <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl shadow-lg ${t.icon}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[13px] font-medium text-gray-600 dark:text-gray-400">{label}</p>
-          <p className="mt-1 text-2xl font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{value}</p>
-          <button onClick={onClick} className={`mt-2 inline-flex items-center gap-1 text-[13px] font-semibold hover:underline ${t.cta}`}>
-            {cta} <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const STAT_TONES = {
   blue: { tile: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/30", line: "#3B6BF6" },
@@ -529,38 +496,11 @@ export default function AdminDashboard() {
   const renderSettlements = () => <AdminSettlements />;
 
   const renderAnalytics = () => (
-    <div className="flex flex-col gap-5">
-      <PageHeader title="Analytics" description="Platform performance and pending workload" />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="Transaction Success Rate" value="94.2%" icon={BarChart3} hint="+2.1% from last month" hintTone="up" />
-        <StatCard label="Avg Transaction Size" value="₹8,450" icon={CreditCard} hint="+5.3% from last month" hintTone="up" />
-        <StatCard label="Settlement Processing Time" value="2.4 hrs" icon={Clock} hint="-0.8 hrs from last month" hintTone="up" />
-      </div>
-
-      <Panel title="Platform Health" meta="Real-time system status">
-        <div className="p-4 flex flex-col gap-4">
-          <div className="flex items-center justify-between rounded-md border border-green-200 bg-green-50/60 dark:border-green-900/60 dark:bg-green-950/20 px-4 py-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 flex items-center justify-center">
-                <CheckCircle className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-[13px] font-medium text-gray-900 dark:text-gray-100">API Uptime</div>
-                <div className="text-[11px] text-gray-500">Last 30 days</div>
-              </div>
-            </div>
-            <div className="text-xl font-bold text-green-700 dark:text-green-400 tabular-nums">99.9%</div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard label="Active Merchants" value={summary?.total_merchants ?? "—"} icon={Users} />
-            <StatCard label="Pending KYC" value={summary?.merchant_kyc_pending ?? "—"} icon={AlertCircle} />
-            <StatCard label="Pending Settlements" value={summary?.total_settle_pending ?? "—"} icon={Clock} />
-          </div>
-        </div>
-      </Panel>
-    </div>
+    <AdminAnalytics
+      summary={summary}
+      balance={balance ? fmtBalance(balance.balance) : null}
+      onRefreshBalance={fetchBalance}
+    />
   );
 
   const renderContent = () => {

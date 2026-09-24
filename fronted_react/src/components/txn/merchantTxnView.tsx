@@ -326,7 +326,7 @@ export default function MerchantTransactionsPage() {
                 <strong className="text-gray-900 dark:text-gray-100">{total.toLocaleString("en-IN")}</strong> transactions
               </span>
             )}
-            <select value={query.per_page} onChange={(e) => setPerPage(Number(e.target.value))} className={`${filterInputCls} h-10 w-auto`} aria-label="Rows per page">
+            <select value={query.per_page} onChange={(e) => setPerPage(Number(e.target.value))} className={`${filterInputCls.replace("w-full", "w-auto")} h-10`} aria-label="Rows per page">
               {[10, 20, 50, 100].map((n) => (
                 <option key={n} value={n}>{n} / page</option>
               ))}

@@ -41,3 +41,40 @@ export const fmtDateTimeParts = (d?: string | null) => {
 
 export const filterInputCls =
   "h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-[13px] text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100";
+
+/** Last `n` days ending today, as YYYY-MM-DD. */
+export function lastNDays(n: number) {
+  const end = new Date();
+  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (n - 1));
+  return { from: ymd(start), to: ymd(end) };
+}
+
+/** Number of calendar days in from..to (inclusive), or null. */
+export function spanDays(from?: string, to?: string) {
+  if (!from || !to) return null;
+  const [fy, fm, fd] = from.split("-").map(Number);
+  const [ty, tm, td] = to.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000) + 1;
+}
+
+/** "Sep 01, 2026 – Sep 30, 2026" */
+export function rangeText(from?: string, to?: string) {
+  const f = (v: string) => {
+    const [y, m, d] = v.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  };
+  if (from && to) return `${f(from)} – ${f(to)}`;
+  if (from) return `From ${f(from)}`;
+  if (to) return `Until ${f(to)}`;
+  return "All time";
+}
+
+/** Best human-readable message from an axios/FastAPI error. */
+export function errorText(e: unknown, fallback = "Request failed") {
+  const err = e as { response?: { data?: { detail?: unknown } }; message?: string } | undefined;
+  const d = err?.response?.data?.detail;
+  if (typeof d === "string") return d;
+  if (Array.isArray(d)) return d.map((x: { msg?: string }) => x?.msg ?? String(x)).join(", ");
+  if (d && typeof d === "object" && "error" in d) return String((d as { error: unknown }).error);
+  return err?.message || fallback;
+}

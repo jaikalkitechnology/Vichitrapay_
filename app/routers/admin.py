@@ -472,58 +472,122 @@ def admin_mark_txn_success(txn_id: int, db: Session = Depends(get_db)):
     return {"success": True, "message": f"Txn {txn_id} marked as success", "new_status": "success"}
 
 
-@router.get("/chart-data")
-def admin_chart_data(days: int = Query(7, ge=1, le=30), db: Session = Depends(get_db)):
-    """Daily volume + txn counts for the last N days, plus status breakdown."""
-    from datetime import timedelta
-    today = datetime.now().replace(hour=23, minute=59, second=59)
+def _analytics(db: Session, start: date, end: date, **filters) -> Dict[str, Any]:
+    """
+    Per-day and window totals for [start, end] (inclusive calendar dates).
+    Volumes, fees and *_count use successful transactions; *_total counts every status.
+    `filters` are passed to _wallet_txn_filters (user_id, transaction_type, status, search).
+    """
+    f = _wallet_txn_filters(from_date=start.isoformat(), to_date=end.isoformat(), **filters)
+    ok = WalletTransaction.status == "success"
+    is_in = WalletTransaction.transaction_type == TransactionTypeEnum.PayIn
+    is_out = WalletTransaction.transaction_type == TransactionTypeEnum.PayOut
+    fee = func.coalesce(WalletTransaction.charges, 0) + func.coalesce(WalletTransaction.gst, 0)
 
+    def ssum(cond, val):
+        return func.coalesce(func.sum(case((cond, val), else_=0)), 0)
+
+    cols = (
+        ssum(and_(ok, is_in), WalletTransaction.amount),
+        ssum(and_(ok, is_out), WalletTransaction.amount),
+        ssum(and_(ok, is_in), 1),
+        ssum(and_(ok, is_out), 1),
+        ssum(is_in, 1),
+        ssum(is_out, 1),
+        ssum(ok, fee),
+        ssum(ok, 1),
+        ssum(ok, WalletTransaction.amount),
+        func.count(WalletTransaction.id),
+    )
+    day = func.date(WalletTransaction.created_at)
+    rows = db.query(day, *cols).filter(and_(*f)).group_by(day).all()
+    by_day = {str(r[0]): r for r in rows}
+
+    keys = ("payin_volume", "payout_volume", "payin_count", "payout_count", "payin_total", "payout_total", "fees")
     daily = []
-    for i in range(days - 1, -1, -1):
-        day_start = (today - timedelta(days=i)).replace(hour=0, minute=0, second=0)
-        day_end = day_start.replace(hour=23, minute=59, second=59)
-        label = day_start.strftime("%d %b")
-
-        row = {"date": label, "payin_volume": 0, "payout_volume": 0,
-               "payin_count": 0, "payout_count": 0, "fees": 0}
-
-        for txn_type, vol_key, cnt_key in [
-            (TransactionTypeEnum.PayIn, "payin_volume", "payin_count"),
-            (TransactionTypeEnum.PayOut, "payout_volume", "payout_count"),
-        ]:
-            q = db.query(
-                func.coalesce(func.sum(WalletTransaction.amount), 0),
-                func.coalesce(func.count(WalletTransaction.id), 0),
-                func.coalesce(func.sum(WalletTransaction.charges), 0),
-            ).filter(
-                WalletTransaction.created_at >= day_start,
-                WalletTransaction.created_at <= day_end,
-                WalletTransaction.transaction_type == txn_type,
-                WalletTransaction.status == "success",
-            )
-            vol, cnt, fees = q.one()
-            row[vol_key] = float(vol)
-            row[cnt_key] = int(cnt)
-            row["fees"] += float(fees)
-
+    for i in range((end - start).days + 1):
+        d = start + timedelta(days=i)
+        r = by_day.get(d.isoformat())
+        row = {"date": d.isoformat()}
+        for k, idx in zip(keys, range(1, 8)):
+            row[k] = (float(r[idx]) if k.endswith(("volume", "fees")) else int(r[idx])) if r else 0
         daily.append(row)
 
-    # Status breakdown (today)
-    today_start = today.replace(hour=0, minute=0, second=0)
-    status_counts = db.query(
-        WalletTransaction.status,
-        func.count(WalletTransaction.id),
-    ).filter(
-        WalletTransaction.created_at >= today_start,
-        WalletTransaction.transaction_type == TransactionTypeEnum.PayIn,
-    ).group_by(WalletTransaction.status).all()
+    t = db.query(*cols).filter(and_(*f)).one()
+    txns, success_count, success_volume, fees = int(t[9] or 0), int(t[7] or 0), float(t[8] or 0), float(t[6] or 0)
+    status_rows = (
+        db.query(WalletTransaction.status, func.count(WalletTransaction.id))
+        .filter(and_(*f))
+        .group_by(WalletTransaction.status)
+        .all()
+    )
+    status_counts = {"success": 0, "pending": 0, "failed": 0}
+    for st, cnt in status_rows:
+        if st in status_counts:
+            status_counts[st] = int(cnt)
+    active = (
+        db.query(func.count(func.distinct(WalletTransaction.user_id))).filter(and_(*f)).scalar() or 0
+    )
+    return {
+        "daily": daily,
+        "status": status_counts,
+        "totals": {
+            "txns": txns,
+            "success_count": success_count,
+            "success_volume": success_volume,
+            "success_rate": round(success_count / txns * 100, 2) if txns else None,
+            "avg_txn_size": round(success_volume / success_count, 2) if success_count else None,
+            "fees": fees,
+            "active_merchants": int(active),
+        },
+    }
 
-    status = {"success": 0, "pending": 0, "failed": 0}
-    for st, cnt in status_counts:
-        if st in status:
-            status[st] = int(cnt)
 
-    return {"daily": daily, "status": status}
+@router.get("/chart-data")
+def admin_chart_data(days: int = Query(7, ge=1, le=90), db: Session = Depends(get_db)):
+    """Daily success volume / counts / fees for the last N days, plus the status breakdown for the same window."""
+    end = datetime.now(india_tz).date()
+    data = _analytics(db, end - timedelta(days=days - 1), end)
+    daily = [
+        {
+            "date": datetime.fromisoformat(d["date"]).strftime("%d %b"),
+            "payin_volume": d["payin_volume"],
+            "payout_volume": d["payout_volume"],
+            "payin_count": d["payin_count"],
+            "payout_count": d["payout_count"],
+            "fees": d["fees"],
+        }
+        for d in data["daily"]
+    ]
+    return {"daily": daily, "status": data["status"]}
+
+
+@router.get("/analytics", response_model=Dict[str, Any])
+def admin_analytics(
+    from_date: Optional[str] = Query(None, description="YYYY-MM-DD; default 29 days before to_date"),
+    to_date: Optional[str] = Query(None, description="YYYY-MM-DD; default today"),
+    user_id: Optional[str] = Query(None),
+    transaction_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Analytics / report data for a date window: daily series, status breakdown and totals,
+    plus `previous` totals for the equally long window right before it.
+    """
+    today = datetime.now(india_tz).date()
+    end = (_parse_date_input(to_date) or datetime.combine(today, datetime.min.time())).date()
+    start = (_parse_date_input(from_date) or datetime.combine(end - timedelta(days=29), datetime.min.time())).date()
+    if start > end:
+        raise HTTPException(status_code=422, detail="from_date must be <= to_date")
+    if (end - start).days > 366:
+        raise HTTPException(status_code=422, detail="Range is limited to one year")
+    filters = dict(user_id=user_id, transaction_type=transaction_type, status=status, search=search)
+    cur = _analytics(db, start, end, **filters)
+    span = (end - start).days + 1
+    prev = _analytics(db, start - timedelta(days=span), start - timedelta(days=1), **filters)
+    return {"from_date": start.isoformat(), "to_date": end.isoformat(), **cur, "previous": prev["totals"]}
 
 
 @router.get("/merchants-list")

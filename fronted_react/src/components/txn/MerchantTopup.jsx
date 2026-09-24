@@ -1,6 +1,6 @@
 // MerchantTopup.jsx
 import React, { useEffect, useState } from "react";
-import { BASE_URL } from "@/config";
+import { API_ORIGIN, BASE_URL } from "@/config";
 import api from "@/api/api";
 import { StatusBadge } from "@/components/admin-part/ui";
 
@@ -268,7 +268,7 @@ export default function MerchantTopup() {
     }
   }
 
-  const pdfurl = "https://api.neopayment.in"
+  const pdfurl = API_ORIGIN
   // ---- utility helpers ----
   function normalizeReceiptUrl(raw) {
     if (!raw) return null;

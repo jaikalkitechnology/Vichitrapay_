@@ -257,7 +257,7 @@ export default function AdminSettlements() {
                 <strong className="text-gray-900 dark:text-gray-100">{total.toLocaleString("en-IN")}</strong> settlements
               </span>
             )}
-            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} className={`${filterInputCls} h-10 w-auto`} aria-label="Rows per page">
+            <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} className={`${filterInputCls.replace("w-full", "w-auto")} h-10`} aria-label="Rows per page">
               {[10, 20, 50, 100].map((n) => (
                 <option key={n} value={n}>{n} / page</option>
               ))}

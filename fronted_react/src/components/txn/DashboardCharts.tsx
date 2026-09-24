@@ -1,58 +1,10 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
+import { CHART_COLORS as C, getChart, destroyCharts, formatLakhs, loadChartJs, useIsDark } from "@/components/txn/chartUtils";
 import type { ChartData } from "@/components/txn/useChartData";
 import { ArrowRight, BarChart3 } from "lucide-react";
 
-declare const Chart: any;
 
 export type { ChartData, ChartDay } from "@/components/txn/useChartData";
-
-const CHART_JS_URL = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js";
-
-const C = {
-  payin: "#3B6BF6",
-  payout: "#F43F72",
-  success: "#22C55E",
-  pending: "#F59E0B",
-  failed: "#EF4444",
-};
-
-function loadChartJs(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof Chart !== "undefined") return resolve();
-    const s = document.createElement("script");
-    s.src = CHART_JS_URL;
-    s.onload = () => resolve();
-    document.head.appendChild(s);
-  });
-}
-
-function destroyCharts(list: any[]) {
-  list.forEach((c) => {
-    try {
-      c.destroy();
-    } catch {
-      // chart already torn down
-    }
-  });
-}
-
-function formatLakhs(v: number) {
-  if (v >= 10000000) return (v / 10000000).toFixed(1) + "Cr";
-  if (v >= 100000) return (v / 100000).toFixed(v >= 1000000 ? 0 : 1) + "L";
-  if (v >= 1000) return (v / 1000).toFixed(0) + "K";
-  return String(v);
-}
-
-/** Tracks the `dark` class that DashboardLayout toggles on <html>. */
-function useIsDark() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
-  useEffect(() => {
-    const obs = new MutationObserver(() => setDark(document.documentElement.classList.contains("dark")));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
 
 /** Small SVG trend line with a soft fill, for stat cards. */
 export function Sparkline({ values, color, className = "h-12 w-28" }: { values: number[]; color: string; className?: string }) {
@@ -138,11 +90,19 @@ export default function DashboardCharts({
   loading,
   rangeLabel,
   onViewDetails,
+  title = "Revenue Overview",
+  statusSubtitle,
+  headerRight,
 }: {
   data: ChartData | null;
   loading: boolean;
   rangeLabel: string;
-  onViewDetails: () => void;
+  /** omit to hide the "View Details" button */
+  onViewDetails?: () => void;
+  title?: string;
+  statusSubtitle?: string;
+  /** extra controls in the volume card header (e.g. a 7D/14D/30D switch) */
+  headerRight?: ReactNode;
 }) {
   const dark = useIsDark();
   const revenueRef = useRef<HTMLCanvasElement>(null);
@@ -165,9 +125,9 @@ export default function DashboardCharts({
       const textColor = dark ? "#94A3B8" : "#64748B";
       const gridColor = dark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.06)";
 
-      Chart.defaults.font.family = "Inter, system-ui, sans-serif";
-      Chart.defaults.font.size = 11;
-      Chart.defaults.color = textColor;
+      getChart().defaults.font.family = "Inter, system-ui, sans-serif";
+      getChart().defaults.font.size = 11;
+      getChart().defaults.color = textColor;
 
       if (revenueRef.current && hasDaily) {
         const ctx = revenueRef.current.getContext("2d")!;
@@ -178,7 +138,7 @@ export default function DashboardCharts({
           return g;
         };
         charts.current.push(
-          new Chart(ctx, {
+          new (getChart())(ctx, {
             type: "line",
             plugins: [crosshair],
             data: {
@@ -252,7 +212,7 @@ export default function DashboardCharts({
 
       if (donutRef.current && total > 0) {
         charts.current.push(
-          new Chart(donutRef.current, {
+          new (getChart())(donutRef.current, {
             type: "doughnut",
             data: {
               labels: ["Success", "Pending", "Failed"],
@@ -296,9 +256,12 @@ export default function DashboardCharts({
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
       <div className={`${cardCls} flex flex-col xl:col-span-2`}>
-        <div className="mb-4">
-          <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100">Revenue Overview</h3>
-          <p className="mt-0.5 text-[13px] text-gray-500">PayIn vs PayOut volume · {rangeLabel}</p>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+            <p className="mt-0.5 text-[13px] text-gray-500">PayIn vs PayOut volume · {rangeLabel}</p>
+          </div>
+          {headerRight}
         </div>
         <div className="relative flex-1" style={{ minHeight: height }}>
           {loading ? <ChartLoading height={height} /> : !hasDaily ? <ChartEmpty height={height} /> : <div className="absolute inset-0"><canvas ref={revenueRef} /></div>}
@@ -317,14 +280,16 @@ export default function DashboardCharts({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-[17px] font-semibold text-gray-900 dark:text-gray-100">Transaction Status</h3>
-            <p className="mt-0.5 text-[13px] text-gray-500">{rangeLabel}</p>
+            <p className="mt-0.5 text-[13px] text-gray-500">{statusSubtitle ?? rangeLabel}</p>
           </div>
+          {onViewDetails && (
           <button
             onClick={onViewDetails}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 px-3 text-[13px] font-medium text-indigo-600 hover:bg-indigo-50 dark:border-gray-700 dark:text-indigo-400 dark:hover:bg-indigo-950/40"
           >
             View Details <ArrowRight className="h-3.5 w-3.5" />
           </button>
+          )}
         </div>
         <div className="flex flex-col items-center gap-4 sm:flex-row xl:flex-col 2xl:flex-row">
           <div className="relative h-44 w-44 flex-shrink-0">

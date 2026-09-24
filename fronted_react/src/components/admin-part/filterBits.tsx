@@ -38,3 +38,24 @@ export function DateRangeInput({
     </div>
   );
 }
+
+/** 7D / 14D / 30D segmented switch; `value` is null when a custom range is set. */
+export function RangeToggle({ value, onChange, options = [7, 14, 30] }: { value: number | null; onChange: (days: number) => void; options?: number[] }) {
+  return (
+    <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-gray-700 dark:bg-gray-800/60" role="group" aria-label="Quick range">
+      {options.map((d) => (
+        <button
+          key={d}
+          type="button"
+          onClick={() => onChange(d)}
+          aria-pressed={value === d}
+          className={`h-8 rounded-md px-3 text-[12px] font-semibold transition ${
+            value === d ? "bg-indigo-600 text-white shadow-sm" : "text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          }`}
+        >
+          {d}D
+        </button>
+      ))}
+    </div>
+  );
+}
