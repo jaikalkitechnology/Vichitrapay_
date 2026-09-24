@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 
 const logo = "/logo.png";
@@ -196,7 +195,7 @@ export default function Login() {
                 )}
               </button>
 
-              <div className="flex items-center justify-between pt-1 text-[14px]">
+              <div className="flex items-center pt-1 text-[14px]">
                 <label className="flex cursor-pointer select-none items-center gap-2 text-slate-600">
                   <input
                     type="checkbox"
@@ -206,20 +205,6 @@ export default function Login() {
                   />
                   Remember me
                 </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button type="button" className="font-medium text-sky-600 hover:text-indigo-600 hover:underline">
-                      Forgot Password?
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-72 rounded-xl text-[13px] text-slate-600">
-                    <p className="font-semibold text-slate-900">Reset your password</p>
-                    <p className="mt-1">
-                      Contact your Vichitrapay administrator. Admins can set a new password for your account from the
-                      Merchants page.
-                    </p>
-                  </PopoverContent>
-                </Popover>
               </div>
             </form>
           </Form>
