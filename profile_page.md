@@ -2,7 +2,7 @@
 
 **Route**: `/merchant/profile` (old `/merchant/changePassword` opens the Security tab)
 **Role**: merchant (role=2) · admin review in the Merchants list (role=3)
-**Style**: Corporate Pro — same tokens, cards and dark mode as the rest of the panel
+**Style**: light lavender header, blue (`blue-600`) active tab, status-tinted sections — dark mode supported
 
 ---
 
@@ -11,7 +11,7 @@
 | Layer | File | What it holds |
 |-------|------|---------------|
 | Page | `fronted_react/src/components/txn/MerchantProfile.tsx` | Header, tabs, KYC tab, PG Fees tab, Security tab |
-| Shared UI | `fronted_react/src/components/txn/kycBits.tsx` | `KycStatusBadge`, `KycStatusIcon`, `KycStatusLine`, `KycDocLinks`, `KycItemCard` (text field / upload drop zone) |
+| Shared UI | `fronted_react/src/components/txn/kycBits.tsx` | `KycStatusBadge` (pill with icon), `KycStatusIcon`, `KycDocLinks` (links or View/Download buttons), `KycField` (Basic Information field), `KycDocRow` (KYC Documents list row) |
 | Admin UI | `fronted_react/src/components/txn/KycReviewDialog.tsx` | "Review KYC" dialog opened from `merchantlist.tsx` |
 | Password | `fronted_react/src/components/txn/changePassword.tsx` | Change Password form (`embedded` prop used inside the profile page) |
 | API client | `fronted_react/src/api/kyc.ts` | Types + calls for every endpoint below |
@@ -31,18 +31,19 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Profile & Settings                                  ┌──────────────┐ │  indigo → purple gradient
-│ Manage your account, KYC and company information    │ Merchant ID  │ │
-│                                                     │ MER-78D75445 │ │
-│ ┌──────────────────────────────────────────────────────────────────┐ │
-│ │ 🛡 KYC Status                                     [NOT APPROVED] │ │  APPROVED when kyc_verified
-│ │ ██████████████████████░░░░░░░░░                                  │ │  = progress.percent
-│ │ Complete your KYC verification to unlock all features…           │ │
-│ └──────────────────────────────────────────────────────────────────┘ │
+│ Profile & Settings                               ┌─🏪─────────────┐ │  light indigo → white → purple
+│ Manage your account, KYC and company information │ Merchant ID    │ │  white box, store icon
+│                                                  │ MER-78D75445   │ │
 └──────────────────────────────────────────────────────────────────────┘
-┌──────────────────────┬──────────────────────┬────────────────────────┐
-│    Update KYC        │   PG Fees & Rates    │   Security Settings    │  segmented tabs
-└──────────────────────┴──────────────────────┴────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐  KYC tab only
+│ 🛡 KYC Status                                 ┌────────────────────┐ │
+│ ██████████████████░░░░░░░░░  71%              │ (!) NOT APPROVED   │ │  pink box; green APPROVED
+│ Complete your KYC verification to unlock…     │ Please complete    │ │  when kyc_verified
+│ 10 of 14 verification items approved          │ the remaining…     │ │
+│                                               └────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────┘
+┌██████ Update KYC ██████┬──── PG Fees & Rates ────┬── Security Settings ──┐  active tab solid blue
+└────────────────────────┴─────────────────────────┴───────────────────────┘
 ```
 
 ---
@@ -80,7 +81,7 @@
 │ │ 👁 View uploaded document • ⬇ Download (aadhaar_doc.pdf)      │   │
 │ │ ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐        │   │
 │ │   ⬆ Click to upload or drag and drop                         │   │  hidden once approved
-│ │   PDF, JPG or PNG (max 5 MB)                                 │   │
+│ │   PDF, JPG or PNG (Max 10MB)                                 │   │
 │ │ └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘        │   │
 │ │ ✗ Rejected: Back side of the Aadhaar card is missing — resubmit│  │
 │ └────────────────────────────────────────────────────────────────┘  │
@@ -91,7 +92,7 @@
 └─────────────────────────────────────────────────────────────────────┘
 ┌ ✓ KYC Guidelines ───────────────────────────────────────────────────┐
 │ • Documents must be clear, complete and valid (not expired).        │
-│ • Upload documents as PDF, JPG or PNG, up to 5 MB each.             │
+│ • Upload documents as PDF, JPG or PNG, up to 10 MB each.            │
 │ • Each item is reviewed separately. Approved items are locked;      │
 │   rejected items show the reason so you can fix and resubmit.       │
 │ • Once every item is approved, our team completes the final         │
@@ -99,16 +100,21 @@
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Item card (`KycItemCard`)
+### Items
 
-| Part | Text item | File item |
-|------|-----------|-----------|
-| Header | icon · label · optional hint · status badge | same |
-| Body | input + **Submit** / **Update** button (read-only when approved) | View / Download links when uploaded + drop zone (hidden when approved) |
-| Footer | status line | status line |
-| Client checks | — (server validates) | extension PDF/JPG/PNG, size ≤ 5 MB |
+**Basic Information** (`KycField`): label → input (the address is a 2-line field with its pill inside on desktop) → **Submit** / **Update** button until approved → status pill → rejection reason or "waiting for review" note.
 
-Cards remount on `updated_at` change, so the input shows the saved (e.g. upper-cased) value.
+**KYC Documents** (`KycDocRow`, one row per item, divided list):
+
+| Part | Document | ID number (PAN / Aadhaar / GSTIN) |
+|------|----------|-----------------------------------|
+| Left | icon tile tinted by status (green / red / amber / grey) | same |
+| Title | label + "Upload your …" (or the item hint) | label + "Enter your … number" |
+| Right | status pill | status pill |
+| Body | uploaded file line — file icon, file name, "Uploaded on 25 Sep 2026", **View** / **Download** buttons; then (until approved) dashed drop zone "Click to upload or drag and drop · PDF, JPG, PNG (Max 10MB)" with **Upload Document** (**Upload New** when a file exists) | monospace input + **Submit** / **Update** (read-only once approved) |
+| Footer | rejection reason / review note | same |
+
+Client checks: PDF/JPG/PNG extension and ≤ 10 MB before upload; the server validates again. Rows remount on `updated_at` change, so inputs show the saved (upper-cased) value.
 
 ### Statuses
 
@@ -161,7 +167,7 @@ Document items appear only after a company type is chosen.
 | `business_pan_id`, `owner_pan_id` | `ABCDE1234F` (upper-cased) | PAN must look like ABCDE1234F |
 | `aadhaar_id` | 12 digits | Aadhaar must be 12 digits |
 | `gstin_id` | `10ABCDE1234F1Z5` pattern (upper-cased) | GSTIN must be 15 characters, e.g. 10ABCDE1234F1Z5 |
-| documents | `.pdf .jpg .jpeg .png`, 1 byte – 5 MB | Upload a PDF, JPG or PNG file / File is larger than 5 MB |
+| documents | `.pdf .jpg .jpeg .png`, 1 byte – 10 MB | Upload a PDF, JPG or PNG file / File is larger than 10 MB |
 
 ### Progress
 

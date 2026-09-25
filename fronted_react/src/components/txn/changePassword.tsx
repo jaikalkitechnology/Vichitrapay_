@@ -25,13 +25,14 @@ function PwdField({
     <div>
       <Label htmlFor={id} className="text-[13px] font-medium text-gray-700 dark:text-gray-300">{label}</Label>
       <div className="relative mt-1">
+        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
           id={id}
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="pr-10"
+          className="pl-9 pr-10"
           autoComplete="new-password"
         />
         <button

@@ -2,6 +2,9 @@
 import api from "@/api/api";
 import { BASE_URL } from "@/config";
 
+/** Upload limit — keep in sync with MAX_DOC_BYTES in app/routers/kyc.py. */
+export const KYC_MAX_MB = 10;
+
 export type KycStatus = "not_submitted" | "pending" | "approved" | "rejected";
 
 export type KycItem = {

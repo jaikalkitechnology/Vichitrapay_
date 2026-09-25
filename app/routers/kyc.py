@@ -23,7 +23,7 @@ KYC_UPLOAD_DIR = os.getenv(
     "KYC_UPLOAD_DIR",
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "private_uploads", "kyc"),
 )
-MAX_DOC_BYTES = 5 * 1024 * 1024
+MAX_DOC_BYTES = 10 * 1024 * 1024  # keep in sync with KYC_MAX_MB in fronted_react/src/api/kyc.ts
 ALLOWED_DOC_TYPES = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
 
 COMPANY_TYPES = {
@@ -247,7 +247,7 @@ async def upload_document(
         raise HTTPException(422, "Upload a PDF, JPG or PNG file")
     data = await file.read(MAX_DOC_BYTES + 1)
     if len(data) > MAX_DOC_BYTES:
-        raise HTTPException(422, "File is larger than 5 MB")
+        raise HTTPException(422, "File is larger than 10 MB")
     if not data:
         raise HTTPException(422, "File is empty")
 
