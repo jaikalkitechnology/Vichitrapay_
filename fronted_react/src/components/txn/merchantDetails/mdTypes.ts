@@ -2,7 +2,7 @@ import type { UserWithWallets } from "@/api/apiHelper";
 import type { KycData, KycItem } from "@/api/kyc";
 import type { MerchantSettingsFull, MerchantSummary, ProviderCredentialRow } from "@/api/merchantAdmin";
 
-export const MD_TABS = ["overview", "kyc", "charges", "credentials", "transactions", "payoutCharges", "balance", "password"] as const;
+export const MD_TABS = ["overview", "kyc", "charges", "credentials", "transactions", "payoutCharges", "balance", "password", "email"] as const;
 export type MdTab = (typeof MD_TABS)[number];
 export const isMdTab = (t?: string): t is MdTab => !!t && (MD_TABS as readonly string[]).includes(t);
 

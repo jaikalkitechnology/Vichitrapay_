@@ -17,6 +17,7 @@ import CredentialsTab from "@/components/txn/merchantDetails/CredentialsTab";
 import TransactionsTab from "@/components/txn/merchantDetails/TransactionsTab";
 import BalanceTab from "@/components/txn/merchantDetails/BalanceTab";
 import PasswordTab from "@/components/txn/merchantDetails/PasswordTab";
+import EmailValidationTab from "@/components/txn/merchantDetails/EmailValidationTab";
 
 const TABS: { id: MdTab; label: string; icon: typeof Home }[] = [
   { id: "overview", label: "Overview", icon: Home },
@@ -27,6 +28,7 @@ const TABS: { id: MdTab; label: string; icon: typeof Home }[] = [
   { id: "payoutCharges", label: "PayOut Charges", icon: CircleDollarSign },
   { id: "balance", label: "Add Balance PayOut", icon: Wallet },
   { id: "password", label: "Set Password", icon: Lock },
+  { id: "email", label: "Email Validation", icon: Mail },
 ];
 
 export default function MerchantDetails({ userId, tab }: { userId: string; tab: MdTab }) {
@@ -152,6 +154,7 @@ export default function MerchantDetails({ userId, tab }: { userId: string; tab: 
       {tab === "transactions" && <TransactionsTab ctx={ctx} />}
       {tab === "balance" && <BalanceTab ctx={ctx} />}
       {tab === "password" && <PasswordTab ctx={ctx} />}
+      {tab === "email" && <EmailValidationTab ctx={ctx} />}
       {["charges", "payoutCharges", "credentials"].includes(tab) &&
         (!settingsLoaded ? (
           <div className="flex items-center gap-2 text-[13px] text-gray-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading settings…</div>

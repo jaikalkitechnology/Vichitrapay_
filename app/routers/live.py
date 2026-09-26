@@ -21,6 +21,7 @@ from models.models import User, LiveWebhookPhonePeLog, WalletTransaction, Mercha
 from schemas.merchant import WalletTransactionListResponse, WalletTransactionOutApi, UpdateStatusRequest
 from schemas.partnerQR import CreateOrderRequest
 from utils.authenticate import user_required
+from utils.email_validation import enforce_customer_email
 from utils.database import get_db
 import httpx
 router = APIRouter()
@@ -48,6 +49,8 @@ def create_order(payload: CreateOrderRequest, db: Session = Depends(get_db),
     if not merchant_user:
         # fallback: use a default system user id or error
         raise HTTPException(status_code=500, detail="No merchant user found in the system. Please configure a merchant user.")
+
+    enforce_customer_email(db, current_user.id, payload.customer_email)
 
     amount_float = float(payload.amount)
     wt, ti = create_wallet_transaction(

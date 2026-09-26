@@ -566,3 +566,14 @@ class MerchantKycItem(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(india_tz), onupdate=lambda: datetime.now(india_tz))
 
     user = relationship("User", backref=backref("kyc_items", cascade="all, delete-orphan"))
+
+
+class MerchantEmailValidation(Base):
+    """Per-merchant switch: when enabled, PayIn initiation rejects customer emails that fail
+    utils/email_validation.check_customer_email (bad format, or no vowel in the username part)."""
+    __tablename__ = "merchant_email_validation"
+
+    user_id = Column(String(20), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    enabled = Column(Boolean, nullable=False, default=False)
+    updated_by = Column(String(20), nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(india_tz), onupdate=lambda: datetime.now(india_tz))

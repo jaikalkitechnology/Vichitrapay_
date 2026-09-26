@@ -109,3 +109,16 @@ export function generatePassword(length = 12) {
   }
   return chars.join("");
 }
+
+export type EmailValidationSetting = { user_id: string; enabled: boolean; updated_at: string | null; updated_by: string | null };
+export type EmailTestResult = { email: string; valid: boolean; reason: string | null; checks: { format: boolean; vowel: boolean } };
+
+export const fetchEmailValidation = async (userId: string): Promise<EmailValidationSetting> =>
+  (await api.get(`${BASE_URL}/admin/email-validation/${encodeURIComponent(userId)}`)).data;
+
+export const setEmailValidation = async (userId: string, enabled: boolean): Promise<EmailValidationSetting> =>
+  (await api.put(`${BASE_URL}/admin/email-validation/${encodeURIComponent(userId)}`, { enabled })).data;
+
+/** Runs the same check PayIn initiation uses (app/utils/email_validation.py). */
+export const testCustomerEmail = async (email: string): Promise<EmailTestResult> =>
+  (await api.post(`${BASE_URL}/admin/email-validation/test`, { email })).data;

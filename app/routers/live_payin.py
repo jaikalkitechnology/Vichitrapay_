@@ -18,6 +18,7 @@ from crud.webhook.handler import process_payin_webhook
 from schemas.live_payin import PaymentRequest
 from utils.database import get_db
 from utils.authenticate import user_required
+from utils.email_validation import enforce_customer_email
 from models.models import User, ProviderCredential, WalletTransaction, TransactionTypeEnum, TransactionInstrument, \
     Wallet, india_tz
 
@@ -108,6 +109,8 @@ def initiate_upi_intent(
 
     if not current_user.kyc_verified:
         raise HTTPException(403, "KYC not completed")
+
+    enforce_customer_email(db, merchant_id, payload.customer.email)
 
     credential = (
         db.query(ProviderCredential)
@@ -201,6 +204,8 @@ def initiate_gurutvapay_payment(
     if not current_user.kyc_verified:
         raise HTTPException(403, "KYC not completed")
 
+    enforce_customer_email(db, merchant_id, payload.customer.email)
+
     # IP whitelist check
     from models.models import MerchantSettings as MS
     ms = db.query(MS).filter(MS.id == merchant_id).first()
@@ -272,6 +277,8 @@ def initiate_live_payin(
     # 1️⃣ KYC CHECK
     if not current_user.kyc_verified:
         raise HTTPException(403, "KYC not completed")
+
+    enforce_customer_email(db, merchant_id, payload.customer.email)
 
     # 1a. IP WHITELIST CHECK
     from models.models import MerchantSettings as MS
