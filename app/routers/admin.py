@@ -1351,6 +1351,7 @@ def create_merchant_settings(payload: MerchantSettingsCreate, db: Session = Depe
         payOutCharges=payload.payOutCharges,
         payOutChargesFlat=payload.payOutChargesFlat,
         webhook=payload.webhook,
+        webhook_payout=payload.webhook_payout,
         ip=payload.ip,
     )
     db.add(new_settings)
@@ -2651,3 +2652,54 @@ def get_merchant_credentials_admin(
         merchant_id=merchant_id,
         credentials=result
     )
+
+
+@router.get("/merchant-summary/{user_id}", response_model=Dict[str, Any])
+def merchant_summary(user_id: str, db: Session = Depends(get_db)):
+    """
+    Headline numbers for the admin merchant-details page: transaction counts and
+    successful volume for today / yesterday / this month / all time, plus payout totals.
+    Anything that is neither success nor failed (pending, InProgress, initiated…) counts as pending.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    today = datetime.now(india_tz).date()
+    start_of = lambda d: datetime.combine(d, datetime.min.time())  # noqa: E731
+
+    def window(since: Optional[date] = None, until: Optional[date] = None, ttype=None) -> Dict[str, Any]:
+        q = db.query(WalletTransaction).filter(WalletTransaction.user_id == user_id)
+        if since:
+            q = q.filter(WalletTransaction.created_at >= start_of(since))
+        if until:
+            q = q.filter(WalletTransaction.created_at < start_of(until))
+        if ttype is not None:
+            q = q.filter(WalletTransaction.transaction_type == ttype)
+        is_ok = WalletTransaction.status == "success"
+        is_failed = WalletTransaction.status == "failed"
+        row = q.with_entities(
+            func.count(WalletTransaction.id),
+            func.coalesce(func.sum(case((is_ok, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((is_failed, 1), else_=0)), 0),
+            func.coalesce(func.sum(case((is_ok, WalletTransaction.amount), else_=0)), 0),
+        ).one()
+        txns, success, failed, volume = int(row[0]), int(row[1]), int(row[2]), float(row[3])
+        return {
+            "txns": txns,
+            "success": success,
+            "failed": failed,
+            "pending": txns - success - failed,
+            "volume": round(volume, 2),
+            "success_rate": round(success * 100 / txns, 1) if txns else 0.0,
+        }
+
+    tomorrow = today + timedelta(days=1)
+    return {
+        "user_id": user_id,
+        "today": window(today, tomorrow),
+        "yesterday": window(today - timedelta(days=1), today),
+        "month": window(today.replace(day=1), tomorrow),
+        "overall": window(),
+        "payout": window(ttype=TransactionTypeEnum.PayOut),
+    }

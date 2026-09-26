@@ -9,14 +9,12 @@ import {
   fetchUsersWithWallets,
   createUser,
   addMerchant,
-  updateMerchant,
   fetchAdminMerchantCredentials
 } from "@/api/apiHelper";
 import {
   PaginatedUsersWithWallets,
   UserWithWallets,
   UserCreatePayload,
-  UserUpdatePayload,
   UsersWithWalletsParams,
 } from "@/api/apiHelper";
 import {
@@ -57,6 +55,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkline } from "@/components/txn/DashboardCharts";
+import { useNavigate } from "react-router-dom";
 import { ActionMenu } from "@/components/admin-part/ui";
 import KycReviewDialog from "@/components/txn/KycReviewDialog";
 import api from "@/api/api"
@@ -204,9 +203,6 @@ export default function MerchatList() {
     company_name: "",
     role: 2,
   });
-  const [editingUser, setEditingUser] = useState<UserWithWallets | null>(null);
-  const [editForm, setEditForm] = useState<UserUpdatePayload | null>(null);
-  const [updating, setUpdating] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [settingsMerchantId, setSettingsMerchantId] = useState<string | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(false);
@@ -373,6 +369,8 @@ export default function MerchatList() {
   const searchTimer = useRef<number | null>(null);
   const [viewUser, setViewUser] = useState<UserWithWallets | null>(null);
   const [kycUser, setKycUser] = useState<UserWithWallets | null>(null);
+  const navigate = useNavigate();
+  const openDetails = (u: UserWithWallets) => navigate(`/admin/merchants/${encodeURIComponent(u.id)}/overview`);
   const [stats, setStats] = useState<MerchantStats | null>(null);
   const refreshStats = useCallback(() => {
     loadMerchantStats()
@@ -433,42 +431,6 @@ export default function MerchatList() {
       toast({ title: "Create failed", description: msg });
     } finally {
       setCreating(false);
-    }
-  };
-
-  const openEdit = (u: UserWithWallets) => {
-    setEditingUser(u);
-    setEditForm({
-      username: u.username,
-      email: u.email,
-      full_name: u.full_name ?? undefined,
-      phone_number: u.phone_number ?? undefined,
-      company_name: u.company_name ?? undefined,
-      role: u.role ?? undefined,
-      kyc_verified: u.kyc_verified,
-    });
-    setMobileMenuOpen(null);
-  };
-
-  const handleUpdateSubmit = async () => {
-    if (!editingUser || !editForm) return;
-    setUpdating(true);
-    try {
-      const updated = await updateMerchant(editingUser.id, editForm);
-      toast({ title: "Updated", description: `${editingUser.username} updated.` });
-      setList((prev) => {
-        if (!prev) return prev;
-        const items = prev.items.map((it) => (it.id === editingUser.id ? { ...it, ...updated } as UserWithWallets : it));
-        return { ...prev, items };
-      });
-      setEditingUser(null);
-      setEditForm(null);
-      refreshStats();
-    } catch (err: any) {
-      console.error("update error", err);
-      toast({ title: "Update failed", description: getErrorMessage(err) });
-    } finally {
-      setUpdating(false);
     }
   };
 
@@ -802,7 +764,7 @@ export default function MerchatList() {
                       {mobileMenuOpen === u.id && (
                         <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
                           <Button size="sm" variant="outline" onClick={() => setViewUser(u)}>View</Button>
-                          <Button size="sm" onClick={() => openEdit(u)}>Edit</Button>
+                          <Button size="sm" onClick={() => openDetails(u)}>Edit</Button>
                           <Button size="sm" variant="outline" onClick={() => setKycUser(u)} className="col-span-2">Review KYC</Button>
                           <Button size="sm" variant="outline" onClick={() => openCredentialsModal(u.id)}>Credentials</Button>
                           <Button size="sm" variant="outline" onClick={() => openSettingsModal(u.id)}>Settings</Button>
@@ -879,7 +841,7 @@ export default function MerchatList() {
                               <button onClick={() => setViewUser(u)} className={iconAction} aria-label={`View ${u.username}`} title="View details">
                                 <Eye className="h-4 w-4" />
                               </button>
-                              <button onClick={() => openEdit(u)} className={iconAction} aria-label={`Edit ${u.username}`} title="Edit merchant">
+                              <button onClick={() => openDetails(u)} className={iconAction} aria-label={`Edit ${u.username}`} title="Open merchant profile">
                                 <Pencil className="h-4 w-4" />
                               </button>
                               <ActionMenu
@@ -1001,7 +963,7 @@ export default function MerchatList() {
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setViewUser(null)}>Close</Button>
-            <Button onClick={() => { const u = viewUser; setViewUser(null); if (u) openEdit(u); }}>
+            <Button onClick={() => { const u = viewUser; setViewUser(null); if (u) openDetails(u); }}>
               <Pencil /> Edit
             </Button>
           </div>
@@ -1009,94 +971,6 @@ export default function MerchatList() {
       </Dialog>
 
       {/* --- Modals --- */}
-      {/* Edit Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 !m-0 p-4">
-          <div className="relative bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Edit Merchant</h3>
-              <button onClick={() => setEditingUser(null)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Username</label>
-                <Input
-                  value={editForm?.username}
-                  onChange={e => setEditForm({ ...editForm!, username: e.target.value })}
-                 
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Email</label>
-                <Input
-                  value={editForm?.email}
-                  onChange={e => setEditForm({ ...editForm!, email: e.target.value })}
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Full Name</label>
-                <Input
-                  value={editForm?.full_name}
-                  onChange={e => setEditForm({ ...editForm!, full_name: e.target.value })}
-                 
-                />
-              </div>
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Phone Number</label>
-                <Input
-                  value={editForm?.phone_number}
-                  onChange={e => setEditForm({ ...editForm!, phone_number: e.target.value })}
-                 
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Company Name</label>
-                <Input
-                  value={editForm?.company_name}
-                  onChange={e => setEditForm({ ...editForm!, company_name: e.target.value })}
-                 
-                />
-              </div>
-              <div className="md:col-span-2">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                  <input
-                    type="checkbox"
-                    checked={!!editForm?.kyc_verified}
-                    onChange={e => setEditForm({ ...editForm!, kyc_verified: e.target.checked })}
-                    className="h-5 w-5 rounded border-gray-300"
-                  />
-                  <div>
-                    <label className="text-[13px] font-medium text-gray-700 dark:text-gray-300">KYC Verified</label>
-                    <p className="text-xs text-gray-500">Mark this merchant as KYC verified</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-gray-200 dark:border-gray-800">
-              <Button variant="outline" onClick={() => setEditingUser(null)} className="h-8 px-4">
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateSubmit} disabled={updating} className="h-8 px-4">
-                {updating ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Saving...
-                  </>
-                ) : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Create Modal */}
       {createOpen && (

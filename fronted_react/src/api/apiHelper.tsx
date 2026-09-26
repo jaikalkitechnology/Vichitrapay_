@@ -436,6 +436,7 @@ export interface MerchantSettings{
     payOutCharges:number,
     payOutChargesFlat?: number,
     webhook: string,
+    webhook_payout?: string | null,
     ip: string
 }
 

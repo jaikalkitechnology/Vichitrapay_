@@ -8,7 +8,7 @@ import { errorText, filterInputCls } from "@/components/admin-part/listUtils";
 import { fetchMerchantKyc, reviewKycItem, setMerchantKycVerified, type KycData, type KycItem } from "@/api/kyc";
 import { KycDocLinks, KycStatusBadge } from "@/components/txn/kycBits";
 
-function ReviewRow({ item, userId, companyLabel, onChange }: { item: KycItem; userId: string; companyLabel?: string; onChange: (d: KycData) => void }) {
+export function ReviewRow({ item, userId, companyLabel, onChange }: { item: KycItem; userId: string; companyLabel?: string; onChange: (d: KycData) => void }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState<"approved" | "rejected" | null>(null);
   const [rejecting, setRejecting] = useState(false);

@@ -52,6 +52,8 @@ import { BASE_URL } from "@/config";
 import DashboardCharts, { Sparkline } from "@/components/txn/DashboardCharts";
 import useChartData from "@/components/txn/useChartData";
 import MerchatList from "@/components/txn/merchantlist";
+import MerchantDetails from "@/components/txn/merchantDetails/MerchantDetails";
+import { isMdTab } from "@/components/txn/merchantDetails/mdTypes";
 import MerchantTransactionsPage from "@/components/txn/merchantTxnView";
 import AdminPayoutManagement from "@/components/txn/AdminPayoutManagement";
 import TspMappingPage from "@/components/admin-part/TspMappingPage";
@@ -507,8 +509,12 @@ export default function AdminDashboard() {
     switch (activeTab) {
       case "dashboard":
         return renderDashboard();
-      case "merchants":
+      case "merchants": {
+        // /admin/merchants/:id/:tab → merchant details page
+        const [, id, sub] = location.pathname.replace(/^\/admin\/?/, "").split("/");
+        if (id) return <MerchantDetails userId={decodeURIComponent(id)} tab={isMdTab(sub) ? sub : "overview"} />;
         return renderMerchants();
+      }
       case "tspMappings":
         return renderTspMappings();
       case "tspProviders":
