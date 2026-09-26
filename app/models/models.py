@@ -577,3 +577,14 @@ class MerchantEmailValidation(Base):
     enabled = Column(Boolean, nullable=False, default=False)
     updated_by = Column(String(20), nullable=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(india_tz), onupdate=lambda: datetime.now(india_tz))
+
+
+class PartnerMerchant(Base):
+    """A merchant mapped under a partner. A merchant belongs to at most one partner."""
+    __tablename__ = "partner_merchants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    partner_id = Column(String(20), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    merchant_id = Column(String(20), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    created_by = Column(String(20), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(india_tz))

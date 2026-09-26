@@ -53,6 +53,8 @@ import DashboardCharts, { Sparkline } from "@/components/txn/DashboardCharts";
 import useChartData from "@/components/txn/useChartData";
 import MerchatList from "@/components/txn/merchantlist";
 import PartnerManagement from "@/components/admin-part/PartnerManagement";
+import PartnerDetails from "@/components/admin-part/partnerDetails/PartnerDetails";
+import { isPartnerTab } from "@/components/admin-part/partnerDetails/partnerTabs";
 import MerchantDetails from "@/components/txn/merchantDetails/MerchantDetails";
 import { isMdTab } from "@/components/txn/merchantDetails/mdTypes";
 import MerchantTransactionsPage from "@/components/txn/merchantTxnView";
@@ -516,8 +518,12 @@ export default function AdminDashboard() {
         if (id) return <MerchantDetails userId={decodeURIComponent(id)} tab={isMdTab(sub) ? sub : "overview"} />;
         return renderMerchants();
       }
-      case "partners":
+      case "partners": {
+        // /admin/partners/:id/:tab → partner details page
+        const [, pid, psub] = location.pathname.replace(/^\/admin\/?/, "").split("/");
+        if (pid) return <PartnerDetails partnerId={decodeURIComponent(pid)} tab={isPartnerTab(psub) ? psub : "kyc"} />;
         return <PartnerManagement />;
+      }
       case "tspMappings":
         return renderTspMappings();
       case "tspProviders":

@@ -26,7 +26,9 @@ function PwdInput({ label, value, onChange, show, setShow, placeholder, hint }: 
   );
 }
 
-export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
+/** Set / generate a login password for any account (merchant or partner). */
+export function SetPasswordPanel({ userId, username, kind }: { userId: string; username: string; kind: "merchant" | "partner" }) {
+  const Kind = kind === "merchant" ? "Merchant" : "Partner";
   const { toast } = useToast();
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -50,9 +52,9 @@ export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
     setBusy(true);
     setError(null);
     try {
-      await setMerchantPassword(ctx.user.id, pwd);
+      await setMerchantPassword(userId, pwd);
       setDone(true);
-      toast({ title: "Password updated", description: `Share the new password with ${ctx.user.username} securely.` });
+      toast({ title: "Password updated", description: `Share the new password with ${username} securely.` });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -73,28 +75,28 @@ export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
   const guidelines = [
     { icon: Lock, title: "Use Strong Password", text: "At least 8 characters with letters, numbers, and special characters", cls: "border-blue-100 bg-blue-50/60 text-blue-600 dark:border-blue-900/40 dark:bg-blue-950/20" },
     { icon: CheckCircle2, title: "Keep it Unique", text: "Avoid reusing passwords from other services", cls: "border-green-100 bg-green-50/60 text-green-600 dark:border-green-900/40 dark:bg-green-950/20" },
-    { icon: AlertCircle, title: "Share Securely", text: "Send the password to the merchant over a private channel only", cls: "border-amber-100 bg-amber-50/60 text-amber-500 dark:border-amber-900/40 dark:bg-amber-950/20" },
-    { icon: ShieldCheck, title: "Ask to Change It", text: "The merchant can change it any time from Profile & Settings → Security", cls: "border-purple-100 bg-purple-50/60 text-purple-600 dark:border-purple-900/40 dark:bg-purple-950/20" },
+    { icon: AlertCircle, title: "Share Securely", text: `Send the password to the ${kind} over a private channel only`, cls: "border-amber-100 bg-amber-50/60 text-amber-500 dark:border-amber-900/40 dark:bg-amber-950/20" },
+    { icon: ShieldCheck, title: "Ask to Change It", text: kind === "merchant" ? "The merchant can change it any time from Profile & Settings → Security" : "Change it periodically for better security", cls: "border-purple-100 bg-purple-50/60 text-purple-600 dark:border-purple-900/40 dark:bg-purple-950/20" },
   ];
 
   return (
     <div className="space-y-4">
-      <MdBanner icon={Lock} title="Set Merchant Password" subtitle="Set or reset the password for this merchant account" />
+      <MdBanner icon={Lock} title={`Set ${Kind} Password`} subtitle={`Set or reset the password for this ${kind} account`} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className={cn(mdCard, "overflow-hidden")}>
           <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40"><Lock className="h-5 w-5" /></span>
             <div>
               <h3 className="text-[17px] font-bold text-gray-900 dark:text-gray-100">Set New Password</h3>
-              <p className="text-[13px] text-gray-500">Create a secure password for merchant login</p>
+              <p className="text-[13px] text-gray-500">Create a secure password for {kind} login</p>
             </div>
           </div>
           <form onSubmit={submit} className="space-y-5 p-5">
             <label className="block">
-              <span className="mb-1.5 block text-[14px] font-medium text-gray-800 dark:text-gray-200">Merchant ID</span>
+              <span className="mb-1.5 block text-[14px] font-medium text-gray-800 dark:text-gray-200">{Kind} ID</span>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                <input readOnly value={ctx.user.id} className={cn(filterInputCls, "h-12 cursor-default bg-gray-50 pl-10 font-medium dark:bg-gray-800/60")} />
+                <input readOnly value={userId} className={cn(filterInputCls, "h-12 cursor-default bg-gray-50 pl-10 font-medium dark:bg-gray-800/60")} />
               </div>
             </label>
             <PwdInput label="New Password" value={pwd} onChange={(v) => { setPwd(v); setDone(false); }} show={show1} setShow={setShow1} placeholder="Enter a strong password" hint="Use at least 8 characters with letters, numbers, and special characters" />
@@ -103,14 +105,14 @@ export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
             {error && <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-400"><AlertCircle className="h-4 w-4" /> {error}</div>}
             {done && (
               <div className="flex flex-col gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2.5 text-[13px] text-green-800 dark:border-green-900 dark:bg-green-950/30 dark:text-green-300 sm:flex-row sm:items-center sm:justify-between">
-                <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Password set. The merchant can log in with it now.</span>
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Password set. The {kind} can log in with it now.</span>
                 <button type="button" onClick={() => navigator.clipboard.writeText(pwd).then(() => toast({ title: "Password copied" }))} className="inline-flex items-center gap-1.5 font-medium hover:underline"><Copy className="h-3.5 w-3.5" /> Copy password</button>
               </div>
             )}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button type="button" onClick={clear} className={cn(outlineBtn, "h-12")}>Clear Form</button>
               <button type="submit" disabled={busy || !pwd || !confirm} className={cn(primaryBtn, "h-12 bg-gradient-to-r from-indigo-600 to-purple-600")}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Set Merchant Password
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Set {Kind} Password
               </button>
             </div>
           </form>
@@ -136,10 +138,14 @@ export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
             <button type="button" onClick={generate} className={cn(outlineBtn, "w-full justify-start")}>
               <RefreshCw className="h-4 w-4" /> Generate Temporary Password
             </button>
-            <p className="mt-2 text-[12px] text-gray-500">Fills both fields with a random 12-character password. Review it, then click Set Merchant Password.</p>
+            <p className="mt-2 text-[12px] text-gray-500">Fills both fields with a random 12-character password. Review it, then click Set {Kind} Password.</p>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+export default function PasswordTab({ ctx }: { ctx: MdCtx }) {
+  return <SetPasswordPanel userId={ctx.user.id} username={ctx.user.username} kind="merchant" />;
 }

@@ -288,9 +288,10 @@ class ReviewIn(BaseModel):
 
 
 def _merchant(db: Session, user_id: str) -> User:
+    """KYC subject for the admin endpoints: a merchant (role 2) or a partner (role 1)."""
     user = db.get(User, user_id)
-    if not user or user.role != 2:
-        raise HTTPException(404, "Merchant not found")
+    if not user or user.role not in (1, 2):
+        raise HTTPException(404, "Merchant or partner not found")
     return user
 
 

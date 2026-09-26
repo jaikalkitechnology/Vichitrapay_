@@ -1,5 +1,6 @@
 // Admin → Partner Management: partner accounts (role 1) — list, create, edit, KYC, delete
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BadgeCheck,
   CalendarDays,
@@ -182,6 +183,8 @@ function KycTile({ p }: { p: Partner }) {
 
 export default function PartnerManagement() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const openDetails = (p: Partner, tab = "kyc") => navigate(`/admin/partners/${encodeURIComponent(p.id)}/${tab}`);
   const [partners, setPartners] = useState<Partner[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -190,7 +193,6 @@ export default function PartnerManagement() {
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"cards" | "table">("cards");
   const [panel, setPanel] = useState<{ editing: Partner | null } | null>(null);
-  const [viewing, setViewing] = useState<Partner | null>(null);
   const [deleting, setDeleting] = useState<Partner | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -225,7 +227,6 @@ export default function PartnerManagement() {
     try {
       const u = await setPartnerKyc(p.id, !p.kyc_verified);
       replace(u);
-      if (viewing?.id === p.id) setViewing({ ...p, ...u });
       toast({ title: u.kyc_verified ? "KYC marked verified" : "KYC verification removed", description: nameOf(p) });
     } catch (e) {
       toast({ title: "Update failed", description: errorText(e), variant: "destructive" });
@@ -267,8 +268,9 @@ export default function PartnerManagement() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onClick={() => setViewing(p)}><Eye /> View profile</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setPanel({ editing: p })}><Pencil /> Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openDetails(p)}><Eye /> View profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openDetails(p, "merchants")}><Users /> Merchants</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setPanel({ editing: p })}><Pencil /> Edit details</DropdownMenuItem>
         <DropdownMenuItem onClick={() => toggleKyc(p)}><ShieldCheck /> {p.kyc_verified ? "Remove KYC verification" : "Mark KYC verified"}</DropdownMenuItem>
         <DropdownMenuItem onClick={() => setDeleting(p)} className="text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/40"><Trash2 /> Delete</DropdownMenuItem>
       </DropdownMenuContent>
@@ -277,11 +279,11 @@ export default function PartnerManagement() {
 
   const actions = (p: Partner, compact = false) => (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={() => setViewing(p)} className={cn(outlineBtn, compact ? "px-3 py-1.5 text-[13px]" : "h-11")}>
+      <button type="button" onClick={() => openDetails(p)} className={cn(outlineBtn, compact ? "px-3 py-1.5 text-[13px]" : "h-11")}>
         <Eye className="h-4 w-4" /> View Profile
       </button>
       <span className="flex-1" />
-      <button type="button" onClick={() => setPanel({ editing: p })} aria-label={`Edit ${p.username}`} className={cn(outlineBtn, compact ? "p-2" : "h-11 w-11 p-0")}>
+      <button type="button" onClick={() => openDetails(p)} aria-label={`Edit ${p.username}`} title="Open partner details" className={cn(outlineBtn, compact ? "p-2" : "h-11 w-11 p-0")}>
         <Pencil className="h-4 w-4" />
       </button>
       <button type="button" onClick={() => setDeleting(p)} aria-label={`Delete ${p.username}`} className={cn("inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/30", compact ? "p-2" : "h-11 w-11")}>
@@ -470,49 +472,6 @@ export default function PartnerManagement() {
           />
         )}
       </div>
-
-      <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-        <DialogContent className="max-w-lg">
-          {viewing && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Partner profile</DialogTitle>
-                <DialogDescription>{viewing.id}</DialogDescription>
-              </DialogHeader>
-              <div className="flex items-center gap-4">
-                <span className={cn("flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br text-[22px] font-bold text-white", avatarOf(viewing.id))}>{nameOf(viewing).charAt(0).toUpperCase()}</span>
-                <div>
-                  <div className="text-[17px] font-bold text-gray-900 dark:text-gray-100">{nameOf(viewing)}</div>
-                  <div className="text-[13px] text-gray-500">@{viewing.username}</div>
-                </div>
-              </div>
-              <dl className="divide-y divide-gray-100 text-[13px] dark:divide-gray-800">
-                {([
-                  ["Email", viewing.email],
-                  ["Phone", viewing.phone_number || "—"],
-                  ["Company", viewing.company_name || "—"],
-                  ["KYC", viewing.kyc_verified ? "Verified" : "Pending"],
-                  ["Joined", `${fmtDate(viewing.created_at)} (${joinedAgo(viewing.created_at)})`],
-                ] as const).map(([k, v]) => (
-                  <div key={k} className="grid grid-cols-[110px_1fr] gap-3 py-2.5">
-                    <dt className="text-gray-500">{k}</dt>
-                    <dd className="break-words font-medium text-gray-900 dark:text-gray-100">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="flex flex-wrap justify-end gap-2">
-                <button type="button" onClick={() => toggleKyc(viewing)} disabled={busyId === viewing.id} className={outlineBtn}>
-                  {busyId === viewing.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                  {viewing.kyc_verified ? "Remove KYC verification" : "Mark KYC verified"}
-                </button>
-                <button type="button" onClick={() => { setPanel({ editing: viewing }); setViewing(null); }} className={primaryBtn}>
-                  <Pencil className="h-4 w-4" /> Edit
-                </button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <DialogContent className="max-w-md">

@@ -41,3 +41,30 @@ export function joinedAgo(iso?: string | null) {
 }
 
 export const isNewPartner = (iso?: string | null) => !!iso && Date.now() - new Date(iso).getTime() < 7 * 86400000;
+
+/** One partner by id (null when missing). */
+export async function fetchPartner(id: string): Promise<Partner | null> {
+  const { data } = await api.get(`${BASE_URL}/admin/users-with-wallets`, { params: { role: PARTNER_ROLE, search: id, page: 1, per_page: 20 } });
+  return (data.items as Partner[]).find((p) => p.id === id) ?? null;
+}
+
+export type PartnerMerchant = {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string | null;
+  phone_number: string | null;
+  company_name: string | null;
+  kyc_verified: boolean;
+  created_at: string | null;
+  mapped_at: string | null;
+};
+
+export const fetchPartnerMerchants = async (partnerId: string): Promise<PartnerMerchant[]> =>
+  (await api.get(`${BASE_URL}/admin/partners/${encodeURIComponent(partnerId)}/merchants`)).data;
+
+export const mapMerchantToPartner = async (partnerId: string, merchant_id: string): Promise<PartnerMerchant> =>
+  (await api.post(`${BASE_URL}/admin/partners/${encodeURIComponent(partnerId)}/merchants`, { merchant_id })).data;
+
+export const unmapMerchantFromPartner = async (partnerId: string, merchantId: string) =>
+  api.delete(`${BASE_URL}/admin/partners/${encodeURIComponent(partnerId)}/merchants/${encodeURIComponent(merchantId)}`);
