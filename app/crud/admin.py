@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from passlib.context import CryptContext
 from typing import List, Optional, Tuple
 
-from models.models import User, ROLE_MAPPING, Wallet, PayOutWallet, WalletTransaction, india_tz
+from models.models import User, ROLE_MAPPING, Wallet, PayOutWallet, WalletTransaction, india_tz, generate_user_id
 from schemas.admin import UserCreate, UserUpdate, WalletTransactionFilter
 from utils.authenticate import hash_password, verify_password
 
@@ -24,6 +24,8 @@ def create_user(db: Session, user_in: UserCreate) -> User:
     hashed = hash_password(user_in.password)
     role = user_in.role if user_in.role is not None else ROLE_MAPPING.get("merchant")
     user = User(
+        # the column default always makes a MER- id; give other roles their own prefix (PART-, ADM-…)
+        id=generate_user_id(int(role)),
         username=user_in.username,
         email=user_in.email,
         password=hashed,
@@ -201,11 +203,10 @@ def list_users_with_wallets(
     q = db.query(User).options(
         joinedload(User.wallet),
         joinedload(User.payout_wallet)
-    ).filter(User.role==2)
+    )
 
-    # filters
-    if role is not None:
-        q = q.filter(User.role == int(role))
+    # filters — merchants (role 2) unless another role is asked for
+    q = q.filter(User.role == (int(role) if role is not None else 2))
     if kyc_verified is not None:
         q = q.filter(User.kyc_verified == bool(kyc_verified))
 

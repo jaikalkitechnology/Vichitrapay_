@@ -52,6 +52,7 @@ import { BASE_URL } from "@/config";
 import DashboardCharts, { Sparkline } from "@/components/txn/DashboardCharts";
 import useChartData from "@/components/txn/useChartData";
 import MerchatList from "@/components/txn/merchantlist";
+import PartnerManagement from "@/components/admin-part/PartnerManagement";
 import MerchantDetails from "@/components/txn/merchantDetails/MerchantDetails";
 import { isMdTab } from "@/components/txn/merchantDetails/mdTypes";
 import MerchantTransactionsPage from "@/components/txn/merchantTxnView";
@@ -162,7 +163,7 @@ const cellMono = "font-mono text-[12px] whitespace-nowrap text-gray-600 dark:tex
 const cellAmount = "font-mono text-[13px] whitespace-nowrap tabular-nums font-medium text-gray-900 dark:text-gray-100";
 
 // ---- component -------------------------------------------------------------
-const ADMIN_TABS = ["dashboard", "merchants", "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
+const ADMIN_TABS = ["dashboard", "merchants", "partners", "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
 
 function getTabFromPath(pathname: string): string {
   const segment = pathname.replace(/^\/admin\/?/, "").split("/")[0];
@@ -515,6 +516,8 @@ export default function AdminDashboard() {
         if (id) return <MerchantDetails userId={decodeURIComponent(id)} tab={isMdTab(sub) ? sub : "overview"} />;
         return renderMerchants();
       }
+      case "partners":
+        return <PartnerManagement />;
       case "tspMappings":
         return renderTspMappings();
       case "tspProviders":
