@@ -3,7 +3,7 @@ export type PartnerTab = (typeof PARTNER_TABS)[number];
 export const isPartnerTab = (t?: string): t is PartnerTab => !!t && (PARTNER_TABS as readonly string[]).includes(t);
 
 /** Partner panel (/partner/:tab) pages */
-export const PANEL_TABS = ["merchants", "transactions", "profile"] as const;
+export const PANEL_TABS = ["dashboard", "merchants", "transactions", "profile"] as const;
 export type PanelTab = (typeof PANEL_TABS)[number];
 export const isPanelTab = (t?: string): t is PanelTab => !!t && (PANEL_TABS as readonly string[]).includes(t);
 

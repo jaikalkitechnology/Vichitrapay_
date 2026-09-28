@@ -13,7 +13,7 @@ from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 from crud import admin as admin_crud
-from models.models import PartnerMerchant, PayoutBankAccount, User, WalletTransaction, TransactionTypeEnum
+from models.models import PartnerMerchant, PayoutBankAccount, User, WalletTransaction, TransactionTypeEnum, india_tz
 from schemas.admin import UserCreate
 from schemas.merchant import PayoutBankAccountCreate
 from utils.authenticate import get_current_user
@@ -111,6 +111,7 @@ def my_merchant_transactions(
     merchant_id: Optional[str] = Query(None),
     from_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
     to_date: Optional[str] = Query(None, description="YYYY-MM-DD"),
+    last_hours: Optional[int] = Query(None, ge=1, le=24 * 90, description="Only the last N hours (overrides dates)"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -128,6 +129,9 @@ def my_merchant_transactions(
 
     f = [WalletTransaction.user_id.in_(ids), WalletTransaction.transaction_type.in_([TransactionTypeEnum.PayIn, TransactionTypeEnum.PayOut])]
     start, end = _parse_day(from_date), _parse_day(to_date)
+    if last_hours:
+        start, end = None, None
+        f.append(WalletTransaction.created_at >= datetime.now(india_tz).replace(tzinfo=None) - timedelta(hours=last_hours))
     if start:
         f.append(WalletTransaction.created_at >= start)
     if end:

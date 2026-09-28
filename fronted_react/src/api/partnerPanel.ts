@@ -59,7 +59,7 @@ export const fetchMyMerchants = async (): Promise<PartnerMerchant[]> => (await a
 export const onboardMerchant = async (f: OnboardForm): Promise<PartnerMerchant> =>
   (await api.post(`${P}/merchants`, { ...f, company_name: f.company_name || undefined })).data;
 
-export const fetchMyMerchantTxns = async (params: { merchant_id?: string; from_date?: string; to_date?: string; page: number; per_page: number }): Promise<PartnerTxnPage> =>
+export const fetchMyMerchantTxns = async (params: { merchant_id?: string; from_date?: string; to_date?: string; last_hours?: number; page: number; per_page: number }): Promise<PartnerTxnPage> =>
   (await api.get(`${P}/transactions`, { params: Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== "")) })).data;
 
 export const fetchMyBankAccounts = async (): Promise<PartnerBankAccount[]> => (await api.get(`${P}/bank-accounts`)).data;

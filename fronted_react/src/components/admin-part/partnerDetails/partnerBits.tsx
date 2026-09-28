@@ -12,15 +12,16 @@ const GRAD = {
 } as const;
 
 /** Solid gradient stat card with decorative bars, as in the partner panel designs. */
-export function GradientStat({ tone, icon: Icon, label, value, sub }: { tone: keyof typeof GRAD; icon: LucideIcon; label: string; value: ReactNode; sub?: string }) {
+export function GradientStat({ tone, icon: Icon, label, value, sub, badge }: { tone: keyof typeof GRAD; icon: LucideIcon; label: string; value: ReactNode; sub?: ReactNode; badge?: string }) {
   return (
     <div className={cn("relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg", GRAD[tone])}>
-      <div className="relative z-10 flex items-start gap-4 pr-8">
+      {badge && <span className="absolute right-4 top-4 z-10 rounded-full bg-white/20 px-3 py-1 text-[12px] font-semibold">{badge}</span>}
+      <div className={cn("relative z-10 flex gap-4", badge ? "flex-col gap-3" : "items-start pr-8")}>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 2xl:h-14 2xl:w-14"><Icon className="h-6 w-6 2xl:h-7 2xl:w-7" /></span>
         <div className="min-w-0">
           <div className="text-[14px] font-medium text-white/90">{label}</div>
-          <div className="mt-0.5 break-words text-[24px] font-bold leading-tight 2xl:text-[28px]">{value}</div>
-          {sub && <div className="text-[13px] text-white/80">{sub}</div>}
+          <div className={cn("mt-0.5 break-words font-bold leading-tight", badge ? "text-[22px] 2xl:text-[26px]" : "text-[24px] 2xl:text-[28px]")}>{value}</div>
+          {sub && <div className="flex items-center gap-1.5 text-[13px] text-white/85">{sub}</div>}
         </div>
       </div>
       <div className="pointer-events-none absolute bottom-4 right-4 flex items-end gap-1 opacity-25" aria-hidden="true">

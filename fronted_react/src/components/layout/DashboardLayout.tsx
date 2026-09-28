@@ -98,6 +98,7 @@ const partnerSections: NavSection[] = [
   {
     label: "Main",
     tabs: [
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-indigo-400" },
       { id: "merchants", label: "Merchants", icon: Users, color: "text-blue-400" },
       { id: "transactions", label: "Merchant Transactions", icon: ArrowLeftRight, color: "text-emerald-400" },
     ],

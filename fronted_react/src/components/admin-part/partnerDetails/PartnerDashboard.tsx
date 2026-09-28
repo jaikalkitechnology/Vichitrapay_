@@ -1,15 +1,16 @@
-// Partner panel (/partner/*): Merchants, Merchant Transactions, Profile & Settings
+// Partner panel (/partner/*): Dashboard, Merchants, Merchant Transactions, Profile & Settings
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { isPanelTab, type PanelTab } from "@/components/admin-part/partnerDetails/partnerTabs";
+import PanelHome from "@/components/admin-part/partnerDetails/PanelHome";
 import PanelMerchants from "@/components/admin-part/partnerDetails/PanelMerchants";
 import PanelTransactions from "@/components/admin-part/partnerDetails/PanelTransactions";
 import PanelProfile from "@/components/admin-part/partnerDetails/PanelProfile";
 
 const tabFromPath = (pathname: string): PanelTab => {
   const seg = pathname.replace(/^\/partner\/?/, "").split("/")[0];
-  return isPanelTab(seg) ? seg : "merchants";
+  return isPanelTab(seg) ? seg : "dashboard";
 };
 
 export default function PartnerDashboard() {
@@ -19,6 +20,7 @@ export default function PartnerDashboard() {
 
   return (
     <DashboardLayout activeTab={tab} onTabChange={(t) => isPanelTab(t) && setTab(t)}>
+      {tab === "dashboard" && <PanelHome />}
       {tab === "merchants" && <PanelMerchants />}
       {tab === "transactions" && <PanelTransactions />}
       {tab === "profile" && <PanelProfile />}
