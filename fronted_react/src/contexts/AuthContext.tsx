@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import {BASE_URL} from "@/config"
 import { THEME_KEY } from "@/hooks/useTheme";
+import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 // Define role types
 type UserRole = 2 | 3 | 1 | null; // 2 = merchant, 3 = admin
 type StringRole = "merchant" | "admin" | "partner" | null; // For display purposes
@@ -74,6 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (role !== 2 && role !== 3 && role !== 1) {
         return { success: false, message: "Invalid user role" };
       }
+      if (role === 1 && !PARTNER_PANEL_ENABLED) {
+        return { success: false, message: "Partner login is not available" };
+      }
   
       const newUser: User = {
         id: email,
@@ -144,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const parsedUser = JSON.parse(savedUser);
         // Validate the stored user has a valid role
-        if (parsedUser.role === 2 || parsedUser.role === 3 || parsedUser.role === 1) {
+        if (parsedUser.role === 2 || parsedUser.role === 3 || (parsedUser.role === 1 && PARTNER_PANEL_ENABLED)) {
           setUser(parsedUser);
         } else {
           localStorage.removeItem("gurutvapay-user");

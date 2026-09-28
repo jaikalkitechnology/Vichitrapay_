@@ -1,5 +1,5 @@
 /**
- * Feature switches. The partner panel (/partner/*) is hidden for now: partners who log in
- * see a "not available yet" page. Set to true to show the full partner panel again.
+ * Feature switches. The partner panel is switched off: partners cannot log in and /partner/*
+ * does not exist. Set to true (and PARTNER_PANEL_ENABLED=true on the backend) to bring it back.
  */
 export const PARTNER_PANEL_ENABLED = false;

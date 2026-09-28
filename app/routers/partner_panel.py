@@ -18,6 +18,7 @@ from schemas.admin import UserCreate
 from schemas.merchant import PayoutBankAccountCreate
 from utils.authenticate import get_current_user
 from utils.database import get_db
+from utils.features import PARTNER_DISABLED_MSG, PARTNER_PANEL_ENABLED
 
 PARTNER_ROLE, MERCHANT_ROLE = 1, 2
 
@@ -25,6 +26,8 @@ PARTNER_ROLE, MERCHANT_ROLE = 1, 2
 def partner_required(user: User = Depends(get_current_user)) -> User:
     if user.role != PARTNER_ROLE:
         raise HTTPException(403, "Access denied: partners only")
+    if not PARTNER_PANEL_ENABLED:
+        raise HTTPException(403, PARTNER_DISABLED_MSG)
     return user
 
 

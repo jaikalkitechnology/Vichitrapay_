@@ -10,7 +10,6 @@ import Login from "./pages/Login";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PartnerDashboard from "@/components/admin-part/partnerDetails/PartnerDashboard";
-import PartnerPanelHidden from "./pages/PartnerPanelHidden";
 import { homeForRole } from "@/lib/roles";
 import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 import NotFound from "./pages/NotFound";
@@ -64,10 +63,12 @@ const AppRoutes = () => {
         path="/merchant/*"
         element={<ProtectedRoute element={<MerchantDashboard />} allowedRoles={["merchant"]} />}
       />
-      <Route
-        path="/partner/*"
-        element={<ProtectedRoute element={PARTNER_PANEL_ENABLED ? <PartnerDashboard /> : <PartnerPanelHidden />} allowedRoles={["partner"]} />}
-      />
+      {PARTNER_PANEL_ENABLED && (
+        <Route
+          path="/partner/*"
+          element={<ProtectedRoute element={<PartnerDashboard />} allowedRoles={["partner"]} />}
+        />
+      )}
 
       {/* Catch-all */}
       <Route path="*" element={<NotFound />} />

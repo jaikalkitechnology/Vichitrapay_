@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from models.models import MerchantKycItem, PayoutBankAccount, User, india_tz
 from utils.authenticate import admin_required, get_current_user
 from utils.database import get_db
+from utils.features import PARTNER_DISABLED_MSG, PARTNER_PANEL_ENABLED
 
 # Stored outside /static so documents are only reachable through the authenticated endpoints below.
 KYC_UPLOAD_DIR = os.getenv(
@@ -183,6 +184,8 @@ def kyc_self_required(user: User = Depends(get_current_user)) -> User:
     """Merchants (role 2) and partners (role 1) submit their own KYC."""
     if user.role not in (1, 2):
         raise HTTPException(403, "Access denied: merchants and partners only")
+    if user.role == 1 and not PARTNER_PANEL_ENABLED:
+        raise HTTPException(403, PARTNER_DISABLED_MSG)
     return user
 
 
