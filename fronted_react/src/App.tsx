@@ -10,7 +10,9 @@ import Login from "./pages/Login";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PartnerDashboard from "@/components/admin-part/partnerDetails/PartnerDashboard";
+import PartnerPanelHidden from "./pages/PartnerPanelHidden";
 import { homeForRole } from "@/lib/roles";
+import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,7 +66,7 @@ const AppRoutes = () => {
       />
       <Route
         path="/partner/*"
-        element={<ProtectedRoute element={<PartnerDashboard />} allowedRoles={["partner"]} />}
+        element={<ProtectedRoute element={PARTNER_PANEL_ENABLED ? <PartnerDashboard /> : <PartnerPanelHidden />} allowedRoles={["partner"]} />}
       />
 
       {/* Catch-all */}
