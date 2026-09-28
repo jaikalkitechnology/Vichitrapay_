@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status,  Request
 from sqlalchemy.orm import Session
 
 from crud.gateway.gatepay import initiate_getepay_payin, normalize_getepay_webhook
-from crud.gateway.live_payin import get_or_create_customer, create_payin_wallet_txn, create_provider_instrument
+from crud.gateway.live_payin import get_or_create_customer, create_payin_wallet_txn, create_provider_instrument, \
+    get_active_payin_credential
 from crud.gateway.phonepe import initiate_phonepe_payin, normalize_phonepe_webhook
 from crud.gateway.templamart import (
     initiate_templamart_payin, normalize_templamart_webhook,
@@ -58,14 +59,7 @@ def get_ticket_sizes(
     """
     merchant_id = current_user.id
 
-    credential = (
-        db.query(ProviderCredential)
-        .filter(
-            ProviderCredential.merchant_id == merchant_id,
-            ProviderCredential.is_active_payIn == True
-        )
-        .first()
-    )
+    credential = get_active_payin_credential(db, merchant_id)
     if not credential:
         raise HTTPException(400, "No active PayIn provider")
 
@@ -112,14 +106,7 @@ def initiate_upi_intent(
 
     enforce_customer_email(db, merchant_id, payload.customer.email)
 
-    credential = (
-        db.query(ProviderCredential)
-        .filter(
-            ProviderCredential.merchant_id == merchant_id,
-            ProviderCredential.is_active_payIn == True
-        )
-        .first()
-    )
+    credential = get_active_payin_credential(db, merchant_id)
     if not credential:
         raise HTTPException(400, "No active PayIn provider")
 
@@ -290,14 +277,7 @@ def initiate_live_payin(
             raise HTTPException(403, f"IP {client_ip} is not whitelisted")
 
     # 2️⃣ FETCH ACTIVE PAYIN PROVIDER
-    credential = (
-        db.query(ProviderCredential)
-        .filter(
-            ProviderCredential.merchant_id == merchant_id,
-            ProviderCredential.is_active_payIn == True
-        )
-        .first()
-    )
+    credential = get_active_payin_credential(db, merchant_id)
     if not credential:
         raise HTTPException(400, "No active PayIn provider")
 

@@ -121,3 +121,41 @@ def create_provider_instrument(
 
     return inst
 
+
+
+from typing import Optional
+from models.models import MerchantTspSetting, ProviderCredential, TspDirectionEnum, TspProvider, TspStatusEnum
+
+
+def get_active_payin_credential(db: Session, merchant_id: str) -> Optional[ProviderCredential]:
+    """
+    The provider credential a merchant's PayIn goes through.
+
+    1. The merchant's enabled Pay-in mappings (admin → TSP Mappings, "Pay-in" switch), default
+       route first (lowest priority), provider active — the first one that has credentials.
+    2. Otherwise a credential with "Service enabled" (is_active_payIn) switched on, as before.
+    """
+    mapped = (
+        db.query(ProviderCredential)
+        .join(
+            MerchantTspSetting,
+            (MerchantTspSetting.merchant_id == ProviderCredential.merchant_id)
+            & (MerchantTspSetting.provider_id == ProviderCredential.provider_id),
+        )
+        .join(TspProvider, TspProvider.id == ProviderCredential.provider_id)
+        .filter(
+            ProviderCredential.merchant_id == merchant_id,
+            MerchantTspSetting.enabled == True,  # noqa: E712
+            MerchantTspSetting.direction.in_([TspDirectionEnum.PAYIN, TspDirectionEnum.BOTH]),
+            TspProvider.status == TspStatusEnum.active,
+        )
+        .order_by(MerchantTspSetting.priority.asc(), MerchantTspSetting.id.asc())
+        .first()
+    )
+    if mapped:
+        return mapped
+    return (
+        db.query(ProviderCredential)
+        .filter(ProviderCredential.merchant_id == merchant_id, ProviderCredential.is_active_payIn == True)  # noqa: E712
+        .first()
+    )
