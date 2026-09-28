@@ -9,6 +9,7 @@ import { AlertCircle, CheckCircle2, Clock, CloudUpload, Copy, Eye, FileText, Lis
 import { ActionMenu, EmptyState } from "@/components/admin-part/ui";
 import Pager from "@/components/admin-part/Pager";
 import { errorText, filterInputCls } from "@/components/admin-part/listUtils";
+import { DocumentPreviewDialog } from "@/components/txn/DocumentPreviewDialog";
 
 type DisplayAccount = {
   id: number;
@@ -116,6 +117,7 @@ export default function MerchantTopup() {
   const [utr, setUtr] = useState("");
   const [note, setNote] = useState("");
   const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptView, setReceiptView] = useState<string | null>(null);
   const [receiptErr, setReceiptErr] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -457,9 +459,9 @@ export default function MerchantTopup() {
                       <td className="whitespace-nowrap px-3 py-3 text-gray-700 dark:text-gray-300">{t.beneficiary_bank_name || "—"} {last4(t.beneficiary_account_number)}</td>
                       <td className="whitespace-nowrap px-3 py-3">
                         {url ? (
-                          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                          <button type="button" onClick={() => setReceiptView(url)} className="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:underline dark:text-indigo-400">
                             <FileText className="h-3.5 w-3.5" /> View Receipt
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
@@ -478,7 +480,7 @@ export default function MerchantTopup() {
                             label={`More for top-up ${t.id}`}
                             items={[
                               ...(t.utr_or_txn_id ? [{ label: "Copy UTR", icon: Copy, onClick: () => copy(t.utr_or_txn_id, "UTR") }] : []),
-                              ...(url ? [{ label: "Open receipt", icon: FileText, onClick: () => window.open(url, "_blank", "noopener") }] : []),
+                              ...(url ? [{ label: "Open receipt", icon: FileText, onClick: () => setReceiptView(url) }] : []),
                             ]}
                           />
                         </div>
@@ -560,6 +562,8 @@ export default function MerchantTopup() {
           )}
         </DialogContent>
       </Dialog>
+
+      <DocumentPreviewDialog source={receiptView ? { url: receiptView } : null} title="Top-up receipt" onClose={() => setReceiptView(null)} />
     </div>
   );
 }

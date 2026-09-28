@@ -33,6 +33,7 @@ import { TspStat } from "@/components/admin-part/tspShared";
 import Pager from "@/components/admin-part/Pager";
 import { DateRangeInput } from "@/components/admin-part/filterBits";
 import { errorText, filterInputCls } from "@/components/admin-part/listUtils";
+import { DocumentPreviewDialog } from "@/components/txn/DocumentPreviewDialog";
 
 type DisplayAccount = {
   id: number;
@@ -121,6 +122,7 @@ export default function AdminPayoutManagement() {
   // top-ups
   const [tab, setTab] = useState<"pending" | "verified">("pending");
   const [merchantFilter, setMerchantFilter] = useState("");
+  const [receiptView, setReceiptView] = useState<string | null>(null);
   const [range, setRange] = useState({ from: "", to: "" });
   const [page, setPage] = useState(1);
   const perPage = 10;
@@ -572,9 +574,9 @@ export default function AdminPayoutManagement() {
                       <td className={TD}>{fmtWhen(tab === "pending" ? t.created_at : t.verified_at ?? t.created_at)}</td>
                       <td className={TD}>
                         {url ? (
-                          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                          <button type="button" onClick={() => setReceiptView(url)} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-indigo-600 hover:underline dark:text-indigo-400">
                             <FileText className="h-3.5 w-3.5" /> View
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-[12px] text-gray-400">None</span>
                         )}
@@ -697,6 +699,8 @@ export default function AdminPayoutManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DocumentPreviewDialog source={receiptView ? { url: receiptView } : null} title="Top-up receipt" onClose={() => setReceiptView(null)} />
     </div>
   );
 }

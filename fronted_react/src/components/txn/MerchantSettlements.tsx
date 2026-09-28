@@ -45,10 +45,14 @@ const when = (d?: string | null) =>
   d ? new Date(d).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).replace("Sept", "Sep") : "—";
 const bankLabel = (s: Settlement) => (s.bank_account ? `${s.bank_account.bank_name || "Bank"} •••• ${s.bank_account.last4}` : "—");
 
-/** Opens a printable withdrawal receipt (the browser's print dialog can save it as PDF). */
+/** Prints a withdrawal receipt from a hidden frame on this page (the print dialog can save it as PDF) — no new tab. */
 function printReceipt(s: Settlement, merchantName: string) {
-  const w = window.open("", "_blank", "width=720,height=860");
-  if (!w) return;
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  document.body.appendChild(frame);
+  const w = frame.contentWindow;
+  if (!w) return frame.remove();
   const esc = (v: unknown) => String(v ?? "—").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
   const rows: [string, string][] = [
     ["Settlement ID", s.txn_id],
@@ -67,9 +71,14 @@ table{width:100%;border-collapse:collapse;font-size:14px}td{padding:10px 0;borde
 .amt{font-size:28px;font-weight:700;margin:16px 0}.foot{margin-top:32px;font-size:12px;color:#94a3b8}</style></head><body>
 <h1>Vichitrapay — Withdrawal Receipt</h1><p>Generated ${esc(new Date().toLocaleString())}</p>
 <div class="amt">${esc(inr(s.amount))}</div><table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("")}</table>
-<div class="foot">This receipt is generated from your Vichitrapay settlement record.</div>
-<script>window.onload=()=>window.print()</script></body></html>`);
+<div class="foot">This receipt is generated from your Vichitrapay settlement record.</div></body></html>`);
   w.document.close();
+  w.onafterprint = () => setTimeout(() => frame.remove(), 0);
+  setTimeout(() => {
+    w.focus();
+    w.print();
+    setTimeout(() => frame.remove(), 60_000); // fallback if afterprint never fires
+  }, 50);
 }
 
 export default function MerchantSettlements() {

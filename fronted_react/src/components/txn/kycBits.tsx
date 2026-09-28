@@ -4,7 +4,8 @@ import { CheckCircle2, Clock, CloudUpload, Download, Eye, FileText, Loader2, XCi
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { errorText, filterInputCls } from "@/components/admin-part/listUtils";
-import { KYC_MAX_MB, openKycDocument, type KycItem, type KycStatus } from "@/api/kyc";
+import { KYC_MAX_MB, downloadKycDocument, fetchKycDocument, type KycItem, type KycStatus } from "@/api/kyc";
+import { DocumentPreviewDialog, type PreviewSource } from "@/components/txn/DocumentPreviewDialog";
 
 const STATUS: Record<KycStatus, { label: string; cls: string }> = {
   approved: { label: "Approved", cls: "border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/40 dark:text-green-400" },
@@ -46,32 +47,37 @@ const outlineBtn =
 
 export function KycDocLinks({ item, userId, buttons = false }: { item: KycItem; userId?: string; buttons?: boolean }) {
   const { toast } = useToast();
+  const [preview, setPreview] = useState<PreviewSource | null>(null);
   if (!item.has_file) return null;
-  const open = (download: boolean) =>
-    openKycDocument(item.key, { userId, download, fileName: item.file_name }).catch((e) =>
-      toast({ title: "Could not open document", description: errorText(e), variant: "destructive" }),
+  const view = () => setPreview({ load: () => fetchKycDocument(item.key, userId) });
+  const download = () =>
+    downloadKycDocument(item.key, { userId, fileName: item.file_name }).catch((e) =>
+      toast({ title: "Could not download document", description: errorText(e), variant: "destructive" }),
     );
+  const dialog = <DocumentPreviewDialog source={preview} title={item.label} fileName={item.file_name} onClose={() => setPreview(null)} />;
   if (buttons)
     return (
       <div className="flex shrink-0 gap-2">
-        <button type="button" onClick={() => open(false)} className={outlineBtn}>
+        <button type="button" onClick={view} className={outlineBtn}>
           <Eye className="h-4 w-4" /> View
         </button>
-        <button type="button" onClick={() => open(true)} className={outlineBtn}>
+        <button type="button" onClick={download} className={outlineBtn}>
           <Download className="h-4 w-4" /> Download
         </button>
+        {dialog}
       </div>
     );
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
-      <button type="button" onClick={() => open(false)} className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400">
+      <button type="button" onClick={view} className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400">
         <Eye className="h-3.5 w-3.5" /> View uploaded document
       </button>
       <span className="text-gray-300 dark:text-gray-600">•</span>
-      <button type="button" onClick={() => open(true)} className="inline-flex items-center gap-1 font-medium text-gray-600 hover:underline dark:text-gray-300">
+      <button type="button" onClick={download} className="inline-flex items-center gap-1 font-medium text-gray-600 hover:underline dark:text-gray-300">
         <Download className="h-3.5 w-3.5" /> Download
       </button>
       {item.file_name && <span className="truncate text-gray-400">({item.file_name})</span>}
+      {dialog}
     </div>
   );
 }

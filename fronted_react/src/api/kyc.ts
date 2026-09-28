@@ -81,26 +81,23 @@ export const reviewKycItem = async (userId: string, key: string, status: "approv
 const docUrl = (key: string, userId?: string) =>
   userId ? `${BASE_URL}/admin/kyc/${encodeURIComponent(userId)}/document/${key}` : `${selfKyc()}/document/${key}`;
 
-/** Fetch a KYC document with the auth header, then open it in a new tab or save it. */
-export async function openKycDocument(key: string, opts: { userId?: string; download?: boolean; fileName?: string | null } = {}) {
-  // open the tab synchronously so pop-up blockers allow it
-  const tab = opts.download ? null : window.open("", "_blank");
-  try {
-    const res = await api.get(docUrl(key, opts.userId), { responseType: "blob" });
-    const url = URL.createObjectURL(res.data);
-    if (tab) {
-      tab.location.href = url;
-    } else {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = opts.fileName || key;
-      a.click();
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  } catch (e) {
-    tab?.close();
-    throw e;
-  }
+/** Fetch a KYC document with the auth header (shown in the in-page preview dialog). */
+export const fetchKycDocument = async (key: string, userId?: string): Promise<Blob> =>
+  (await api.get(docUrl(key, userId), { responseType: "blob" })).data;
+
+/** Save a blob to disk under the given name. */
+export function saveBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Fetch a KYC document and save it. */
+export async function downloadKycDocument(key: string, opts: { userId?: string; fileName?: string | null } = {}) {
+  saveBlob(await fetchKycDocument(key, opts.userId), opts.fileName || key);
 }
 
 /** Final account-level KYC decision (gates live PayIn). */
