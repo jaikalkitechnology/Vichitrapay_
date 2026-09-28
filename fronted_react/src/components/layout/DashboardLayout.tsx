@@ -94,6 +94,20 @@ const merchantSections: NavSection[] = [
   },
 ];
 
+const partnerSections: NavSection[] = [
+  {
+    label: "Main",
+    tabs: [
+      { id: "merchants", label: "Merchants", icon: Users, color: "text-blue-400" },
+      { id: "transactions", label: "Merchant Transactions", icon: ArrowLeftRight, color: "text-emerald-400" },
+    ],
+  },
+  {
+    label: "Account",
+    tabs: [{ id: "profile", label: "Profile & Settings", icon: UserCog, color: "text-rose-400" }],
+  },
+];
+
 export default function DashboardLayout({
   children,
   activeTab,
@@ -106,10 +120,11 @@ export default function DashboardLayout({
   const { theme, toggleTheme } = useTheme();
 
   const isAdmin = user?.role === 3;
-  const basePath = isAdmin ? "/admin" : "/merchant";
-  const sections = isAdmin ? adminSections : merchantSections;
-  const roleLabel = isAdmin ? "Administrator" : "Merchant";
-  const notifications = useNotifications(isAdmin);
+  const isPartner = user?.role === 1;
+  const basePath = isAdmin ? "/admin" : isPartner ? "/partner" : "/merchant";
+  const sections = isAdmin ? adminSections : isPartner ? partnerSections : merchantSections;
+  const roleLabel = isAdmin ? "Administrator" : isPartner ? "Partner" : "Merchant";
+  const notifications = useNotifications(isAdmin ? "admin" : isPartner ? "partner" : "merchant");
 
   const handleTabClick = (tabId: string) => {
     onTabChange(tabId);

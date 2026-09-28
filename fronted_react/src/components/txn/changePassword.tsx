@@ -48,7 +48,7 @@ function PwdField({
   );
 }
 
-export default function ChangePassword({ embedded = false }: { embedded?: boolean }) {
+export default function ChangePassword({ embedded = false, endpoint = "/merchant/change-password" }: { embedded?: boolean; endpoint?: string }) {
   const { toast } = useToast();
 
   const [oldPwd, setOldPwd] = useState("");
@@ -95,7 +95,7 @@ export default function ChangePassword({ embedded = false }: { embedded?: boolea
 
     setLoading(true);
     try {
-      await api.post(`${BASE_URL}/merchant/change-password`, {
+      await api.post(`${BASE_URL}${endpoint}`, {
         old_password: oldPwd,
         new_password: newPwd,
       });

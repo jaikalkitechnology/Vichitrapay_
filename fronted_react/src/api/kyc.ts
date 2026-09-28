@@ -44,19 +44,29 @@ export type MerchantFees =
       };
     };
 
-export const fetchMyKyc = async (): Promise<KycData> => (await api.get(`${BASE_URL}/merchant/kyc`)).data;
+/** Self-service KYC base: partners (role 1) use /partner/kyc, merchants /merchant/kyc. */
+function selfKyc() {
+  try {
+    const role = JSON.parse(localStorage.getItem("gurutvapay-user") || "{}")?.role;
+    return `${BASE_URL}/${role === 1 ? "partner" : "merchant"}/kyc`;
+  } catch {
+    return `${BASE_URL}/merchant/kyc`;
+  }
+}
+
+export const fetchMyKyc = async (): Promise<KycData> => (await api.get(selfKyc())).data;
 
 export const setKycCompanyType = async (company_type: string): Promise<KycData> =>
-  (await api.put(`${BASE_URL}/merchant/kyc/company-type`, { company_type })).data;
+  (await api.put(`${selfKyc()}/company-type`, { company_type })).data;
 
 export const setKycField = async (key: string, value: string): Promise<KycData> =>
-  (await api.put(`${BASE_URL}/merchant/kyc/field`, { key, value })).data;
+  (await api.put(`${selfKyc()}/field`, { key, value })).data;
 
 export const uploadKycDocument = async (key: string, file: File): Promise<KycData> => {
   const form = new FormData();
   form.append("key", key);
   form.append("file", file);
-  return (await api.post(`${BASE_URL}/merchant/kyc/document`, form)).data;
+  return (await api.post(`${selfKyc()}/document`, form)).data;
 };
 
 export const fetchMyFees = async (): Promise<MerchantFees> => (await api.get(`${BASE_URL}/merchant/fees`)).data;
@@ -67,9 +77,9 @@ export const fetchMerchantKyc = async (userId: string): Promise<KycData> =>
 export const reviewKycItem = async (userId: string, key: string, status: "approved" | "rejected", remark?: string): Promise<KycData> =>
   (await api.patch(`${BASE_URL}/admin/kyc/${encodeURIComponent(userId)}/${key}`, { status, remark })).data;
 
-/** Document URL for the merchant themself, or for an admin when userId is given. */
+/** Document URL for the logged-in merchant/partner themself, or for an admin when userId is given. */
 const docUrl = (key: string, userId?: string) =>
-  userId ? `${BASE_URL}/admin/kyc/${encodeURIComponent(userId)}/document/${key}` : `${BASE_URL}/merchant/kyc/document/${key}`;
+  userId ? `${BASE_URL}/admin/kyc/${encodeURIComponent(userId)}/document/${key}` : `${selfKyc()}/document/${key}`;
 
 /** Fetch a KYC document with the auth header, then open it in a new tab or save it. */
 export async function openKycDocument(key: string, opts: { userId?: string; download?: boolean; fileName?: string | null } = {}) {

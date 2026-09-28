@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from models.models import MerchantKycItem, PayoutBankAccount, User, india_tz
-from utils.authenticate import admin_required, user_required
+from utils.authenticate import admin_required, get_current_user
 from utils.database import get_db
 
 # Stored outside /static so documents are only reachable through the authenticated endpoints below.
@@ -59,7 +59,7 @@ def _person(company_type: str) -> str:
     }.get(company_type, "Director")
 
 
-def _items_for(company_type: Optional[str]) -> dict:
+def _items_for(company_type: Optional[str], role: int = 2) -> dict:
     """Required KYC items for each section, as (key, label, kind, hint)."""
     basic = [
         ("mobile", "Registered Mobile Number", "text", None),
@@ -92,6 +92,9 @@ def _items_for(company_type: Optional[str]) -> dict:
                 ("incorporation_doc", "Certificate of Incorporation", "file", None),
                 ("moa_aoa_doc", "MOA & AOA", "file", None),
             ]
+    if company_type and role == 1:
+        # partners submit their bank proof with KYC (step 4 of the partner KYC wizard)
+        docs.append(("bank_proof_doc", "Cancelled Cheque / Bank Statement", "file", None))
     return {
         "company": [("company_type", "Company Type", "select", None)],
         "basic": basic,
@@ -99,8 +102,8 @@ def _items_for(company_type: Optional[str]) -> dict:
     }
 
 
-def _item_defs(company_type: Optional[str]) -> dict:
-    return {key: (label, kind) for section in _items_for(company_type).values() for key, label, kind, _ in section}
+def _item_defs(company_type: Optional[str], role: int = 2) -> dict:
+    return {key: (label, kind) for section in _items_for(company_type, role).values() for key, label, kind, _ in section}
 
 
 def _rows(db: Session, user_id: str) -> dict:
@@ -115,7 +118,7 @@ def _kyc_payload(db: Session, user: User) -> dict:
 
     sections = {}
     approved = total = 0
-    for name, defs in _items_for(company_type).items():
+    for name, defs in _items_for(company_type, user.role).items():
         items = []
         for key, label, kind, hint in defs:
             r = rows.get(key)
@@ -176,7 +179,15 @@ def _file_response(db: Session, user_id: str, key: str) -> FileResponse:
 
 # ---------------------------------------------------------------- merchant
 
-merchant_router = APIRouter(prefix="/api/v1/merchant/kyc", tags=["Merchant KYC"])
+def kyc_self_required(user: User = Depends(get_current_user)) -> User:
+    """Merchants (role 2) and partners (role 1) submit their own KYC."""
+    if user.role not in (1, 2):
+        raise HTTPException(403, "Access denied: merchants and partners only")
+    return user
+
+
+# Mounted twice in main.py: /api/v1/merchant/kyc and /api/v1/partner/kyc
+self_router = APIRouter()
 
 
 class CompanyTypeIn(BaseModel):
@@ -188,13 +199,13 @@ class FieldIn(BaseModel):
     value: str
 
 
-@merchant_router.get("")
-def get_my_kyc(db: Session = Depends(get_db), current_user: User = Depends(user_required)):
+@self_router.get("")
+def get_my_kyc(db: Session = Depends(get_db), current_user: User = Depends(kyc_self_required)):
     return _kyc_payload(db, current_user)
 
 
-@merchant_router.put("/company-type")
-def set_company_type(payload: CompanyTypeIn, db: Session = Depends(get_db), current_user: User = Depends(user_required)):
+@self_router.put("/company-type")
+def set_company_type(payload: CompanyTypeIn, db: Session = Depends(get_db), current_user: User = Depends(kyc_self_required)):
     if payload.company_type not in COMPANY_TYPES:
         raise HTTPException(422, "Unknown company type")
     row = _get_editable(db, current_user.id, "company_type")
@@ -207,10 +218,10 @@ def set_company_type(payload: CompanyTypeIn, db: Session = Depends(get_db), curr
     return _kyc_payload(db, current_user)
 
 
-@merchant_router.put("/field")
-def set_field(payload: FieldIn, db: Session = Depends(get_db), current_user: User = Depends(user_required)):
+@self_router.put("/field")
+def set_field(payload: FieldIn, db: Session = Depends(get_db), current_user: User = Depends(kyc_self_required)):
     ct = db.query(MerchantKycItem).filter(MerchantKycItem.user_id == current_user.id, MerchantKycItem.key == "company_type").first()
-    defs = _item_defs(ct.value if ct else None)
+    defs = _item_defs(ct.value if ct else None, current_user.role)
     if defs.get(payload.key, (None, None))[1] != "text":
         raise HTTPException(422, "Unknown KYC field")
     value = payload.value.strip()
@@ -230,17 +241,17 @@ def set_field(payload: FieldIn, db: Session = Depends(get_db), current_user: Use
     return _kyc_payload(db, current_user)
 
 
-@merchant_router.post("/document")
+@self_router.post("/document")
 async def upload_document(
     key: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(user_required),
+    current_user: User = Depends(kyc_self_required),
 ):
     ct = db.query(MerchantKycItem).filter(MerchantKycItem.user_id == current_user.id, MerchantKycItem.key == "company_type").first()
     if not ct:
         raise HTTPException(400, "Select your company type first")
-    if _item_defs(ct.value).get(key, (None, None))[1] != "file":
+    if _item_defs(ct.value, current_user.role).get(key, (None, None))[1] != "file":
         raise HTTPException(422, "Unknown KYC document")
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in ALLOWED_DOC_TYPES:
@@ -272,8 +283,8 @@ async def upload_document(
     return _kyc_payload(db, current_user)
 
 
-@merchant_router.get("/document/{key}")
-def download_my_document(key: str, db: Session = Depends(get_db), current_user: User = Depends(user_required)):
+@self_router.get("/document/{key}")
+def download_my_document(key: str, db: Session = Depends(get_db), current_user: User = Depends(kyc_self_required)):
     return _file_response(db, current_user.id, key)
 
 

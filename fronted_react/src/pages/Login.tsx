@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { homeForRole } from "@/lib/roles";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -52,7 +53,7 @@ export default function Login() {
   });
 
   if (isAuthenticated && user) {
-    return <Navigate to={user.role === 3 ? "/admin" : "/merchant"} replace />;
+    return <Navigate to={homeForRole(user.role)} replace />;
   }
 
   async function onSubmit(data: FormValues) {

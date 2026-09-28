@@ -16,9 +16,10 @@ const REFRESH_MS = 60_000;
 
 /**
  * Pending-work notifications for the topbar bell, built from real data:
- * admin → /admin/summary counts; merchant → pending withdrawals and KYC status.
+ * admin → /admin/summary counts; merchant → pending withdrawals and KYC status; partner → own KYC status.
  */
-export default function useNotifications(isAdmin: boolean) {
+export default function useNotifications(role: "admin" | "merchant" | "partner") {
+  const isAdmin = role === "admin";
   const [items, setItems] = useState<NavNotification[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,6 +38,9 @@ export default function useNotifications(isAdmin: boolean) {
             { id: "bank", title: "Bank approvals", description: "Payout accounts to review", count: bank, tab: "bankApproval", tone: "red" as const },
           ].filter((n) => n.count > 0)
         );
+      } else if (role === "partner") {
+        const { data } = await api.get(`${BASE_URL}/partner/me`);
+        setItems(data?.kyc_verified === false ? [{ id: "kyc", title: "KYC pending", description: "Complete your KYC in Profile & Settings", count: 1, tab: "profile", tone: "amber" }] : []);
       } else {
         const [settled, profile] = await Promise.allSettled([
           api.get(`${BASE_URL}/merchant/settled`, { params: { page: 1, per_page: 50 } }),
@@ -55,7 +59,7 @@ export default function useNotifications(isAdmin: boolean) {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, role]);
 
   useEffect(() => {
     load();

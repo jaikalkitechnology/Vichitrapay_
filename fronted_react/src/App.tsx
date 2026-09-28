@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import MerchantDashboard from "./pages/MerchantDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import PartnerDashboard from "@/components/admin-part/partnerDetails/PartnerDashboard";
+import { homeForRole } from "@/lib/roles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +39,8 @@ const ProtectedRoute = ({
 
   if (!roleString || !allowedRoles.includes(roleString)) {
     // Redirect to proper dashboard if role is not allowed
-    return <Navigate to={roleString === "admin" ? "/admin" : "/merchant"} replace />;
+    // unknown role → login, otherwise that role's own panel (avoids redirect loops)
+    return <Navigate to={roleString ? homeForRole(user?.role) : "/login"} replace />;
   }
 
   return <>{element}</>;
@@ -58,6 +61,10 @@ const AppRoutes = () => {
       <Route
         path="/merchant/*"
         element={<ProtectedRoute element={<MerchantDashboard />} allowedRoles={["merchant"]} />}
+      />
+      <Route
+        path="/partner/*"
+        element={<ProtectedRoute element={<PartnerDashboard />} allowedRoles={["partner"]} />}
       />
 
       {/* Catch-all */}
