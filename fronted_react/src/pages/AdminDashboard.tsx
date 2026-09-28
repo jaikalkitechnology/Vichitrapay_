@@ -55,6 +55,7 @@ import MerchatList from "@/components/txn/merchantlist";
 import PartnerManagement from "@/components/admin-part/PartnerManagement";
 import PartnerDetails from "@/components/admin-part/partnerDetails/PartnerDetails";
 import { isPartnerTab } from "@/components/admin-part/partnerDetails/partnerTabs";
+import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 import MerchantDetails from "@/components/txn/merchantDetails/MerchantDetails";
 import { isMdTab } from "@/components/txn/merchantDetails/mdTypes";
 import MerchantTransactionsPage from "@/components/txn/merchantTxnView";
@@ -165,7 +166,8 @@ const cellMono = "font-mono text-[12px] whitespace-nowrap text-gray-600 dark:tex
 const cellAmount = "font-mono text-[13px] whitespace-nowrap tabular-nums font-medium text-gray-900 dark:text-gray-100";
 
 // ---- component -------------------------------------------------------------
-const ADMIN_TABS = ["dashboard", "merchants", "partners", "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
+// "partners" (Partner Management) only while the partner feature is on
+const ADMIN_TABS = ["dashboard", "merchants", ...(PARTNER_PANEL_ENABLED ? ["partners"] : []), "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
 
 function getTabFromPath(pathname: string): string {
   const segment = pathname.replace(/^\/admin\/?/, "").split("/")[0];
@@ -519,6 +521,7 @@ export default function AdminDashboard() {
         return renderMerchants();
       }
       case "partners": {
+        if (!PARTNER_PANEL_ENABLED) return renderDashboard();
         // /admin/partners/:id/:tab → partner details page
         const [, pid, psub] = location.pathname.replace(/^\/admin\/?/, "").split("/");
         if (pid) return <PartnerDetails partnerId={decodeURIComponent(pid)} tab={isPartnerTab(psub) ? psub : "kyc"} />;

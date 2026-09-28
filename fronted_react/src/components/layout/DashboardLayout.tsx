@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
+import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -44,7 +45,7 @@ const adminSections: NavSection[] = [
     tabs: [
       { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-indigo-400" },
       { id: "merchants", label: "Merchants", icon: Users, color: "text-blue-400" },
-      { id: "partners", label: "Partners", icon: Handshake, color: "text-fuchsia-400" },
+      ...(PARTNER_PANEL_ENABLED ? [{ id: "partners", label: "Partners", icon: Handshake, color: "text-fuchsia-400" }] : []),
       { id: "tspMappings", label: "TSP Mappings", icon: Layers, color: "text-violet-400" },
       { id: "tspProviders", label: "TSP Providers", icon: Network, color: "text-orange-400" },
     ],
