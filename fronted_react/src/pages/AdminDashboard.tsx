@@ -53,6 +53,7 @@ import DashboardCharts, { Sparkline } from "@/components/txn/DashboardCharts";
 import useChartData from "@/components/txn/useChartData";
 import MerchatList from "@/components/txn/merchantlist";
 import PartnerManagement from "@/components/admin-part/PartnerManagement";
+import SystemLogs from "@/components/admin-part/systemLogs/SystemLogs";
 import PartnerDetails from "@/components/admin-part/partnerDetails/PartnerDetails";
 import { isPartnerTab } from "@/components/admin-part/partnerDetails/partnerTabs";
 import { PARTNER_PANEL_ENABLED } from "@/lib/features";
@@ -167,7 +168,7 @@ const cellAmount = "font-mono text-[13px] whitespace-nowrap tabular-nums font-me
 
 // ---- component -------------------------------------------------------------
 // "partners" (Partner Management) only while the partner feature is on
-const ADMIN_TABS = ["dashboard", "merchants", ...(PARTNER_PANEL_ENABLED ? ["partners"] : []), "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval"];
+const ADMIN_TABS = ["dashboard", "merchants", ...(PARTNER_PANEL_ENABLED ? ["partners"] : []), "tspMappings", "tspProviders", "transactions", "settlements", "analytics", "payouts", "report", "bankApproval", "systemLogs"];
 
 function getTabFromPath(pathname: string): string {
   const segment = pathname.replace(/^\/admin\/?/, "").split("/")[0];
@@ -543,6 +544,8 @@ export default function AdminDashboard() {
         return renderReport();
       case "bankApproval":
         return renderBankApproval();
+      case "systemLogs":
+        return <SystemLogs />;
       default:
         return renderDashboard();
     }

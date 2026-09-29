@@ -25,8 +25,7 @@ import {
   BookOpen,
   Wallet,
   ChevronRight,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, ScrollText } from "lucide-react";
 import { cn, initials } from "@/lib/utils";
 import { PARTNER_PANEL_ENABLED } from "@/lib/features";
 
@@ -64,6 +63,7 @@ const adminSections: NavSection[] = [
     tabs: [
       { id: "report", label: "Report", icon: FileText, color: "text-sky-400" },
       { id: "bankApproval", label: "Bank Approval", icon: Shield, color: "text-green-400" },
+      { id: "systemLogs", label: "System Logs", icon: ScrollText, color: "text-violet-400" },
     ],
   },
 ];

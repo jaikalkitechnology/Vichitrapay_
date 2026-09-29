@@ -159,3 +159,20 @@ def get_active_payin_credential(db: Session, merchant_id: str) -> Optional[Provi
         .filter(ProviderCredential.merchant_id == merchant_id, ProviderCredential.is_active_payIn == True)  # noqa: E712
         .first()
     )
+
+
+def record_request_origin(instrument: TransactionInstrument, request) -> None:
+    """Save who called the PayIn API (client IP, calling domain, user agent) on the instrument,
+    for the admin System Logs → Payment Instrument Logs page."""
+    if request is None:
+        return
+    h = request.headers
+    ip = (h.get("x-forwarded-for", "").split(",")[0].strip() or h.get("x-real-ip")
+          or (request.client.host if request.client else None))
+    origin = h.get("origin") or h.get("referer") or ""
+    domain = None
+    if origin.startswith("http"):
+        parts = origin.split("/")
+        domain = f"{parts[0]}//{parts[2]}" if len(parts) > 2 else origin
+    instrument.meta = {**(instrument.meta or {}), "client_ip": ip, "domain": domain}
+    instrument.user_agent = h.get("user-agent")

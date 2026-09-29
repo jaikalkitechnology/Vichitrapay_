@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from crud.gateway.gatepay import initiate_getepay_payin, normalize_getepay_webhook
 from crud.gateway.live_payin import get_or_create_customer, create_payin_wallet_txn, create_provider_instrument, \
-    get_active_payin_credential
+    get_active_payin_credential, record_request_origin
 from crud.gateway.phonepe import initiate_phonepe_payin, normalize_phonepe_webhook
 from crud.gateway.templamart import (
     initiate_templamart_payin, normalize_templamart_webhook,
@@ -92,6 +92,7 @@ def get_ticket_sizes(
 @router.post("/upi-intent")
 def initiate_upi_intent(
     payload: PaymentRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(user_required),
 ):
@@ -130,6 +131,7 @@ def initiate_upi_intent(
             wallet_txn_id=wallet_txn.id,
             provider_code=provider_code,
         )
+        record_request_origin(instrument, request)
 
         context = {
             "db": db,
@@ -218,6 +220,7 @@ def initiate_gurutvapay_payment(
             wallet_txn_id=wallet_txn.id,
             provider_code="gurutvapay",
         )
+        record_request_origin(instrument, request)
 
         context = {
             "db": db,
@@ -308,6 +311,7 @@ def initiate_live_payin(
             wallet_txn_id=wallet_txn.id,
             provider_code=provider_code,
         )
+        record_request_origin(instrument, request)
 
         # --------------------------------------------------
         # 6️⃣ BUILD PROVIDER CONTEXT

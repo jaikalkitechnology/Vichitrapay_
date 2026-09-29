@@ -17,7 +17,7 @@ from routers.authenticate import router as auth_router
 from routers.merchant  import router as merchants_router
 from routers.admin import router as admin_router
 from routers.live import router as live
-from routers import live_payin, live_payout, tsp, kyc, email_validation, partners, partner_panel
+from routers import live_payin, live_payout, tsp, kyc, email_validation, partners, partner_panel, system_logs
 
 
 from contextlib import asynccontextmanager
@@ -73,6 +73,7 @@ app.include_router(kyc.admin_router)
 app.include_router(email_validation.router)
 app.include_router(partners.router)
 app.include_router(partner_panel.router)
+app.include_router(system_logs.router)
 
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
