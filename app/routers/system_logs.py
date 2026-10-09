@@ -9,7 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import String, cast, or_
 from sqlalchemy.orm import Session
 
-from models.models import LiveWebhookPhonePeLog, TransactionInstrument, WalletTransaction, WebhookDeliveryLog
+from models.models import (
+    LiveWebhookPhonePeLog, TemplamartApiLog, TransactionInstrument, WalletTransaction, WebhookDeliveryLog, WebhookLog,
+)
+from crud.gateway import templamart as tm
 from utils.authenticate import admin_required
 from utils.database import get_db
 
@@ -212,6 +215,7 @@ def instrument(log_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "Log not found")
     i, w = row
     meta = i.meta or {}
+    templamart_request, server_request = _templamart_calls(db, w.order_id)
     return {
         "id": i.id,
         "request_payload": {
@@ -226,10 +230,55 @@ def instrument(log_id: int, db: Session = Depends(get_db)):
             "domain": meta.get("domain"),
             "userAgent": i.user_agent,
         },
+        "templamart_request": templamart_request,
         "response_payload": i.provider_response,
+        "server_request_templamart": server_request,
         "status": i.status,
         "txn_id": i.txn_id,
         "identity_key": i.browser_fingerprint or i.provider_order_token,
         "meta": meta,
         "created_at": _iso(i.created_at, IST),
     }
+
+
+TM_URLS = {"create-payment": tm.CREATE_PAYMENT_URL, "upi-intent": tm.UPI_INTENT_URL, "initiate-upi-intent": tm.UPI_INTENT_URL,
+           "ticket-sizes": tm.TICKET_SIZE_URL, "login": tm.LOGIN_URL}
+
+
+def _templamart_calls(db: Session, order_id: Optional[str]) -> tuple:
+    """What Vichitrapay sent to Templamart for this order (templamart_api_logs) and the
+    webhook(s) Templamart's server sent back (webhook_logs). {} when there are none."""
+    if not order_id:
+        return {}, {}
+
+    def call(r: TemplamartApiLog) -> dict:
+        return {
+            "endpoint": r.endpoint,
+            "url": TM_URLS.get(r.endpoint or ""),
+            "request": r.request_payload,
+            "response": r.response_payload,
+            "http_status": r.http_status,
+            "status": r.status,
+            "error": r.error_message,
+            "created_at": _iso(r.created_at),
+        }
+
+    def hook(r: WebhookLog) -> dict:
+        return {
+            "received_payload": r.received_payload,
+            "normalized": r.normalized_payload,
+            "provider_status": r.provider_status,
+            "error": r.error_message,
+            "received_at": _iso(r.created_at),
+        }
+
+    calls = db.query(TemplamartApiLog).filter(TemplamartApiLog.order_id == order_id).order_by(TemplamartApiLog.id.desc()).all()
+    hooks = (db.query(WebhookLog).filter(WebhookLog.provider == "templamart", WebhookLog.order_id == order_id)
+             .order_by(WebhookLog.id.desc()).all())
+    sent = call(calls[0]) if calls else {}
+    if len(calls) > 1:
+        sent["earlier_calls"] = [call(r) for r in calls[1:]]
+    back = hook(hooks[0]) if hooks else {}
+    if len(hooks) > 1:
+        back["earlier_webhooks"] = [hook(r) for r in hooks[1:]]
+    return sent, back
