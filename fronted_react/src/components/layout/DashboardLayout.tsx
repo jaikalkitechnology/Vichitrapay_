@@ -138,7 +138,7 @@ export default function DashboardLayout({
   const sidebar = (
     <div className="flex h-full flex-col bg-navy dark:bg-[#0B1929]">
       <div className="relative flex items-center justify-center border-b border-white/[0.08] px-4 py-4">
-        <div className="h-20 w-20 overflow-hidden rounded-xl bg-white">
+        <div className="h-[90px] w-[90px] overflow-hidden rounded-[50px] bg-white p-3">
           <img src="/logo.png" alt="Vichitrapay" className="h-full w-full scale-[1.3] object-contain" />
         </div>
         <button

@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AlertCircle, ArrowRight, Clock, Eye, EyeOff, Loader2, Lock, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
 import useTheme from "@/hooks/useTheme";
 
-const logo = "/logo.png";
+const logo = "/login_logo.png";
 
 const formSchema = z.object({
   email: z.string().refine(
@@ -106,12 +106,15 @@ export default function Login() {
         <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br from-sky-100 to-indigo-100/70 dark:from-sky-900/30 dark:to-indigo-900/20" aria-hidden="true" />
 
         <div className="relative">
-          <div className="mb-8 flex justify-center">
-            <div className="dark:rounded-3xl dark:bg-white dark:px-5 dark:py-2 dark:shadow-lg dark:shadow-black/30">
-              <img src={logo} alt="Vichitrapay" className="h-36 w-36 scale-125 object-contain dark:h-28 dark:w-28 dark:scale-110" />
-            </div>
-          </div>
-
+<div className="mb-8 flex w-full justify-center">
+  <div className="w-full dark:rounded-3xl dark:bg-white dark:px-5 dark:py-2 dark:shadow-lg dark:shadow-black/30">
+    <img
+      src={logo}
+      alt="Vichitrapay"
+      className="h-auto w-full object-contain"
+    />
+  </div>
+</div>
           {apiError && (
             <div className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400" role="alert">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />

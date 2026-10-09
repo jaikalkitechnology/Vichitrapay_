@@ -92,7 +92,7 @@ export default function Navbar({
         </button>
 
         <div className="flex items-center gap-2 md:hidden">
-          <div className="h-9 w-9 overflow-hidden rounded-lg bg-white">
+          <div className="h-[50px] w-[50px] overflow-hidden rounded-lg bg-white rounded-[50px]">
             <img src="/logo.png" alt="Vichitrapay logo" className="h-full w-full scale-[1.3] object-contain" />
           </div>
         </div>
