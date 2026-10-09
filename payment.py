@@ -41,10 +41,6 @@ API = os.getenv("VICHITRAPAY_API", "https://api.vichitrapay.com").rstrip("/")
 MERCHANT_LOGIN = os.getenv("MERCHANT_LOGIN", "demo.merchant2@example.com")
 MERCHANT_PASSWORD = os.getenv("MERCHANT_PASSWORD", "Demo@1234")
 
-# payment login (shown with the payment link, for signing in on the payment page)
-PAYMENT_LOGIN = os.getenv("PAYMENT_LOGIN", "seller01")
-PAYMENT_PASSWORD = os.getenv("PAYMENT_PASSWORD", "Pass@1234")
-
 AMOUNT = 100.0
 
 # customer on the payment (test values; the email needs a vowel before "@" when email validation is on)
@@ -147,7 +143,6 @@ def main(http=None) -> None:
     print(f"  Order ID    : {order_id}")
     print(f"  Provider    : {result.get('provider')}")
     print(f"  Payment URL : {result.get('payment_url') or '— (provider returned no URL)'}")
-    print(f"  Pay login   : {PAYMENT_LOGIN} / {PAYMENT_PASSWORD}")
     print("  ─────────────────────────────")
 
     try:
