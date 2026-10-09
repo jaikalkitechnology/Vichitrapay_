@@ -12,6 +12,7 @@ Run from anywhere (needs the `requests` package):
     python payment.py --email yourname@gmail.com   # ₹100 payment
     python payment.py --amount 250     # another amount
     python payment.py --status ORDER_ID   # only check the status of an earlier order
+    python payment.py --tickets           # list the amounts the provider allows
 
 Settings can also come from environment variables:
     VICHITRAPAY_API, MERCHANT_LOGIN, MERCHANT_PASSWORD
@@ -99,6 +100,13 @@ def create_payment(http, api: str, token: str, amount: float, customer: dict) ->
     return resp.json()
 
 
+def ticket_sizes(http, api: str, token: str) -> dict:
+    resp = http.get(f"{api}/live/payin/ticket-sizes", headers={"Authorization": f"Bearer {token}"}, timeout=TIMEOUT)
+    if resp.status_code != 200:
+        fail("Ticket sizes", resp)
+    return resp.json()
+
+
 def check_status(http, api: str, token: str, order_id: str) -> dict:
     resp = http.get(
         f"{api}/live/payin/txns/status",
@@ -114,6 +122,7 @@ def check_status(http, api: str, token: str, order_id: str) -> dict:
 def main(http=None) -> None:
     parser = argparse.ArgumentParser(description="Create a test PayIn on Vichitrapay")
     parser.add_argument("--amount", type=float, default=AMOUNT, help="amount in rupees (default 100)")
+    parser.add_argument("--tickets", action="store_true", help="only list the amounts (ticket sizes) the provider allows")
     parser.add_argument("--status", metavar="ORDER_ID", help="only check the status of an existing merchantOrderId")
     parser.add_argument("--api", default=API, help=f"API base URL (default {API})")
     parser.add_argument("--email", default=CUSTOMER_EMAIL, help="customer email (gmail/yahoo/outlook/msn...)")
@@ -130,6 +139,16 @@ def main(http=None) -> None:
 
     token = login(http, api, MERCHANT_LOGIN, MERCHANT_PASSWORD)
     print("  ✓ Logged in")
+
+    if args.tickets:
+        t = ticket_sizes(http, api, token)
+        print(f"\n  Provider : {t.get('provider')}")
+        if not t.get("ticket_size_required", True):
+            print(f"  {t.get('message') or 'No ticket sizes — any amount is accepted'}")
+        else:
+            print("  Allowed amounts (ticket sizes):")
+            print("    " + json.dumps(t.get("ticket_sizes"), indent=2).replace("\n", "\n    "))
+        return
 
     if args.status:
         print(json.dumps(check_status(http, api, token, args.status), indent=2))
