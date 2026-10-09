@@ -134,7 +134,10 @@ def process_payin_webhook(
         wt.status = "failed"
         wt.description = "PayIn failed"
 
-    db.flush()
+    # Save the payment result (and release the wallet row lock) BEFORE calling the
+    # merchant: the delivery can take up to ~37 s with retries, and holding the lock
+    # that long blocks every other credit to this wallet.
+    db.commit()
 
     # ── 6. Forward to merchant webhook (with retries + delivery log) ──
     _forward_to_merchant(db, wh_log, wt)
