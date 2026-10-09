@@ -68,3 +68,4 @@ env/
 
 # ---------- Private uploads (KYC documents) ----------
 private_uploads/
+webhooks_received.jsonl
