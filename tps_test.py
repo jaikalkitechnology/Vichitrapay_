@@ -10,11 +10,17 @@ Only Vichitrapay itself is tested — no request goes to a TSP (payment provider
 Modes (--mode):
     status    GET  /live/payin/txns/status   (default: PayIn status lookup, database read)
     login     POST /api/v1/auth/login        (password check + token)
+    initiate  POST /live/payin/initiate      for a merchant with NO Pay-in mapping: Vichitrapay runs
+                                             all its checks (token, KYC, email, IP, provider lookup)
+                                             and answers 400 "No active PayIn provider" — no TSP call,
+                                             nothing saved. The script first checks the merchant has
+                                             no mapping and stops if one is set.
 
     python tps_test.py                                   # 200 status requests, 20 at a time
     python tps_test.py -n 1000 -c 50                     # 1000 requests, 50 at a time
     python tps_test.py --mode status --order ORDER_ID    # status of a real order (expects 200)
     python tps_test.py --mode login -n 300 -c 30
+    python tps_test.py --mode initiate -n 500 -c 25 --login <merchant without Pay-in mapping>
 
 -n  total requests      -c  how many run at the same time (concurrency)
 Settings can also come from env: VICHITRAPAY_API, MERCHANT_LOGIN, MERCHANT_PASSWORD
@@ -60,7 +66,7 @@ def main(factory=requests.Session) -> int:
     ap.add_argument("--api", default=API)
     ap.add_argument("--login", default=LOGIN, help="merchant email or username")
     ap.add_argument("--password", default=PASSWORD)
-    ap.add_argument("--mode", choices=["status", "login"], default="status")
+    ap.add_argument("--mode", choices=["status", "login", "initiate"], default="status")
     ap.add_argument("-n", "--requests", type=int, default=200, help="total requests (default 200)")
     ap.add_argument("-c", "--concurrency", type=int, default=20, help="requests at the same time (default 20)")
     ap.add_argument("--order", help="status mode: an existing merchantOrderId (expects 200; without it expects 404)")
@@ -77,15 +83,31 @@ def main(factory=requests.Session) -> int:
     print(f"  Mode        : {args.mode}")
     print(f"  Requests    : {args.requests}   at the same time: {args.concurrency}")
 
-    # log in once (status mode reuses the token)
+    # log in once (status / initiate reuse the token)
     r = factory().post(f"{api}/api/v1/auth/login", data={"username": args.login, "password": args.password}, timeout=TIMEOUT)
     if r.status_code != 200:
         print(f"\n  ✗ Login failed — HTTP {r.status_code}: {r.text[:300]}\n")
         return 1
     auth = {"Authorization": f"Bearer {r.json()['access_token']}"}
     run_id = uuid.uuid4().hex[:6].upper()
+    expect_text = None  # text the reply must contain to count as successful
 
-    if args.mode == "status":
+    if args.mode == "initiate":
+        # safety: only run when the merchant has NO Pay-in mapping, so no request reaches a TSP
+        r = factory().get(f"{api}/live/payin/ticket-sizes", headers=auth, timeout=TIMEOUT)
+        if not (r.status_code == 400 and "No active PayIn provider" in r.text):
+            print(f"\n  ✗ Stopped: this merchant has a Pay-in mapping (ticket-sizes → HTTP {r.status_code}), so initiate")
+            print("    would create real payments at the TSP. Turn its Pay-in off in admin → TSP Mappings,")
+            print("    or use --login with a merchant that has no Pay-in mapping.\n")
+            return 1
+        print("  Check       : ✓ no Pay-in mapping — requests stop before any TSP")
+        expect, expect_text = {400}, "No active PayIn provider"
+
+        def call(i):
+            body = {"amount": 100.0, "merchantOrderId": f"TPS{run_id}{i:05d}", "channel": "api", "purpose": "TPS test",
+                    "customer": {"buyer_name": "TPS Test", "email": "tps.test@gmail.com", "phone": "9876543210"}}
+            return session(factory).post(f"{api}/live/payin/initiate", json=body, headers=auth, timeout=TIMEOUT)
+    elif args.mode == "status":
         expect = {200} if args.order else {404}
         order = args.order or f"TPS-NOT-FOUND-{run_id}"
 
@@ -106,8 +128,8 @@ def main(factory=requests.Session) -> int:
         try:
             resp = call(i)
             ms = (time.perf_counter() - t0) * 1000
-            res = (resp.status_code in expect, f"HTTP {resp.status_code}", ms,
-                   None if resp.status_code in expect else resp.text[:160])
+            good = resp.status_code in expect and (expect_text is None or expect_text in resp.text)
+            res = (good, f"HTTP {resp.status_code}", ms, None if good else resp.text[:160])
         except Exception as exc:
             ms = (time.perf_counter() - t0) * 1000
             res = (False, type(exc).__name__, ms, str(exc)[:160])
@@ -133,7 +155,7 @@ def main(factory=requests.Session) -> int:
     print("  ──────")
     print(f"  Time taken  : {elapsed:.2f} s")
     print(f"  TPS         : {len(results) / elapsed:.1f} requests/s   ({len(good) / elapsed:.1f} successful/s)")
-    print(f"  Successful  : {len(good)}/{len(results)}  ({100 * len(good) / len(results):.1f}%)   expected {', '.join(f'HTTP {c}' for c in sorted(expect))}")
+    print(f"  Successful  : {len(good)}/{len(results)}  ({100 * len(good) / len(results):.1f}%)   expected {', '.join(f'HTTP {c}' for c in sorted(expect))}" + (f' "{expect_text}"' if expect_text else ""))
     print(f"  Responses   : " + ", ".join(f"{k} × {v}" for k, v in codes.most_common()))
     src = ms_ok or ms_all
     print(f"  Time / req  : avg {statistics.mean(src):.0f} ms · p50 {pct(src, 50):.0f} · p90 {pct(src, 90):.0f} · "
