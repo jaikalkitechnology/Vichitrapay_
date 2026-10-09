@@ -9,9 +9,10 @@ Logs in as a merchant and creates a ₹100 PayIn through the live API:
 
 Run from anywhere (needs the `requests` package):
 
-    python payment.py                  # ₹100 payment
+    python payment.py --email yourname@gmail.com   # ₹100 payment
     python payment.py --amount 250     # another amount
     python payment.py --status ORDER_ID   # only check the status of an earlier order
+    python payment.py --tickets           # list the amounts the provider allows
 
 Settings can also come from environment variables:
     VICHITRAPAY_API, MERCHANT_LOGIN, MERCHANT_PASSWORD
@@ -41,18 +42,14 @@ API = os.getenv("VICHITRAPAY_API", "https://api.vichitrapay.com").rstrip("/")
 MERCHANT_LOGIN = os.getenv("MERCHANT_LOGIN", "demo.merchant2@example.com")
 MERCHANT_PASSWORD = os.getenv("MERCHANT_PASSWORD", "Demo@1234")
 
-# payment login (shown with the payment link, for signing in on the payment page)
-PAYMENT_LOGIN = os.getenv("PAYMENT_LOGIN", "seller01")
-PAYMENT_PASSWORD = os.getenv("PAYMENT_PASSWORD", "Pass@1234")
-
 AMOUNT = 100.0
 
-# customer on the payment (test values; the email needs a vowel before "@" when email validation is on)
-CUSTOMER = {
-    "buyer_name": "Test Customer",
-    "email": "test.customer@example.com",
-    "phone": "9876543210",
-}
+# Customer on the payment. Templamart only accepts real email providers (gmail.com, yahoo.com,
+# outlook.com, msn.com ...) — not example.com. Pass them with --email/--name/--phone or set
+# CUSTOMER_EMAIL / CUSTOMER_NAME / CUSTOMER_PHONE.
+CUSTOMER_EMAIL = os.getenv("CUSTOMER_EMAIL", "")
+CUSTOMER_NAME = os.getenv("CUSTOMER_NAME", "Test Customer")
+CUSTOMER_PHONE = os.getenv("CUSTOMER_PHONE", "9876543210")
 
 TIMEOUT = 30  # seconds per request
 
@@ -83,14 +80,14 @@ def login(http, api: str, username: str, password: str) -> str:
     return body["access_token"]
 
 
-def create_payment(http, api: str, token: str, amount: float) -> dict:
+def create_payment(http, api: str, token: str, amount: float, customer: dict) -> dict:
     order_id = f"TEST{time.strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
     payload = {
         "amount": amount,
         "merchantOrderId": order_id,
         "channel": "web",
         "purpose": "Test Payment",
-        "customer": CUSTOMER,
+        "customer": customer,
     }
     resp = http.post(
         f"{api}/live/payin/initiate",
@@ -100,6 +97,13 @@ def create_payment(http, api: str, token: str, amount: float) -> dict:
     )
     if resp.status_code != 200:
         fail("PayIn initiate", resp)
+    return resp.json()
+
+
+def ticket_sizes(http, api: str, token: str) -> dict:
+    resp = http.get(f"{api}/live/payin/ticket-sizes", headers={"Authorization": f"Bearer {token}"}, timeout=TIMEOUT)
+    if resp.status_code != 200:
+        fail("Ticket sizes", resp)
     return resp.json()
 
 
@@ -118,8 +122,12 @@ def check_status(http, api: str, token: str, order_id: str) -> dict:
 def main(http=None) -> None:
     parser = argparse.ArgumentParser(description="Create a test PayIn on Vichitrapay")
     parser.add_argument("--amount", type=float, default=AMOUNT, help="amount in rupees (default 100)")
+    parser.add_argument("--tickets", action="store_true", help="only list the amounts (ticket sizes) the provider allows")
     parser.add_argument("--status", metavar="ORDER_ID", help="only check the status of an existing merchantOrderId")
     parser.add_argument("--api", default=API, help=f"API base URL (default {API})")
+    parser.add_argument("--email", default=CUSTOMER_EMAIL, help="customer email (gmail/yahoo/outlook/msn...)")
+    parser.add_argument("--name", default=CUSTOMER_NAME, help="customer name")
+    parser.add_argument("--phone", default=CUSTOMER_PHONE, help="customer 10-digit mobile")
     args = parser.parse_args()
     http = http or requests.Session()
     api = args.api.rstrip("/")
@@ -132,6 +140,16 @@ def main(http=None) -> None:
     token = login(http, api, MERCHANT_LOGIN, MERCHANT_PASSWORD)
     print("  ✓ Logged in")
 
+    if args.tickets:
+        t = ticket_sizes(http, api, token)
+        print(f"\n  Provider : {t.get('provider')}")
+        if not t.get("ticket_size_required", True):
+            print(f"  {t.get('message') or 'No ticket sizes — any amount is accepted'}")
+        else:
+            print("  Allowed amounts (ticket sizes):")
+            print("    " + json.dumps(t.get("ticket_sizes"), indent=2).replace("\n", "\n    "))
+        return
+
     if args.status:
         print(json.dumps(check_status(http, api, token, args.status), indent=2))
         return
@@ -140,14 +158,19 @@ def main(http=None) -> None:
         print("\n  ✗ Amount must be more than 0")
         sys.exit(1)
 
-    result = create_payment(http, api, token, args.amount)
+    email = (args.email or "").strip()
+    if not email or "@" not in email:
+        print("\n  ✗ Customer email is required, e.g.  python payment.py --email yourname@gmail.com")
+        print("    (Templamart accepts gmail.com, yahoo.com, outlook.com, msn.com ... — not example.com)")
+        sys.exit(1)
+    customer = {"buyer_name": args.name, "email": email, "phone": args.phone}
+    result = create_payment(http, api, token, args.amount, customer)
     order_id = result.get("merchantOrderId")
     print(f"  ✓ Payment of ₹{args.amount:,.2f} created")
     print("\n  ─────────────────────────────")
     print(f"  Order ID    : {order_id}")
     print(f"  Provider    : {result.get('provider')}")
     print(f"  Payment URL : {result.get('payment_url') or '— (provider returned no URL)'}")
-    print(f"  Pay login   : {PAYMENT_LOGIN} / {PAYMENT_PASSWORD}")
     print("  ─────────────────────────────")
 
     try:
