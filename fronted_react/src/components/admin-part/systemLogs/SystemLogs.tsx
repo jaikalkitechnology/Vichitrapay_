@@ -1,11 +1,11 @@
-// Admin → System Logs: PhonePe webhook logs, webhook deliveries, payment instrument logs
+// Admin → System Logs: PhonePe webhook logs, webhook deliveries, payment instrument logs, received webhooks
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, CreditCard, Eye, FileText, Loader2, RefreshCw, Search, Send, Webhook } from "lucide-react";
+import { Check, ChevronDown, Copy, CreditCard, Eye, FileText, Inbox, Loader2, RefreshCw, Search, Send, Webhook } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Pager from "@/components/admin-part/Pager";
 import { errorText } from "@/components/admin-part/listUtils";
 import { DateRangeMenu, LogDetailDialog, LogStatus } from "@/components/admin-part/systemLogs/logBits";
-import { fetchLogs, type DeliveryLog, type InstrumentLog, type LogKind, type LogPage, type PhonePeLog } from "@/api/systemLogs";
+import { fetchLogs, RECEIVER_URL, type DeliveryLog, type InstrumentLog, type LogKind, type LogPage, type PhonePeLog, type ReceivedWebhook } from "@/api/systemLogs";
 
 const PER_PAGE = 10;
 
@@ -13,7 +13,30 @@ const TABS: { id: LogKind; label: string; icon: typeof Webhook; title: string; s
   { id: "phonepe", label: "PhonePe Webhook Logs", icon: Webhook, title: "PhonePe Webhook Logs", subtitle: "Incoming webhook requests from PhonePe payment gateway", search: "Search by ID, source IP, reason...", detail: "Webhook" },
   { id: "deliveries", label: "Webhook Deliveries", icon: Send, title: "Webhook Deliveries", subtitle: "Outgoing webhook delivery status to merchant endpoints", search: "Search by Merchant ID, URL, status...", detail: "Delivery" },
   { id: "instruments", label: "Payment Instrument Logs", icon: CreditCard, title: "Payment Instrument Logs", subtitle: "Payment instrument level requests/response logs (Cards, UPI, Net Banking, etc)", search: "Search by Merchant, TSP, Domain, IP...", detail: "Instrument Log" },
+  { id: "received", label: "Received Webhooks", icon: Inbox, title: "Received Webhooks", subtitle: "Every payment result posted to Vichitrapay's own webhook URL — successful and failed", search: "Search by Order ID, Merchant, UTR, IP...", detail: "Received Webhook" },
 ];
+
+const inr = (v: number | null) => (v == null ? "—" : `₹${v.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`);
+
+/** The receiver URL with a copy button, so admins can paste it into a merchant's Webhook URL. */
+function ReceiverUrl() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(RECEIVER_URL).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/60 px-4 py-3 text-[13px] dark:border-violet-900/60 dark:bg-violet-950/30">
+      <span className="text-gray-600 dark:text-gray-400">Webhook URL to set on a merchant:</span>
+      <code className="break-all rounded-md bg-white px-2 py-1 font-mono text-[12.5px] text-gray-900 dark:bg-gray-900 dark:text-gray-100">{RECEIVER_URL}</code>
+      <button type="button" onClick={copy} className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium text-violet-700 hover:bg-violet-100 dark:text-violet-300 dark:hover:bg-violet-900/40">
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
 
 const when = (d: string | null) => {
   if (!d) return "—";
@@ -46,7 +69,7 @@ function ViewBtn({ onClick }: { onClick: () => void }) {
   );
 }
 
-type AnyLog = PhonePeLog | DeliveryLog | InstrumentLog;
+type AnyLog = PhonePeLog | DeliveryLog | InstrumentLog | ReceivedWebhook;
 
 function LogTab({ kind }: { kind: LogKind }) {
   const tab = TABS.find((t) => t.id === kind)!;
@@ -138,6 +161,25 @@ function LogTab({ kind }: { kind: LogKind }) {
         </>
       );
     };
+  } else if (kind === "received") {
+    head = ["ID", "Order ID", "Merchant", "Status", "Amount", "Settled", "UTR", "Source IP", "Received At", "Action"];
+    row = (x) => {
+      const r = x as ReceivedWebhook;
+      return (
+        <>
+          <td className={TD}>{r.id}</td>
+          <td className={cn(TD, "max-w-[200px] truncate font-mono text-[12.5px]")} title={r.order_id || undefined}>{r.order_id || "—"}</td>
+          <td className={TD}>{r.merchant_id || "—"}</td>
+          <td className={TD} title={r.event || undefined}><LogStatus status={r.status} /></td>
+          <td className={cn(TD, "text-right tabular-nums")}>{inr(r.amount)}</td>
+          <td className={cn(TD, "text-right tabular-nums")}>{inr(r.settle_amount)}</td>
+          <td className={cn(TD, "font-mono text-[12.5px]")}>{r.utr || "—"}</td>
+          <td className={TD}>{r.source_ip || "—"}</td>
+          <td className={TD}>{when(r.created_at)}</td>
+          <td className={cn(TD, "text-center")}><ViewBtn onClick={() => setViewId(r.id)} /></td>
+        </>
+      );
+    };
   } else {
     head = ["ID", "Merchant", "TSP", "IP Address", "Domain", "Identity Key", "Status", "Created At", "Action"];
     row = (x) => {
@@ -173,7 +215,32 @@ function LogTab({ kind }: { kind: LogKind }) {
         </div>
       </div>
 
-      <div className={cn("mb-5 grid gap-3", kind === "instruments" ? "lg:grid-cols-[1fr_200px_140px_160px_auto]" : "lg:grid-cols-[1fr_200px_210px_auto]")}>
+      {kind === "received" && <ReceiverUrl />}
+      {kind === "received" && data?.summary && (
+        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by result">
+          {([
+            ["", "All", data.summary.total, "text-gray-800 dark:text-gray-200"],
+            ["success", "Successful", data.summary.success, "text-green-700 dark:text-green-400"],
+            ["failed", "Failed", data.summary.failed, "text-red-600 dark:text-red-400"],
+          ] as const).map(([value, label, count, tone]) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => resetPage(setStatus)(value)}
+              aria-pressed={status === value}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-[13.5px] font-medium transition",
+                status === value ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950/40" : "border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800",
+              )}
+            >
+              <span className="text-gray-600 dark:text-gray-400">{label}</span>
+              <span className={cn("tabular-nums font-semibold", tone)}>{count.toLocaleString("en-IN")}</span>
+            </button>
+          ))}
+          <span className="self-center pl-1 text-[13px] text-gray-500">Paid total {inr(data.summary.success_amount)}</span>
+        </div>
+      )}
+      <div className={cn("mb-5 grid gap-3", kind === "instruments" ? "lg:grid-cols-[1fr_200px_140px_160px_auto]" : kind === "received" ? "lg:grid-cols-[1fr_220px_auto]" : "lg:grid-cols-[1fr_200px_210px_auto]")}>
         <label className="relative block">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
           <input
@@ -196,7 +263,7 @@ function LogTab({ kind }: { kind: LogKind }) {
             </Select>
           </>
         )}
-        {kind !== "instruments" && (
+        {kind !== "instruments" && kind !== "received" && (
           <Select value={status} onChange={resetPage(setStatus)} label="Status">
             <option value="">All Status</option>
             {data?.statuses.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -218,7 +285,7 @@ function LogTab({ kind }: { kind: LogKind }) {
           <thead>
             <tr>
               {head.map((h) => (
-                <th key={h} className={cn(TH, (h === "Action" || h === "Data") && "text-center")}>{h}</th>
+                <th key={h} className={cn(TH, (h === "Action" || h === "Data") && "text-center", (h === "Amount" || h === "Settled") && "text-right")}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -255,10 +322,10 @@ export default function SystemLogs() {
     <div className="space-y-5">
       <div className="rounded-2xl border border-gray-200/70 bg-white px-6 py-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:px-8">
         <h1 className="text-[28px] font-bold text-gray-900 dark:text-gray-100 sm:text-[32px]">System Logs</h1>
-        <p className="mt-1 text-[15px] text-gray-600 dark:text-gray-400 sm:text-[17px]">View webhook logs, delivery status, and payment instrument logs</p>
+        <p className="mt-1 text-[15px] text-gray-600 dark:text-gray-400 sm:text-[17px]">View webhook logs, delivery status, payment instrument logs and received webhooks</p>
       </div>
 
-      <div className="grid overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:grid-cols-3" role="tablist">
+      <div className="grid overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:grid-cols-2 xl:grid-cols-4" role="tablist">
         {TABS.map((t, i) => {
           const active = t.id === tab;
           const Icon = t.icon;
@@ -271,7 +338,8 @@ export default function SystemLogs() {
               onClick={() => setTab(t.id)}
               className={cn(
                 "flex items-center justify-center gap-3 border-t-2 px-4 py-4 text-[15px] font-medium transition sm:text-[16px]",
-                i > 0 && "sm:border-l sm:border-l-gray-200 dark:sm:border-l-gray-800",
+                i % 2 === 1 && "sm:border-l sm:border-l-gray-200 dark:sm:border-l-gray-800",
+                i === 2 && "xl:border-l xl:border-l-gray-200 dark:xl:border-l-gray-800",
                 active
                   ? "border-t-violet-600 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300"
                   : "border-t-transparent text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800/60",

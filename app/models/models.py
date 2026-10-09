@@ -588,3 +588,23 @@ class PartnerMerchant(Base):
     merchant_id = Column(String(20), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
     created_by = Column(String(20), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(india_tz))
+
+
+class WebhookReceipt(Base):
+    """A webhook received at Vichitrapay's own receiver (POST /api/v1/webhook): set it as a
+    merchant's webhook URL to collect every PayIn result (success and failed) in one place."""
+    __tablename__ = "webhook_receipts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    merchant_id = Column(String(50), nullable=True, index=True)      # looked up from the order, when known
+    order_id = Column(String(255), nullable=True, index=True)        # merchantOrderId in the payload
+    event = Column(String(64), nullable=True)                        # payin.completed / payin.failed
+    status = Column(String(32), nullable=True, index=True)           # success / failed
+    amount = Column(Float, nullable=True)
+    settle_amount = Column(Float, nullable=True)
+    utr = Column(String(100), nullable=True)
+    txn_id = Column(String(255), nullable=True)
+    payload = Column(JSON, nullable=True)                            # body exactly as received
+    headers = Column(JSON, nullable=True)
+    source_ip = Column(String(64), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(india_tz), index=True)

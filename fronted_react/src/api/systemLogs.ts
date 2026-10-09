@@ -4,7 +4,7 @@ import { BASE_URL } from "@/config";
 
 const L = `${BASE_URL}/admin/logs`;
 
-export type LogKind = "phonepe" | "deliveries" | "instruments";
+export type LogKind = "phonepe" | "deliveries" | "instruments" | "received";
 
 export type LogFilters = {
   search?: string;
@@ -44,18 +44,43 @@ export type InstrumentLog = {
   created_at: string | null;
 };
 
-export type LogPage<T> = { items: T[]; total: number; page: number; per_page: number; statuses: string[]; tsps?: string[]; domains?: string[] };
+/** A webhook received at Vichitrapay's own receiver, POST /api/v1/webhook (app/routers/webhook_receiver.py) */
+export type ReceivedWebhook = {
+  id: number;
+  merchant_id: string | null;
+  order_id: string | null;
+  event: string | null;
+  status: string | null;
+  amount: number | null;
+  settle_amount: number | null;
+  utr: string | null;
+  source_ip: string | null;
+  created_at: string | null;
+};
 
-const PATH: Record<LogKind, string> = { phonepe: "phonepe-webhooks", deliveries: "webhook-deliveries", instruments: "instruments" };
+export type LogSummary = { total: number; success: number; failed: number; success_amount: number };
+
+export type LogPage<T> = { items: T[]; total: number; page: number; per_page: number; statuses: string[]; tsps?: string[]; domains?: string[]; summary?: LogSummary };
+
+const LOG_URL: Record<LogKind, string> = {
+  phonepe: `${L}/phonepe-webhooks`,
+  deliveries: `${L}/webhook-deliveries`,
+  instruments: `${L}/instruments`,
+  received: `${BASE_URL}/webhook`,
+};
+
+/** The receiver's public address — set it as a merchant's Webhook URL. */
+export const RECEIVER_URL = `${BASE_URL}/webhook`;
 
 const clean = (p: LogFilters) => Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined && v !== ""));
 
 export async function fetchLogs(kind: "phonepe", f: LogFilters): Promise<LogPage<PhonePeLog>>;
 export async function fetchLogs(kind: "deliveries", f: LogFilters): Promise<LogPage<DeliveryLog>>;
 export async function fetchLogs(kind: "instruments", f: LogFilters): Promise<LogPage<InstrumentLog>>;
+export async function fetchLogs(kind: "received", f: LogFilters): Promise<LogPage<ReceivedWebhook>>;
 export async function fetchLogs(kind: LogKind, f: LogFilters) {
-  return (await api.get(`${L}/${PATH[kind]}`, { params: clean(f) })).data;
+  return (await api.get(LOG_URL[kind], { params: clean(f) })).data;
 }
 
 export const fetchLogDetail = async (kind: LogKind, id: number): Promise<Record<string, unknown>> =>
-  (await api.get(`${L}/${PATH[kind]}/${id}`)).data;
+  (await api.get(`${LOG_URL[kind]}/${id}`)).data;
