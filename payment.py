@@ -9,7 +9,7 @@ Logs in as a merchant and creates a ₹100 PayIn through the live API:
 
 Run from anywhere (needs the `requests` package):
 
-    python payment.py                  # ₹100 payment
+    python payment.py --email yourname@gmail.com   # ₹100 payment
     python payment.py --amount 250     # another amount
     python payment.py --status ORDER_ID   # only check the status of an earlier order
 
@@ -43,12 +43,12 @@ MERCHANT_PASSWORD = os.getenv("MERCHANT_PASSWORD", "Demo@1234")
 
 AMOUNT = 100.0
 
-# customer on the payment (test values; the email needs a vowel before "@" when email validation is on)
-CUSTOMER = {
-    "buyer_name": "Test Customer",
-    "email": "test.customer@example.com",
-    "phone": "9876543210",
-}
+# Customer on the payment. Templamart only accepts real email providers (gmail.com, yahoo.com,
+# outlook.com, msn.com ...) — not example.com. Pass them with --email/--name/--phone or set
+# CUSTOMER_EMAIL / CUSTOMER_NAME / CUSTOMER_PHONE.
+CUSTOMER_EMAIL = os.getenv("CUSTOMER_EMAIL", "")
+CUSTOMER_NAME = os.getenv("CUSTOMER_NAME", "Test Customer")
+CUSTOMER_PHONE = os.getenv("CUSTOMER_PHONE", "9876543210")
 
 TIMEOUT = 30  # seconds per request
 
@@ -79,14 +79,14 @@ def login(http, api: str, username: str, password: str) -> str:
     return body["access_token"]
 
 
-def create_payment(http, api: str, token: str, amount: float) -> dict:
+def create_payment(http, api: str, token: str, amount: float, customer: dict) -> dict:
     order_id = f"TEST{time.strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
     payload = {
         "amount": amount,
         "merchantOrderId": order_id,
         "channel": "web",
         "purpose": "Test Payment",
-        "customer": CUSTOMER,
+        "customer": customer,
     }
     resp = http.post(
         f"{api}/live/payin/initiate",
@@ -116,6 +116,9 @@ def main(http=None) -> None:
     parser.add_argument("--amount", type=float, default=AMOUNT, help="amount in rupees (default 100)")
     parser.add_argument("--status", metavar="ORDER_ID", help="only check the status of an existing merchantOrderId")
     parser.add_argument("--api", default=API, help=f"API base URL (default {API})")
+    parser.add_argument("--email", default=CUSTOMER_EMAIL, help="customer email (gmail/yahoo/outlook/msn...)")
+    parser.add_argument("--name", default=CUSTOMER_NAME, help="customer name")
+    parser.add_argument("--phone", default=CUSTOMER_PHONE, help="customer 10-digit mobile")
     args = parser.parse_args()
     http = http or requests.Session()
     api = args.api.rstrip("/")
@@ -136,7 +139,13 @@ def main(http=None) -> None:
         print("\n  ✗ Amount must be more than 0")
         sys.exit(1)
 
-    result = create_payment(http, api, token, args.amount)
+    email = (args.email or "").strip()
+    if not email or "@" not in email:
+        print("\n  ✗ Customer email is required, e.g.  python payment.py --email yourname@gmail.com")
+        print("    (Templamart accepts gmail.com, yahoo.com, outlook.com, msn.com ... — not example.com)")
+        sys.exit(1)
+    customer = {"buyer_name": args.name, "email": email, "phone": args.phone}
+    result = create_payment(http, api, token, args.amount, customer)
     order_id = result.get("merchantOrderId")
     print(f"  ✓ Payment of ₹{args.amount:,.2f} created")
     print("\n  ─────────────────────────────")
