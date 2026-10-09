@@ -216,8 +216,8 @@ def _create_upi_intent(db: Session, token: str, payload: dict,
     return body
 
 
-TEMPLAMART_USERNAME = "vtechy"
-TEMPLAMART_PASSWORD = "Vtech@123"
+TEMPLAMART_USERNAME = "seller01"
+TEMPLAMART_PASSWORD = "Pass@1234"
 
 
 # ──────────────────────────────────────────────
